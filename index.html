@@ -1,0 +1,2502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>買取案件ダッシュボード v3 | 媒体別KPI + 横断HOT一覧</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Bodoni+Moda:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --bg-panel: #ffffff;
+    --bg-soft: #ebe8e0;
+    --ink: #1a1a1a;
+    --ink-2: #4a4a4a;
+    --ink-3: #888;
+    --line: #d8d3c7;
+    --accent: #b8312f;
+    --accent-dark: #8a1f1d;
+    --accent-soft: #d68f8e;
+    --gold: #b8954a;
+    --gold-soft: #d4b884;
+    --green: #4a7c4a;
+    --green-soft: #8eb38e;
+    --amber: #c89030;
+    --amber-soft: #dfb878;
+    --red: #c63838;
+    --red-soft: #dc8a8a;
+    --blue: #2c5282;
+    --blue-soft: #7c9cc0;
+    --purple: #6b4a7c;
+    --purple-soft: #a691b3;
+    --mota: #d97742;
+    --mota-soft: #e8aa86;
+    --carsensor: #2c5282;
+    --carsensor-soft: #7c9cc0;
+    --navikuru: #4a7c4a;
+    --navikuru-soft: #8eb38e;
+    --self: #6b4a7c;
+    --self-soft: #a691b3;
+    --shop: #b8954a;
+    --shop-soft: #d4b884;
+    --hot-bg: rgba(184, 49, 47, 0.04);
+    --hot-border: rgba(184, 49, 47, 0.3);
+    --new-bg: rgba(74, 124, 74, 0.04);
+    --new-border: rgba(74, 124, 74, 0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+
+  /* ========== Header ========== */
+  header {
+    background: var(--ink);
+    color: #f5f3ee;
+    padding: 14px 32px;
+    border-bottom: 3px double var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .logo {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+  }
+  .breadcrumb {
+    font-size: 11px;
+    color: #b8b3a3;
+    letter-spacing: 0.15em;
+    border-left: 1px solid #555;
+    padding-left: 16px;
+  }
+  .breadcrumb b { color: #f5f3ee; font-weight: 500; }
+  .header-meta {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 11px;
+  }
+  .source-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #d8d3c7;
+    padding: 6px 12px;
+    border: 1px solid #555;
+  }
+  .source-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ========== Page Tabs ========== */
+  .page-tabs {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--line);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+  .page-tab {
+    padding: 14px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .page-tab:hover { color: var(--ink); }
+  .page-tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+    font-weight: 700;
+  }
+  .page-tab .badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 7px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    border-radius: 10px;
+  }
+
+  /* ========== Media Tabs (in dashboard page) ========== */
+  .media-tabs {
+    background: linear-gradient(to bottom, var(--bg-soft), var(--bg));
+    padding: 16px 32px 0;
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .media-tab {
+    padding: 12px 24px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    top: 1px;
+  }
+  .media-tab:hover { color: var(--ink); }
+  .media-tab.active {
+    background: var(--bg-panel);
+    color: var(--ink);
+    border-color: var(--ink);
+    border-bottom: 2px solid var(--bg-panel);
+    z-index: 2;
+  }
+  .media-tab .indicator {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid;
+  }
+  .media-tab.active .indicator { background: currentColor; }
+  .media-tab[data-media="all"] .indicator { color: var(--ink); border-color: var(--ink); }
+  .media-tab[data-media="mota"] .indicator { color: var(--mota); border-color: var(--mota); }
+  .media-tab[data-media="carsensor"] .indicator { color: var(--carsensor); border-color: var(--carsensor); }
+  .media-tab[data-media="navikuru"] .indicator { color: var(--navikuru); border-color: var(--navikuru); }
+  .media-tab[data-media="self"] .indicator { color: var(--self); border-color: var(--self); }
+  .media-tab[data-media="shop"] .indicator { color: var(--shop); border-color: var(--shop); }
+  .media-tab .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--bg-soft);
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+
+  /* ========== Filters ========== */
+  .filters {
+    background: var(--bg-panel);
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-group { display: flex; gap: 6px; align-items: center; }
+  .filter-label {
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+  .chip {
+    padding: 5px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-panel);
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--ink-2); }
+  .chip.active {
+    background: var(--ink);
+    color: #f5f3ee;
+    border-color: var(--ink);
+  }
+
+  .container {
+    padding: 24px 32px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .section-title {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 32px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title:first-child { margin-top: 0; }
+  .section-title::before {
+    content: '';
+    width: 24px;
+    height: 2px;
+    background: var(--accent);
+  }
+  .section-title .ja {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.2em;
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  /* ========== KPI ========== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .kpi-grid.cols-7 { grid-template-columns: repeat(7, 1fr); }
+  .kpi {
+    background: var(--bg-panel);
+    padding: 16px 18px;
+    position: relative;
+  }
+  .kpi-label {
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .kpi-unit {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-3);
+    margin-left: 4px;
+  }
+  .kpi-sub {
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .kpi-sub.up { color: var(--green); }
+  .kpi-sub.down { color: var(--red); }
+  .kpi.alert { background: linear-gradient(to bottom, rgba(198,56,56,0.06), var(--bg-panel) 60%); }
+  .kpi.alert .kpi-value { color: var(--accent); }
+  .kpi.mota-tag { background: linear-gradient(to bottom, rgba(217,119,66,0.08), var(--bg-panel) 60%); }
+  .kpi.mota-tag::before {
+    content: 'MOTA';
+    position: absolute;
+    top: 6px; right: 8px;
+    font-size: 8px;
+    color: var(--mota);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  /* ========== Funnel ========== */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 24px;
+  }
+  .panel-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 24px;
+  }
+  .funnel { display: flex; flex-direction: column; gap: 4px; }
+  .funnel-stage {
+    display: grid;
+    grid-template-columns: 150px 1fr 70px 60px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .funnel-stage:last-child { border-bottom: none; }
+  .funnel-stage.mota-only {
+    background: rgba(217,119,66,0.04);
+    margin: 0 -8px;
+    padding: 10px 8px;
+    border-radius: 2px;
+  }
+  .funnel-name {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .funnel-name .num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-3);
+    font-weight: 500;
+    font-size: 10px;
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+  }
+  .funnel-name .mota-badge {
+    font-size: 8px;
+    color: var(--mota);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--mota);
+    padding: 1px 4px;
+    background: rgba(217,119,66,0.05);
+  }
+  .funnel-bar-wrap {
+    background: var(--bg-soft);
+    height: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .funnel-bar {
+    background: linear-gradient(90deg, rgba(26,26,26,0.55) 0%, rgba(184,49,47,0.65) 100%);
+    height: 100%;
+    transition: width 0.6s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    color: #f5f3ee;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  .funnel-bar.mota { background: linear-gradient(90deg, rgba(138,74,37,0.6), rgba(217,119,66,0.7)); }
+  .funnel-count {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .funnel-rate {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .funnel-rate.drop { color: var(--red); font-weight: 600; }
+
+  .conv-stats { display: flex; flex-direction: column; gap: 12px; }
+  .conv-card {
+    border: 1px solid var(--line);
+    padding: 14px 16px;
+    background: var(--bg-soft);
+  }
+  .conv-card.alert {
+    background: linear-gradient(135deg, rgba(184,49,47,0.08), rgba(184,49,47,0.02));
+    border-color: var(--accent);
+  }
+  .conv-card .label {
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .conv-card .value {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .conv-card .value .pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-left: 6px;
+  }
+  .conv-card .meta {
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Media comparison (全体view) */
+  .media-compare {
+    display: grid;
+    grid-template-columns: 100px 1fr 70px 70px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 12px;
+  }
+  .media-compare:last-child { border-bottom: none; }
+  .media-compare .name {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .media-compare .dot-m {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .media-compare .dot-mota { background: rgba(217,119,66,0.7); }
+  .media-compare .dot-cs { background: rgba(44,82,130,0.7); }
+  .media-compare .dot-nav { background: rgba(74,124,74,0.7); }
+  .media-compare .dot-self { background: rgba(107,74,124,0.7); }
+  .media-compare .dot-shop { background: rgba(184,149,74,0.75); }
+  .media-compare .bar-bg {
+    background: var(--bg-soft);
+    height: 20px;
+    position: relative;
+  }
+  .media-compare .bar-fill {
+    height: 100%;
+    transition: width 0.5s;
+  }
+  .media-compare .bar-fill.mota { background: rgba(217,119,66,0.6); }
+  .media-compare .bar-fill.cs { background: rgba(44,82,130,0.55); }
+  .media-compare .bar-fill.nav { background: rgba(74,124,74,0.55); }
+  .media-compare .bar-fill.self { background: rgba(107,74,124,0.55); }
+  .media-compare .bar-fill.shop { background: rgba(184,149,74,0.6); }
+  .media-compare .pct, .media-compare .num {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  .media-compare .num { color: var(--ink-3); font-size: 11px; }
+
+  /* Two col */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* Bar list */
+  .bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .bar-item {
+    display: grid;
+    grid-template-columns: 110px 1fr 70px;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+  .bar-item .label { font-weight: 500; }
+  .bar-bg {
+    background: var(--bg-soft);
+    height: 18px;
+    position: relative;
+  }
+  .bar-fill { height: 100%; background: rgba(26,26,26,0.55); transition: width 0.5s; }
+  .bar-fill.accent { background: rgba(184,49,47,0.55); }
+  .bar-fill.gold { background: rgba(184,149,74,0.6); }
+  .bar-fill.green { background: rgba(74,124,74,0.55); }
+  .bar-fill.amber { background: rgba(200,144,48,0.55); }
+  .bar-fill.blue { background: rgba(44,82,130,0.55); }
+  .bar-fill.purple { background: rgba(107,74,124,0.55); }
+  .bar-fill.red { background: rgba(198,56,56,0.55); }
+  .bar-fill.mota-c { background: rgba(217,119,66,0.6); }
+  .bar-fill.cs-c { background: rgba(44,82,130,0.55); }
+  .bar-fill.nav-c { background: rgba(74,124,74,0.55); }
+  .bar-fill.self-c { background: rgba(107,74,124,0.55); }
+  .bar-fill.shop-c { background: rgba(184,149,74,0.6); }
+  .bar-val {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .bar-val .sub {
+    font-size: 9px;
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+
+  /* Today banner */
+  .today-banner {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark) 100%);
+    color: #f5f3ee;
+    padding: 18px 32px;
+    border-bottom: 3px solid var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .today-banner .icon { font-size: 28px; color: var(--gold); }
+  .today-banner h3 {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .today-banner .meta {
+    font-size: 11px;
+    opacity: 0.9;
+    letter-spacing: 0.1em;
+  }
+  .today-banner .count {
+    margin-left: auto;
+    font-family: 'Bodoni Moda', serif;
+    font-size: 36px;
+    font-weight: 700;
+  }
+
+  /* Table */
+  .table-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-panel);
+    font-family: inherit;
+    font-size: 12px;
+    width: 240px;
+  }
+  .table-info {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    font-size: 12px;
+  }
+  thead th {
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--bg-soft);
+    border-bottom: 2px solid var(--ink);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  thead th.num, thead th.center { text-align: center; }
+  tbody tr {
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: #faf8f3; }
+  tbody td { padding: 10px 12px; vertical-align: middle; }
+  td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+  td.center { text-align: center; }
+  .case-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-3); }
+
+  /* Media tag */
+  .m-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #fff;
+    border-radius: 2px;
+  }
+  .m-tag.mota { background: rgba(217,119,66,0.85); }
+  .m-tag.carsensor { background: rgba(44,82,130,0.8); }
+  .m-tag.navikuru { background: rgba(74,124,74,0.8); }
+  .m-tag.self { background: rgba(107,74,124,0.8); }
+  .m-tag.shop { background: rgba(184,149,74,0.85); }
+
+  /* Phase badges */
+  .phase {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .ph-bid { background: rgba(107,74,124,0.08); color: var(--purple); border-color: var(--purple); }
+  .ph-call { background: rgba(44,82,130,0.08); color: var(--blue); border-color: var(--blue); }
+  .ph-apo { background: rgba(184,149,74,0.1); color: var(--gold); border-color: var(--gold); }
+  .ph-est { background: var(--ink); color: #f5f3ee; border-color: var(--ink); }
+  .ph-est-x { background: var(--bg-soft); color: var(--ink-3); border-color: var(--line); }
+  .ph-deal { background: rgba(74,124,74,0.1); color: var(--green); border-color: var(--green); }
+  .ph-won { background: var(--green); color: #fff; border-color: var(--green); }
+  .ph-lost { background: var(--bg-soft); color: var(--ink-3); border-color: var(--line); }
+  .ph-revisit { background: rgba(200,144,48,0.1); color: var(--amber); border-color: var(--amber); }
+
+  /* Call dots */
+  .call-trail { display: inline-flex; gap: 3px; align-items: center; }
+  .call-dot {
+    width: 16px; height: 16px;
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .call-dot.absent { background: #f0e6e6; color: var(--red); }
+  .call-dot.message { background: #faf2e0; color: var(--amber); }
+  .call-dot.reject { background: var(--ink); color: #f5f3ee; border-color: var(--ink); }
+  .call-dot.consider { background: rgba(44,82,130,0.15); color: var(--blue); border-color: var(--blue); }
+  .call-dot.apo { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .call-dot.empty { background: transparent; border-style: dashed; color: var(--line); }
+
+  .followup-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .followup-cell.today { color: var(--accent); font-weight: 700; }
+  .followup-cell.past { color: var(--red); font-weight: 700; }
+  .followup-cell.future { color: var(--ink-3); }
+
+  /* Detail Panel */
+  .detail-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none; z-index: 100;
+  }
+  .detail-overlay.show { display: block; }
+  .detail-panel {
+    position: fixed; top: 0; right: 0;
+    width: 640px; height: 100vh;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--line);
+    box-shadow: -4px 0 30px rgba(0,0,0,0.15);
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    z-index: 101;
+  }
+  .detail-panel.show { transform: translateX(0); }
+  .detail-header {
+    padding: 24px 28px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--bg-soft);
+    position: sticky; top: 0; z-index: 2;
+  }
+  .detail-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    width: 32px; height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .detail-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-name {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .detail-section {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line);
+  }
+  .detail-section h3 {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--ink-3);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .detail-section h3::before { content: '— '; color: var(--accent); }
+  .field-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 16px;
+    font-size: 12px;
+  }
+  .field-label { color: var(--ink-3); }
+  .field-value { font-weight: 500; }
+  .field-value.mono { font-family: 'JetBrains Mono', monospace; }
+
+  .call-log { display: flex; flex-direction: column; gap: 8px; }
+  .call-row {
+    display: grid;
+    grid-template-columns: 50px 90px 1fr;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-soft);
+    border-left: 3px solid var(--line);
+    font-size: 12px;
+    align-items: center;
+  }
+  .call-row.absent { border-left-color: var(--red); }
+  .call-row.message { border-left-color: var(--amber); }
+  .call-row.reject { border-left-color: var(--ink); }
+  .call-row.consider { border-left-color: var(--blue); }
+  .call-row.apo { border-left-color: var(--accent); background: rgba(184,49,47,0.06); }
+  .call-row .n {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+  }
+  .call-row .date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .call-row .result { font-weight: 600; }
+
+  /* Page sections */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  footer {
+    margin-top: 60px;
+    padding: 20px 32px;
+    border-top: 1px solid var(--line);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-soft); }
+  ::-webkit-scrollbar-thumb { background: var(--line); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+
+  /* ========== Period Filter ========== */
+  .period-chip {
+    transition: all 0.15s;
+  }
+  .custom-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-style: dashed;
+  }
+  .custom-chip.active {
+    border-style: solid;
+  }
+  .custom-chip .cal-icon {
+    font-size: 11px;
+    filter: grayscale(0.3);
+  }
+  .period-display {
+    margin-left: 12px;
+    padding: 4px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--bg-soft);
+    border-left: 2px solid var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  /* ========== Date Picker Modal ========== */
+  .picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    z-index: 200;
+  }
+  .picker-overlay.show { display: block; }
+  .date-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 420px;
+    background: var(--bg-panel);
+    border: 1px solid var(--ink);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    z-index: 201;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+  .date-picker.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .picker-header {
+    padding: 16px 20px;
+    background: var(--bg-soft);
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .picker-title {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .picker-title::before {
+    content: '◆';
+    color: var(--accent);
+    margin-right: 8px;
+    font-size: 11px;
+  }
+  .picker-close {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--ink-2);
+    transition: all 0.15s;
+  }
+  .picker-close:hover {
+    background: var(--ink);
+    color: #f5f3ee;
+    border-color: var(--ink);
+  }
+  .picker-body {
+    padding: 20px;
+  }
+  .picker-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .picker-row label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .picker-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .picker-row input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg-panel);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    transition: border-color 0.15s;
+  }
+  .picker-row input[type="date"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .picker-shortcuts {
+    margin-bottom: 20px;
+  }
+  .shortcut-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .shortcut-btn {
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    background: var(--bg-panel);
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .shortcut-btn:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .shortcut-btn.active {
+    background: var(--ink);
+    color: #f5f3ee;
+    border-color: var(--ink);
+  }
+  .picker-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+  }
+  .btn-secondary, .btn-primary {
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 12px;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-secondary {
+    background: var(--bg-panel);
+    color: var(--ink-2);
+  }
+  .btn-secondary:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .btn-primary {
+    background: var(--ink);
+    color: #f5f3ee;
+    border-color: var(--ink);
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ========== 新着 & HOT セクション ========== */
+  .priority-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .priority-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .priority-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid;
+  }
+  .priority-card.new .priority-header {
+    background: var(--new-bg);
+    border-bottom-color: var(--new-border);
+  }
+  .priority-card.hot .priority-header {
+    background: var(--hot-bg);
+    border-bottom-color: var(--hot-border);
+  }
+  .priority-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    border: 1px solid;
+  }
+  .priority-card.new .priority-icon {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(255,255,255,0.6);
+  }
+  .priority-card.hot .priority-icon {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.6);
+  }
+  .priority-title {
+    flex: 1;
+  }
+  .priority-title .label {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .priority-title .desc {
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+  .priority-count {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .priority-card.new .priority-count { color: var(--green); }
+  .priority-card.hot .priority-count { color: var(--accent); }
+  .priority-count .unit {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-left: 3px;
+    font-weight: 400;
+  }
+  .priority-list {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .priority-row {
+    padding: 10px 18px;
+    border-bottom: 1px dashed var(--line);
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .priority-row:hover { background: #faf8f3; }
+  .priority-row:last-child { border-bottom: none; }
+  .priority-row .pr-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-3);
+  }
+  .priority-row .pr-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .priority-row .pr-name .car {
+    font-size: 10px;
+    color: var(--ink-3);
+    margin-left: 6px;
+    font-weight: 400;
+  }
+  .priority-row .pr-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .priority-row .pr-status.uncalled {
+    color: var(--green);
+    border-color: var(--green);
+    background: rgba(74,124,74,0.06);
+  }
+  .priority-row .pr-status.apo-est {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: rgba(184,149,74,0.06);
+  }
+  .priority-row .pr-status.waiting {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(184,49,47,0.06);
+  }
+  .priority-empty {
+    padding: 30px 18px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 11px;
+  }
+
+  /* ========== Donut Chart ========== */
+  .donut-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  .donut-svg {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .donut-svg .donut-segment {
+    transition: opacity 0.2s, transform 0.2s;
+    transform-origin: center;
+    cursor: pointer;
+  }
+  .donut-svg .donut-segment:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+  .donut-center {
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+  .donut-center-num {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 32px;
+    font-weight: 700;
+    fill: var(--ink);
+  }
+  .donut-center-label {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 9px;
+    fill: var(--ink-3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .legend-item {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 11px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .legend-item:last-child { border-bottom: none; }
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  .legend-name { color: var(--ink-2); }
+  .legend-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .legend-pct {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink-3);
+    font-size: 10px;
+    min-width: 42px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">CARRIAGE</div>
+  <div class="breadcrumb">買 取 案 件 管 理 / <b>2026年 5月分</b></div>
+  <div class="header-meta">
+    <div class="source-badge"><span class="dot"></span>データソース: スプレッドシート連携</div>
+    <span style="color:#888;">最終更新 <span id="last-update">読み込み中...</span></span>
+    <button onclick="initDashboard()" style="padding:4px 12px;background:transparent;color:#d8d3c7;border:1px solid #555;cursor:pointer;font-family:inherit;font-size:11px;" title="データを再読込">↻ 更新</button>
+  </div>
+</header>
+
+<!-- データ読み込み中のオーバーレイ -->
+<div id="data-loading" style="display:none;position:fixed;inset:0;background:rgba(245,243,238,0.95);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
+  <div style="font-family:'Bodoni Moda',serif;font-size:24px;color:var(--ink);letter-spacing:0.05em;">データを読み込み中...</div>
+  <div style="font-size:11px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">スプレッドシートから取得しています</div>
+  <div style="width:40px;height:40px;border:3px solid var(--bg-soft);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+</div>
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #data-loading { display: flex !important; }
+  #data-loading[style*="display:none"], #data-loading[style*="display: none"] { display: none !important; }
+</style>
+
+<!-- Page tabs -->
+<div class="page-tabs">
+  <div class="page-tab active" data-page="dashboard">📊 ダッシュボード</div>
+  <div class="page-tab" data-page="cases">📋 案件一覧 (HOT) <span class="badge">14</span></div>
+</div>
+
+<!-- 今日のバナー (常時表示) -->
+<div class="today-banner">
+  <div class="icon">⚑</div>
+  <div>
+    <h3>本日の優先対応</h3>
+    <div class="meta">新着(未コール) + HOT(査定アポ・返事待ち) + 後追日が今日以前</div>
+  </div>
+  <div class="count">19<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span></div>
+</div>
+
+<!-- 新着 & HOT セクション -->
+<div style="padding: 20px 32px 0;">
+  <div class="priority-grid">
+    <!-- 新着案件 -->
+    <div class="priority-card new">
+      <div class="priority-header">
+        <div class="priority-icon">●</div>
+        <div class="priority-title">
+          <div class="label">新着案件 <span style="font-size:10px;color:var(--ink-3);font-family:'Noto Sans JP';font-weight:400;letter-spacing:0.1em;margin-left:6px;">未コール</span></div>
+          <div class="desc">受信したがまだ架電していない案件 — 早めの初回コールが鍵</div>
+        </div>
+        <div class="priority-count">8<span class="unit">件</span></div>
+      </div>
+      <div class="priority-list" id="newList"></div>
+    </div>
+
+    <!-- HOT案件 -->
+    <div class="priority-card hot">
+      <div class="priority-header">
+        <div class="priority-icon">▲</div>
+        <div class="priority-title">
+          <div class="label">HOT案件 <span style="font-size:10px;color:var(--ink-3);font-family:'Noto Sans JP';font-weight:400;letter-spacing:0.1em;margin-left:6px;">査定アポ・査定後返事待ち</span></div>
+          <div class="desc">熱い段階の案件 — 1本のフォローで成約に直結する可能性大</div>
+        </div>
+        <div class="priority-count">11<span class="unit">件</span></div>
+      </div>
+      <div class="priority-list" id="hotList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- DASHBOARD PAGE                                  -->
+<!-- ============================================== -->
+<div class="page-section active" id="page-dashboard">
+
+  <!-- Media tabs -->
+  <div class="media-tabs">
+    <div class="media-tab active" data-media="all">
+      <span class="indicator"></span>
+      <span>全媒体</span>
+      <span class="count">248</span>
+    </div>
+    <div class="media-tab" data-media="mota">
+      <span class="indicator"></span>
+      <span>MOTA</span>
+      <span class="count">87</span>
+    </div>
+    <div class="media-tab" data-media="carsensor">
+      <span class="indicator"></span>
+      <span>カーセンサー</span>
+      <span class="count">82</span>
+    </div>
+    <div class="media-tab" data-media="navikuru">
+      <span class="indicator"></span>
+      <span>ナビクル</span>
+      <span class="count">47</span>
+    </div>
+    <div class="media-tab" data-media="self">
+      <span class="indicator"></span>
+      <span>自社サイト</span>
+      <span class="count">22</span>
+    </div>
+    <div class="media-tab" data-media="shop">
+      <span class="indicator"></span>
+      <span>店頭</span>
+      <span class="count">10</span>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">期間</span>
+      <span class="chip period-chip active" data-period="current">当月</span>
+      <span class="chip period-chip" data-period="last">先月</span>
+      <span class="chip period-chip" data-period="last2">先々月</span>
+      <span class="chip period-chip" data-period="6m">過去6ヶ月</span>
+      <span class="chip period-chip" data-period="1y">過去1年</span>
+      <span class="chip period-chip custom-chip" data-period="custom" id="customChip">
+        <span class="cal-icon">📅</span>
+        <span id="customLabel">自由選択</span>
+      </span>
+      <div class="period-display" id="periodDisplay">2026/05/01 — 2026/05/31</div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">担当者</span>
+      <span class="chip active">全員</span>
+      <span class="chip">高木</span>
+      <span class="chip">馬塚</span>
+    </div>
+  </div>
+
+  <!-- カレンダーピッカー(モーダル) -->
+  <div class="picker-overlay" id="pickerOverlay"></div>
+  <div class="date-picker" id="datePicker">
+    <div class="picker-header">
+      <div class="picker-title">期間を選択</div>
+      <button class="picker-close" id="pickerClose">×</button>
+    </div>
+    <div class="picker-body">
+      <div class="picker-row">
+        <label>
+          <span class="picker-label">開始日</span>
+          <input type="date" id="dateFrom" value="2026-04-01">
+        </label>
+        <label>
+          <span class="picker-label">終了日</span>
+          <input type="date" id="dateTo" value="2026-05-03">
+        </label>
+      </div>
+      <div class="picker-shortcuts">
+        <span class="picker-label">クイック設定</span>
+        <div class="shortcut-row">
+          <button class="shortcut-btn" data-days="7">直近7日</button>
+          <button class="shortcut-btn" data-days="14">直近14日</button>
+          <button class="shortcut-btn" data-days="30">直近30日</button>
+          <button class="shortcut-btn" data-days="90">直近90日</button>
+        </div>
+      </div>
+      <div class="picker-actions">
+        <button class="btn-secondary" id="pickerCancel">キャンセル</button>
+        <button class="btn-primary" id="pickerApply">適用</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- ALL MEDIA VIEW -->
+    <div id="view-all">
+      <h2 class="section-title">全媒体サマリー <span class="ja">5月分主要指標</span></h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">248<span class="kpi-unit">件</span></div><div class="kpi-sub up">↑ 前月比 +20%</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">187<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 75.4%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">82<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 33.1%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">64<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 78.0%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">38<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 15.3%</div></div>
+        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">14<span class="kpi-unit">件</span></div><div class="kpi-sub">うち本日期限 6件</div></div>
+      </div>
+
+      <h2 class="section-title">媒体別パフォーマンス比較 <span class="ja">同条件で並べた成約率</span></h2>
+      <div class="panel">
+        <div style="margin-bottom: 16px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信 → 成約 通過率</div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:90%;"></div></div><div class="pct">50.0%</div><div class="num">5/10</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:50%;"></div></div><div class="pct">27.3%</div><div class="num">6/22</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:30%;"></div></div><div class="pct">16.1%</div><div class="num">14/87</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:25%;"></div></div><div class="pct">13.4%</div><div class="num">11/82</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:24%;"></div></div><div class="pct">12.8%</div><div class="num">6/47</div></div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">架電到達 → アポ率</div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:95%;"></div></div><div class="pct">90.0%</div><div class="num">9/10</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:75%;"></div></div><div class="pct">55.0%</div><div class="num">11/20</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:55%;"></div></div><div class="pct">45.9%</div><div class="num">28/61</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:45%;"></div></div><div class="pct">40.3%</div><div class="num">25/62</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:42%;"></div></div><div class="pct">37.5%</div><div class="num">15/40</div></div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信件数(構成比)</div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:100%;"></div></div><div class="pct">35.1%</div><div class="num">87件</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:94%;"></div></div><div class="pct">33.1%</div><div class="num">82件</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:54%;"></div></div><div class="pct">19.0%</div><div class="num">47件</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:25%;"></div></div><div class="pct">8.9%</div><div class="num">22件</div></div>
+          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:11%;"></div></div><div class="pct">4.0%</div><div class="num">10件</div></div>
+        </div>
+
+        <div style="margin-top:20px;font-size:11px;color:var(--ink-3);padding:12px 14px;background:var(--bg-soft);border-left:3px solid var(--gold);">
+          <b style="color:var(--ink);">💡 媒体別インサイト:</b> 店頭・自社サイトは件数こそ少ないが成約率が圧倒的に高い(50%/27%)ので、自社チャネル強化の優先度が高い。MOTA以下の3媒体は件数が多いが成約率は10%台で、効率改善の余地大。
+        </div>
+      </div>
+    </div>
+
+    <!-- MOTA VIEW -->
+    <div id="view-mota" style="display:none;">
+      <h2 class="section-title">MOTA サマリー <span class="ja">入札型 / 5月分</span></h2>
+      <div class="kpi-grid cols-7">
+        <div class="kpi mota-tag"><div class="kpi-label">配信受信</div><div class="kpi-value">142<span class="kpi-unit">件</span></div><div class="kpi-sub">配信通知の総数</div></div>
+        <div class="kpi mota-tag"><div class="kpi-label">入札件数</div><div class="kpi-value">98<span class="kpi-unit">件</span></div><div class="kpi-sub">入札率 69.0%</div></div>
+        <div class="kpi mota-tag"><div class="kpi-label">獲得件数</div><div class="kpi-value">87<span class="kpi-unit">件</span></div><div class="kpi-sub">獲得率 88.8%</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">61<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 70.1%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">28<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 32.2%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">22<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 78.6%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">14<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 16.1%</div></div>
+      </div>
+
+      <h2 class="section-title">MOTA フェーズ別ファネル <span class="ja">配信 → 入札 → 獲得 → 架電 → 成約</span></h2>
+      <div class="panel">
+        <div class="panel-row">
+          <div>
+            <div class="funnel">
+              <div class="funnel-stage mota-only">
+                <div class="funnel-name"><span class="num">01</span>配信受信<span class="mota-badge">MOTA</span></div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:100%;">142</div></div>
+                <div class="funnel-count">142</div>
+                <div class="funnel-rate">100%</div>
+              </div>
+              <div class="funnel-stage mota-only">
+                <div class="funnel-name"><span class="num">02</span>入札<span class="mota-badge">MOTA</span></div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:69%;">98</div></div>
+                <div class="funnel-count">98</div>
+                <div class="funnel-rate drop">69.0%</div>
+              </div>
+              <div class="funnel-stage mota-only">
+                <div class="funnel-name"><span class="num">03</span>獲得(落札)<span class="mota-badge">MOTA</span></div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:61.3%;">87</div></div>
+                <div class="funnel-count">87</div>
+                <div class="funnel-rate">61.3%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">04</span>架電到達</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:43.0%;">61</div></div>
+                <div class="funnel-count">61</div>
+                <div class="funnel-rate drop">43.0%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">05</span>アポ獲得</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:19.7%;">28</div></div>
+                <div class="funnel-count">28</div>
+                <div class="funnel-rate drop">19.7%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">06</span>査定〇</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:15.5%;">22</div></div>
+                <div class="funnel-count">22</div>
+                <div class="funnel-rate">15.5%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">07</span>成約</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:9.9%;background:linear-gradient(90deg,var(--ink),var(--green));">14</div></div>
+                <div class="funnel-count">14</div>
+                <div class="funnel-rate">9.9%</div>
+              </div>
+            </div>
+          </div>
+          <div class="conv-stats">
+            <div class="conv-card alert">
+              <div class="label">最大の離脱:架電到達 → アポ</div>
+              <div class="value">-23.3pt<span class="pct">33件離脱</span></div>
+              <div class="meta">架電は繋がるがアポにならない</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">入札率(配信→入札)</div>
+              <div class="value">69.0<span class="pct">%</span></div>
+              <div class="meta">配信のうち69%を入札判断</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">獲得率(入札→落札)</div>
+              <div class="value">88.8<span class="pct">%</span></div>
+              <div class="meta">入札のうち88.8%を落札</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">配信→成約 全体通過率</div>
+              <div class="value">9.9<span class="pct">%</span></div>
+              <div class="meta">前月 8.5% / 改善傾向</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARSENSOR VIEW -->
+    <div id="view-carsensor" style="display:none;">
+      <h2 class="section-title">カーセンサー サマリー <span class="ja">全件配信型 / 5月分</span></h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">82<span class="kpi-unit">件</span></div><div class="kpi-sub up">↑ 前月比 +5%</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">62<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 75.6%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">25<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 30.5%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">19<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 76.0%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">11<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 13.4%</div></div>
+        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">5<span class="kpi-unit">件</span></div><div class="kpi-sub">本日期限 2件</div></div>
+      </div>
+
+      <h2 class="section-title">カーセンサー フェーズ別ファネル <span class="ja">受信 → 架電 → 成約</span></h2>
+      <div class="panel">
+        <div class="panel-row">
+          <div>
+            <div class="funnel">
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">01</span>受信</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">82</div></div>
+                <div class="funnel-count">82</div>
+                <div class="funnel-rate">100%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">02</span>架電到達</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:75.6%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">62</div></div>
+                <div class="funnel-count">62</div>
+                <div class="funnel-rate">75.6%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">03</span>アポ獲得</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:30.5%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">25</div></div>
+                <div class="funnel-count">25</div>
+                <div class="funnel-rate drop">30.5%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">04</span>査定〇</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:23.2%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">19</div></div>
+                <div class="funnel-count">19</div>
+                <div class="funnel-rate">23.2%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">05</span>査定提示</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:20.7%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">17</div></div>
+                <div class="funnel-count">17</div>
+                <div class="funnel-rate">20.7%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">06</span>成約</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:13.4%;background:linear-gradient(90deg,var(--carsensor),var(--green));">11</div></div>
+                <div class="funnel-count">11</div>
+                <div class="funnel-rate">13.4%</div>
+              </div>
+            </div>
+          </div>
+          <div class="conv-stats">
+            <div class="conv-card alert">
+              <div class="label">最大の離脱:架電到達 → アポ</div>
+              <div class="value">-45.1pt<span class="pct">37件離脱</span></div>
+              <div class="meta">アポ率がMOTAより低い</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">受信→成約 全体通過率</div>
+              <div class="value">13.4<span class="pct">%</span></div>
+              <div class="meta">前月 11.5%</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">アポ → 成約</div>
+              <div class="value">44.0<span class="pct">%</span></div>
+              <div class="meta">アポ獲得後の成約率</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">平均架電回数</div>
+              <div class="value">2.8<span class="pct">回</span></div>
+              <div class="meta">成約まで(中央値2回)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVIKURU VIEW -->
+    <div id="view-navikuru" style="display:none;">
+      <h2 class="section-title">ナビクル サマリー <span class="ja">一括査定 / 5月分</span></h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">47<span class="kpi-unit">件</span></div><div class="kpi-sub down">↓ 前月比 -8%</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">40<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 85.1%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">15<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 31.9%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">12<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 80.0%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">6<span class="kpi-unit">件</span></div><div class="kpi-sub down">成約率 12.8%</div></div>
+        <div class="kpi alert"><div class="kpi-label">他社売却</div><div class="kpi-value">4<span class="kpi-unit">件</span></div><div class="kpi-sub">競合に流出</div></div>
+      </div>
+
+      <h2 class="section-title">ナビクル フェーズ別ファネル <span class="ja">受信 → 架電 → 成約</span></h2>
+      <div class="panel">
+        <div class="panel-row">
+          <div>
+            <div class="funnel">
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">01</span>受信</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">47</div></div>
+                <div class="funnel-count">47</div>
+                <div class="funnel-rate">100%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">02</span>架電到達</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:85.1%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">40</div></div>
+                <div class="funnel-count">40</div>
+                <div class="funnel-rate">85.1%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">03</span>アポ獲得</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:31.9%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">15</div></div>
+                <div class="funnel-count">15</div>
+                <div class="funnel-rate drop">31.9%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">04</span>査定〇</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:25.5%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">12</div></div>
+                <div class="funnel-count">12</div>
+                <div class="funnel-rate">25.5%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">05</span>査定提示</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:21.3%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">10</div></div>
+                <div class="funnel-count">10</div>
+                <div class="funnel-rate">21.3%</div>
+              </div>
+              <div class="funnel-stage">
+                <div class="funnel-name"><span class="num">06</span>成約</div>
+                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:12.8%;background:linear-gradient(90deg,var(--navikuru),var(--green));">6</div></div>
+                <div class="funnel-count">6</div>
+                <div class="funnel-rate">12.8%</div>
+              </div>
+            </div>
+          </div>
+          <div class="conv-stats">
+            <div class="conv-card alert">
+              <div class="label">最大の離脱:架電到達 → アポ</div>
+              <div class="value">-53.2pt<span class="pct">25件離脱</span></div>
+              <div class="meta">一括査定特有の競合影響</div>
+            </div>
+            <div class="conv-card alert">
+              <div class="label">他社売却(失注理由TOP)</div>
+              <div class="value">4<span class="pct">件 / 失注の40%</span></div>
+              <div class="meta">競合価格で負けている</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">受信→成約 全体通過率</div>
+              <div class="value">12.8<span class="pct">%</span></div>
+              <div class="meta">3媒体中最低</div>
+            </div>
+            <div class="conv-card">
+              <div class="label">到達率(架電)</div>
+              <div class="value">85.1<span class="pct">%</span></div>
+              <div class="meta">3媒体中最高(顧客動機高)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEL結果内訳 + 結果内訳(全媒体共通) -->
+    <div class="two-col" style="margin-top: 32px;">
+      <div>
+        <h2 class="section-title">TEL結果内訳 <span class="ja">①〜⑤コール累計</span></h2>
+        <div class="panel">
+          <div class="donut-wrap">
+            <svg class="donut-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" id="donut-tel"></svg>
+            <div class="donut-legend" id="legend-tel"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 class="section-title">結果内訳 <span class="ja">査定後の状態</span></h2>
+        <div class="panel">
+          <div class="donut-wrap">
+            <svg class="donut-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" id="donut-result"></svg>
+            <div class="donut-legend" id="legend-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- CASES PAGE                                      -->
+<!-- ============================================== -->
+<div class="page-section" id="page-cases">
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">優先表示</span>
+      <span class="chip active">HOT(自動並び替え)</span>
+      <span class="chip">本日対応</span>
+      <span class="chip">アポ以降</span>
+      <span class="chip">後追対象</span>
+      <span class="chip">成約済</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">媒体</span>
+      <span class="chip active">全媒体</span>
+      <span class="chip">MOTA</span>
+      <span class="chip">カーセンサー</span>
+      <span class="chip">ナビクル</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2 class="section-title">案件一覧(媒体横断HOT) <span class="ja">後追日が近い順 / 媒体は1列で表示</span></h2>
+    <div class="table-controls">
+      <input type="text" class="search-box" placeholder="顧客名・車種・案件番号で検索...">
+      <div class="table-info">表示: <b id="row-count">14</b> 件 / 全 216 件</div>
+    </div>
+
+    <table id="case-table">
+      <thead>
+        <tr>
+          <th style="width:32px;">#</th>
+          <th style="width:90px;">媒体</th>
+          <th style="width:90px;">案件番号</th>
+          <th style="width:130px;">顧客名 / 入札日</th>
+          <th>車種</th>
+          <th class="center" style="width:130px;">架電履歴 ①〜⑤</th>
+          <th class="center" style="width:50px;">査定</th>
+          <th style="width:130px;">結果 / フェーズ</th>
+          <th style="width:90px;">後追日</th>
+        </tr>
+      </thead>
+      <tbody id="case-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="overlay"></div>
+<div class="detail-panel" id="detail">
+  <div class="detail-header">
+    <button class="detail-close" id="closeBtn">×</button>
+    <div class="detail-id" id="detail-id"></div>
+    <div class="detail-name" id="detail-name"></div>
+  </div>
+  <div id="detail-body"></div>
+</div>
+
+<footer>
+  CARRIAGE — 買取案件管理システム / プロトタイプ v0.4 / Source: 買取事業集計.xlsx > MOTA・カーセンサー・ナビクル
+</footer>
+
+<script>
+  // ============================================================
+  // データソース設定
+  // スプレッドシート「マスタ案件」の公開CSV URL
+  // ============================================================
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7giu6gWAzvTBtDwb2YxXRfLNPdd1PgSyvBuymmVbFy7B-cfokyC36wjQM-8AJLw75n0xvCxlnYLmW/pub?gid=89828425&single=true&output=csv';
+  
+  // CSVパース(クォートを正しく扱うシンプル実装)
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], cell = '', inQuote = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const next = text[i + 1];
+      if (inQuote) {
+        if (ch === '"' && next === '"') { cell += '"'; i++; }
+        else if (ch === '"') { inQuote = false; }
+        else { cell += ch; }
+      } else {
+        if (ch === '"') { inQuote = true; }
+        else if (ch === ',') { row.push(cell); cell = ''; }
+        else if (ch === '\r') { /* skip */ }
+        else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+        else { cell += ch; }
+      }
+    }
+    if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+  
+  // 媒体名正規化(日本語→英字キー)
+  const MEDIA_MAP = {
+    'MOTA': 'mota',
+    'mota': 'mota',
+    'カーセンサー': 'carsensor',
+    'ナビクル': 'navikuru',
+    '自社サイト': 'self',
+    '店頭': 'shop',
+  };
+  
+  // CSV → 案件データ配列に変換
+  function rowsToCases(rows) {
+    if (rows.length < 2) return [];
+    const cases = [];
+    // ヘッダー行をスキップして2行目から処理
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      // 空行スキップ
+      if (!r || r.length < 5 || (!r[3] && !r[4])) continue;
+      
+      // 列インデックス(マスタ案件シートに準拠)
+      // A=0:案件NO, B=1:媒体, C=2:受信日, D=3:顧客名, E=4:TEL,
+      // F=5:車名, G=6:入札, H=7:入札結果,
+      // I=8:①TEL, J=9:①日付, K=10:②TEL, L=11:②日付,
+      // M=12:③TEL, N=13:③日付, O=14:④TEL, P=15:④日付,
+      // Q=16:⑤TEL, R=17:⑤日付, S=18:査定, T=19:結果,
+      // U=20:次回後追日, V=21:担当者, W=22:備考,
+      // X=23:顧客希望額, Y=24:査定提示額, Z=25:成約額
+      
+      const calls = [];
+      for (let n = 0; n < 5; n++) {
+        const result = r[8 + n * 2];
+        const date = r[9 + n * 2];
+        if (result && result.trim()) {
+          calls.push({ result: result.trim(), date: (date || '').trim() });
+        }
+      }
+      
+      const assessRaw = (r[18] || '').trim();
+      const assess = assessRaw === '〇' ? '〇' : assessRaw === '×' ? '×' : null;
+      
+      cases.push({
+        no: parseInt(r[0]) || (i),
+        media: MEDIA_MAP[(r[1] || '').trim()] || 'mota',
+        date: (r[2] || '').trim(),
+        customer: (r[3] || '').trim(),
+        tel: (r[4] || '').trim(),
+        car: (r[5] || '').trim(),
+        bid: (r[6] || '').trim(),
+        bidResult: (r[7] || '').trim(),
+        calls: calls,
+        assess: assess,
+        result: (r[19] || '').trim(),
+        followup: (r[20] || '').trim(),
+        assignee: (r[21] || '').trim(),
+        note: (r[22] || '').trim(),
+        desired: parseInt((r[23] || '').replace(/[^\d]/g, '')) || null,
+        offered: parseInt((r[24] || '').replace(/[^\d]/g, '')) || null,
+        deal: parseInt((r[25] || '').replace(/[^\d]/g, '')) || null,
+      });
+    }
+    return cases;
+  }
+  
+  // ロード状態の表示
+  function showLoading() {
+    const loadEl = document.getElementById('data-loading');
+    if (loadEl) loadEl.style.display = 'flex';
+  }
+  function hideLoading() {
+    const loadEl = document.getElementById('data-loading');
+    if (loadEl) loadEl.style.display = 'none';
+  }
+  function showError(msg) {
+    const loadEl = document.getElementById('data-loading');
+    if (loadEl) {
+      loadEl.innerHTML = `<div style="color:var(--red);"><strong>⚠ データ読み込みエラー</strong><br><span style="font-size:11px;">${msg}</span><br><button class="btn-primary" onclick="location.reload()" style="margin-top:12px;">再読み込み</button></div>`;
+    }
+  }
+  
+  // グローバル変数(他のスクリプトから参照)
+  let cases = [];
+  
+  // 案件データ(媒体横断)— フォールバック用ダミーデータ
+  const fallbackCases = [
+    // 新着・未コール案件
+    { no: 20, media: 'mota', date: '2026/05/03', customer: '青木 健太', tel: '090-2222-3333', car: 'マツダ ロードスター RF', calls: [], assess: null, result: '', followup: '2026/05/03', note: '本日入札落札。これから架電予定。' },
+    { no: 21, media: 'carsensor', date: '2026/05/03', customer: '橋本 千鶴', tel: '080-3333-4444', car: 'トヨタ アクア', calls: [], assess: null, result: '', followup: '2026/05/03', note: '受信直後。未コール。' },
+    { no: 22, media: 'self', date: '2026/05/03', customer: '清水 雅人', tel: '090-4444-5555', car: 'ホンダ N-BOX カスタム', calls: [], assess: null, result: '', followup: '2026/05/03', note: '自社サイト問合せ直後。優先架電。' },
+    { no: 23, media: 'navikuru', date: '2026/05/02', customer: '長谷川 翼', tel: '080-5555-6666', car: 'スズキ ジムニー', calls: [], assess: null, result: '', followup: '2026/05/03', note: '昨夜受信。未コール。' },
+    { no: 24, media: 'mota', date: '2026/05/02', customer: '近藤 弘志', tel: '090-6666-7777', car: 'レクサス RX450h', calls: [], assess: null, result: '', followup: '2026/05/03', note: '高額案件。未コール。' },
+    { no: 25, media: 'carsensor', date: '2026/05/02', customer: '坂本 悠人', tel: '080-7777-8888', car: 'ニッサン エクストレイル', calls: [], assess: null, result: '', followup: '2026/05/03', note: '未コール。' },
+    { no: 26, media: 'self', date: '2026/05/02', customer: '加藤 由美', tel: '090-8888-9999', car: 'トヨタ ヴォクシー ハイブリッド', calls: [], assess: null, result: '', followup: '2026/05/03', note: '自社サイト経由。未コール。' },
+    { no: 27, media: 'shop', date: '2026/05/02', customer: '武田 信行', tel: '090-1010-2020', car: 'スバル レヴォーグ', calls: [], assess: null, result: '', followup: '2026/05/03', note: '店頭来店後の査定希望。' },
+    
+    // 既存案件
+    { no: 1, media: 'mota', date: '2026/05/01', customer: '佐藤 美咲', tel: '090-1234-5678', car: 'トヨタ ハリアー Z', calls: [{ result: 'アポ', date: '05/01' }], assess: null, result: '', followup: '2026/05/03', note: '査定アポ確定 5/3 14:00。要訪問準備。' },
+    { no: 2, media: 'mota', date: '2026/04/28', customer: '山田 太郎', tel: '080-2345-6789', car: 'ホンダ ヴェゼル e:HEV', calls: [{ result: '不在', date: '04/28' },{ result: '留守', date: '04/29' },{ result: 'アポ', date: '04/30' }], assess: '〇', result: '入庫済み', followup: '', note: '245万で成約・入庫済み' },
+    { no: 3, media: 'carsensor', date: '2026/04/25', customer: '鈴木 大輔', tel: '090-3456-7890', car: 'BMW X3 xDrive20d', calls: [{ result: '留守', date: '04/25' },{ result: '検討中', date: '04/27' },{ result: 'アポ', date: '04/29' }], assess: '〇', result: '他社結果待ち', followup: '2026/05/03', note: '520万提示。他社で550万査定が出ている。' },
+    { no: 4, media: 'mota', date: '2026/04/29', customer: '田村 由紀', tel: '080-4567-8901', car: 'スバル フォレスター', calls: [{ result: 'アポ', date: '04/29' }], assess: '〇', result: '成約', followup: '', note: '185万で合意。引取日調整中。' },
+    { no: 5, media: 'navikuru', date: '2026/05/01', customer: '中島 健司', tel: '090-5678-9012', car: 'メルセデス・ベンツ C200', calls: [{ result: '不在', date: '05/01' },{ result: 'アポ', date: '05/02' }], assess: null, result: '', followup: '2026/05/04', note: '査定アポ 5/4 10:00 確定。' },
+    { no: 6, media: 'carsensor', date: '2026/04/30', customer: '小林 美樹', tel: '080-6789-0123', car: 'ニッサン ノート e-POWER', calls: [{ result: 'アポ', date: '04/30' }], assess: null, result: '', followup: '2026/05/03', note: '出張査定予定 5/3 14:00' },
+    { no: 7, media: 'mota', date: '2026/04/26', customer: '伊藤 雄一', tel: '090-7890-1234', car: 'レクサス NX350h', calls: [{ result: '検討中', date: '04/26' },{ result: 'アポ', date: '04/28' }], assess: '〇', result: '入庫済み', followup: '', note: '680万で成約・入庫済み' },
+    { no: 8, media: 'navikuru', date: '2026/04/22', customer: '高橋 真理子', tel: '080-8901-2345', car: 'マツダ CX-5 XD', calls: [{ result: '不在', date: '04/22' },{ result: '不在', date: '04/24' },{ result: '留守', date: '04/26' },{ result: 'アポ', date: '04/28' }], assess: '〇', result: '検討(直近)', followup: '2026/05/02', note: '198万提示。本日後追予定 → 期限切れ' },
+    { no: 9, media: 'carsensor', date: '2026/04/24', customer: '渡辺 翔太', tel: '090-9012-3456', car: 'スズキ スイフトスポーツ', calls: [{ result: '検討中', date: '04/24' },{ result: '検討中', date: '04/27' },{ result: 'アポ', date: '04/30' }], assess: '〇', result: '検討(長期)', followup: '2026/05/15', note: '165万提示。家族と相談する旨。' },
+    { no: 10, media: 'mota', date: '2026/04/27', customer: '木村 由香', tel: '080-0123-4567', car: 'ボルボ XC60 B5', calls: [{ result: '不在', date: '04/27' },{ result: 'アポ', date: '04/29' }], assess: '〇', result: '成約', followup: '', note: '428万で合意。契約書送付済。' },
+    { no: 11, media: 'carsensor', date: '2026/04/30', customer: '林 義男', tel: '090-1357-2468', car: 'ダイハツ タント カスタム', calls: [{ result: 'アポ', date: '04/30' }], assess: '〇', result: '検討(直近)', followup: '2026/05/03', note: '58万提示直後。返事待ち。' },
+    { no: 12, media: 'mota', date: '2026/04/20', customer: '森田 麻衣', tel: '080-2468-1357', car: 'ポルシェ マカン GTS', calls: [{ result: '留守', date: '04/20' },{ result: 'アポ', date: '04/22' }], assess: '〇', result: '入庫済み', followup: '', note: '850万で成約・入庫済み・名変中' },
+    { no: 13, media: 'navikuru', date: '2026/04/15', customer: '岡田 健太', tel: '090-3690-1470', car: 'スバル インプレッサ', calls: [{ result: '不在', date: '04/15' },{ result: '不在', date: '04/17' },{ result: '不在', date: '04/19' },{ result: '不在', date: '04/22' },{ result: '留守', date: '04/25' }], assess: '×', result: '売却しない', followup: '', note: '架電5回いずれも繋がらず留電。失注扱い。' },
+    { no: 14, media: 'carsensor', date: '2026/04/18', customer: '吉田 雅子', tel: '080-9870-2580', car: 'トヨタ プリウス S', calls: [{ result: '検討中', date: '04/18' },{ result: '検討中', date: '04/22' }], assess: null, result: '検討(長期)', followup: '2026/05/02', note: '春の車検後に再検討。本日後追予定。' },
+    
+    // 自社サイト・店頭の既存
+    { no: 15, media: 'self', date: '2026/04/29', customer: '松本 拓海', tel: '090-1111-2222', car: 'トヨタ ランクル300', calls: [{ result: 'アポ', date: '04/29' }], assess: '〇', result: '検討(直近)', followup: '2026/05/03', note: '780万提示。返事待ち中。' },
+    { no: 16, media: 'shop', date: '2026/04/30', customer: '小野 真一', tel: '090-3434-5656', car: 'ニッサン スカイラインGT-R', calls: [{ result: 'アポ', date: '04/30' }], assess: '〇', result: '成約', followup: '', note: '店頭来店即決。1280万で成約。' },
+    { no: 17, media: 'self', date: '2026/05/01', customer: '前田 千恵', tel: '080-7575-9090', car: 'ホンダ フィット', calls: [{ result: 'アポ', date: '05/01' }], assess: null, result: '', followup: '2026/05/03', note: '査定アポ確定 5/3 11:00' },
+  ];
+
+  const mediaLabels = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭' };
+  // 「今日」を実行時の日付で取得(時刻部分は切り捨て)
+  const today = (() => {
+    const t = new Date();
+    return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  })();
+
+  function getPhase(c) {
+    if (c.result === '入庫済み') return { code: 'won', name: '入庫済み' };
+    if (c.result === '成約') return { code: 'deal', name: '成約' };
+    if (['他社売却', '自社代替', '売却しない'].includes(c.result)) return { code: 'lost', name: c.result };
+    if (['検討(直近)', '検討(長期)', '他社結果待ち'].includes(c.result)) return { code: 'revisit', name: c.result };
+    if (c.assess === '〇') return { code: 'est', name: '査定〇' };
+    if (c.assess === '×') return { code: 'est-x', name: '査定×' };
+    if (c.calls.some(call => call.result === 'アポ')) return { code: 'apo', name: 'アポ獲得' };
+    return { code: 'call', name: '架電中' };
+  }
+
+  function getFollowupStatus(dateStr) {
+    if (!dateStr) return { class: '', label: '—' };
+    const d = new Date(dateStr);
+    if (d.getTime() === today.getTime()) return { class: 'today', label: '本日' };
+    if (d < today) return { class: 'past', label: dateStr.replace('2026/', '') + ' 超' };
+    return { class: 'future', label: dateStr.replace('2026/', '') };
+  }
+
+  function callDotClass(result) {
+    return { '不在': 'absent', '留守': 'message', '拒否': 'reject', '検討中': 'consider', 'アポ': 'apo' }[result] || '';
+  }
+  function callDotChar(result) {
+    return { '不在': '×', '留守': 'M', '拒否': '!', '検討中': '?', 'アポ': '◎' }[result] || '';
+  }
+
+  // テーブル描画
+  function renderCaseTable() {
+    const tbody = document.getElementById('case-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    cases.forEach(c => {
+      const phase = getPhase(c);
+      const fu = getFollowupStatus(c.followup);
+      let callTrail = '';
+      for (let n = 0; n < 5; n++) {
+        if (c.calls[n]) {
+          callTrail += `<span class="call-dot ${callDotClass(c.calls[n].result)}" title="${c.calls[n].date} ${c.calls[n].result}">${callDotChar(c.calls[n].result)}</span>`;
+        } else {
+          callTrail += `<span class="call-dot empty">·</span>`;
+        }
+      }
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align:center;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:10px;">${String(c.no).padStart(2,'0')}</td>
+        <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
+        <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
+        <td>
+          <div style="font-weight:600;">${c.customer}</div>
+          <div style="font-size:10px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">${c.date}</div>
+        </td>
+        <td style="font-size:11px;">${c.car}</td>
+        <td class="center"><div class="call-trail">${callTrail}</div></td>
+        <td class="center" style="font-family:'Bodoni Moda',serif;font-size:18px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
+        <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
+        <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
+      `;
+      tr.addEventListener('click', () => openDetail(c));
+      tbody.appendChild(tr);
+    });
+    
+    const rowCountEl = document.getElementById('row-count');
+    if (rowCountEl) rowCountEl.textContent = cases.length;
+  }
+
+  // ===== 新着案件 (未コール) =====
+  function renderNewCases() {
+    const newCases = cases.filter(c => c.calls.length === 0);
+    const newList = document.getElementById('newList');
+    if (!newList) return;
+    newList.innerHTML = '';
+    
+    if (newCases.length === 0) {
+      newList.innerHTML = '<div class="priority-empty">新着案件はありません</div>';
+    } else {
+      newCases.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'priority-row';
+        const dateStr = c.date ? c.date.replace(/^\d{4}\//, '') : '—';
+        row.innerHTML = `
+          <div class="pr-meta">${dateStr} <span class="m-tag ${c.media}" style="font-size:8px;padding:1px 4px;margin-left:2px;">${mediaLabels[c.media]}</span></div>
+          <div class="pr-name">${c.customer} 様<span class="car">${c.car}</span></div>
+          <div class="pr-status uncalled">未コール</div>
+        `;
+        row.addEventListener('click', () => openDetail(c));
+        newList.appendChild(row);
+      });
+    }
+    return newCases.length;
+  }
+
+  // ===== HOT案件 (査定アポ + 査定後返事待ち) =====
+  function renderHotCases() {
+    const hotCases = cases.filter(c => {
+      const hasApo = c.calls.some(call => call.result === 'アポ');
+      const isAssessmentApo = hasApo && c.assess === null;
+      const isWaiting = c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result);
+      return isAssessmentApo || isWaiting;
+    });
+    const hotList = document.getElementById('hotList');
+    if (!hotList) return;
+    hotList.innerHTML = '';
+    
+    if (hotCases.length === 0) {
+      hotList.innerHTML = '<div class="priority-empty">HOT案件はありません</div>';
+    } else {
+      hotCases.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'priority-row';
+        const hasApo = c.calls.some(call => call.result === 'アポ');
+        const isAssessmentApo = hasApo && c.assess === null;
+        const statusClass = isAssessmentApo ? 'apo-est' : 'waiting';
+        const statusLabel = isAssessmentApo ? '査定アポ' : '返事待ち';
+        const followStr = c.followup ? c.followup.replace(/^\d{4}\//, '') : '—';
+        row.innerHTML = `
+          <div class="pr-meta">${followStr}<br><span class="m-tag ${c.media}" style="font-size:8px;padding:1px 4px;">${mediaLabels[c.media]}</span></div>
+          <div class="pr-name">${c.customer} 様<span class="car">${c.car}</span></div>
+          <div class="pr-status ${statusClass}">${statusLabel}</div>
+        `;
+        row.addEventListener('click', () => openDetail(c));
+        hotList.appendChild(row);
+      });
+    }
+    return hotCases.length;
+  }
+  
+  // 全体の数値カウンタを更新
+  function updateCountBadges() {
+    const newCount = cases.filter(c => c.calls.length === 0).length;
+    const hotCount = cases.filter(c => {
+      const hasApo = c.calls.some(call => call.result === 'アポ');
+      return (hasApo && c.assess === null) ||
+             (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
+    }).length;
+    
+    // 新着パネルとHOTパネルのカウント更新
+    const newCountEl = document.querySelector('.priority-card.new .priority-count');
+    if (newCountEl) newCountEl.innerHTML = `${newCount}<span class="unit">件</span>`;
+    const hotCountEl = document.querySelector('.priority-card.hot .priority-count');
+    if (hotCountEl) hotCountEl.innerHTML = `${hotCount}<span class="unit">件</span>`;
+    
+    // バナーの数値
+    const bannerCountEl = document.querySelector('.today-banner .count');
+    if (bannerCountEl) {
+      const followToday = cases.filter(c => {
+        if (!c.followup) return false;
+        const fd = new Date(c.followup);
+        return fd <= today;
+      }).length;
+      const total = newCount + hotCount + followToday;
+      bannerCountEl.innerHTML = `${total}<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span>`;
+    }
+    
+    // 案件一覧タブのバッジ
+    const tabBadge = document.querySelector('[data-page="cases"] .badge');
+    if (tabBadge) tabBadge.textContent = cases.length;
+  }
+  
+  // 全体描画
+  function renderAll() {
+    renderCaseTable();
+    renderNewCases();
+    renderHotCases();
+    updateCountBadges();
+  }
+
+  // 詳細パネル
+  const overlay = document.getElementById('overlay');
+  const panel = document.getElementById('detail');
+
+  function openDetail(c) {
+    const callLogs = c.calls.map((call, idx) => `
+      <div class="call-row ${callDotClass(call.result)}">
+        <div class="n">${['①','②','③','④','⑤'][idx]}</div>
+        <div class="date">${call.date}</div>
+        <div class="result">${call.result}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('detail-id').innerHTML = `<span class="m-tag ${c.media}">${mediaLabels[c.media]}</span> <span>M-2605-${String(c.no).padStart(3,'0')} / 入札 ${c.date}</span>`;
+    document.getElementById('detail-name').textContent = c.customer + ' 様';
+
+    document.getElementById('detail-body').innerHTML = `
+      <div class="detail-section">
+        <h3>案件情報</h3>
+        <div class="field-grid">
+          <span class="field-label">媒体</span><span class="field-value"><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></span>
+          <span class="field-label">顧客名</span><span class="field-value">${c.customer} 様</span>
+          <span class="field-label">電話</span><span class="field-value mono">${c.tel}</span>
+          <span class="field-label">車種</span><span class="field-value">${c.car}</span>
+          <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>架電履歴(①〜⑤)</h3>
+        <div class="call-log">${callLogs || '<div style="color:var(--ink-3);font-size:11px;">未架電</div>'}</div>
+      </div>
+      <div class="detail-section">
+        <h3>査定・結果</h3>
+        <div class="field-grid">
+          <span class="field-label">査定</span><span class="field-value" style="font-family:'Bodoni Moda',serif;font-size:18px;font-weight:700;">${c.assess || '—'}</span>
+          <span class="field-label">結果</span><span class="field-value">${c.result || '—'}</span>
+          <span class="field-label">次回後追日</span><span class="field-value mono">${c.followup || '—'}</span>
+        </div>
+      </div>
+      <div class="detail-section" style="background:var(--bg-soft);">
+        <h3>備考(査定額・後追メモ)</h3>
+        <div style="font-size:12px;line-height:1.7;color:var(--ink-2);">${c.note || '—'}</div>
+      </div>
+    `;
+    overlay.classList.add('show');
+    panel.classList.add('show');
+  }
+
+  function closeDetail() {
+    overlay.classList.remove('show');
+    panel.classList.remove('show');
+  }
+  document.getElementById('closeBtn').addEventListener('click', closeDetail);
+  overlay.addEventListener('click', closeDetail);
+
+  // ページタブ切替
+  document.querySelectorAll('.page-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.page-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('page-' + t.dataset.page).classList.add('active');
+    });
+  });
+
+  // 媒体タブ切替
+  document.querySelectorAll('.media-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.media-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      ['all','mota','carsensor','navikuru'].forEach(m => {
+        document.getElementById('view-' + m).style.display = (m === t.dataset.media) ? 'block' : 'none';
+      });
+    });
+  });
+
+  // フィルタchip
+  document.querySelectorAll('.filter-group').forEach(g => {
+    g.querySelectorAll('.chip').forEach(c => {
+      // 期間chipは別ハンドラで処理するためスキップ
+      if (c.classList.contains('period-chip')) return;
+      c.addEventListener('click', () => {
+        g.querySelectorAll('.chip').forEach(x => {
+          if (!x.classList.contains('period-chip')) x.classList.remove('active');
+        });
+        c.classList.add('active');
+      });
+    });
+  });
+
+  // ===== 期間フィルタロジック =====
+  const TODAY = new Date('2026/05/03');
+  
+  function fmtDateJP(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
+  }
+  function fmtDateISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function getPeriodRange(period) {
+    const today = new Date(TODAY);
+    let from, to;
+    if (period === 'current') {
+      from = new Date(today.getFullYear(), today.getMonth(), 1);
+      to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (period === 'last') {
+      from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      to = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (period === 'last2') {
+      from = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      to = new Date(today.getFullYear(), today.getMonth() - 1, 0);
+    } else if (period === '6m') {
+      from = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+      to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (period === '1y') {
+      from = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+      to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    }
+    return { from, to };
+  }
+
+  // 期間chip切替
+  const periodDisplay = document.getElementById('periodDisplay');
+  const customLabel = document.getElementById('customLabel');
+  let currentPeriod = 'current';
+
+  document.querySelectorAll('.period-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      const period = chip.dataset.period;
+      
+      if (period === 'custom') {
+        // カレンダーピッカーを開く
+        openPicker();
+        return;
+      }
+      
+      // 全chipのactive解除
+      document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentPeriod = period;
+      
+      // 期間表示更新
+      const { from, to } = getPeriodRange(period);
+      periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
+      customLabel.textContent = '自由選択';
+    });
+  });
+
+  // ===== カレンダーピッカー =====
+  const pickerOverlay = document.getElementById('pickerOverlay');
+  const datePicker = document.getElementById('datePicker');
+  const dateFromInput = document.getElementById('dateFrom');
+  const dateToInput = document.getElementById('dateTo');
+
+  function openPicker() {
+    pickerOverlay.classList.add('show');
+    datePicker.classList.add('show');
+  }
+  function closePicker() {
+    pickerOverlay.classList.remove('show');
+    datePicker.classList.remove('show');
+  }
+
+  document.getElementById('pickerClose').addEventListener('click', closePicker);
+  document.getElementById('pickerCancel').addEventListener('click', closePicker);
+  pickerOverlay.addEventListener('click', closePicker);
+
+  // クイック設定ボタン
+  document.querySelectorAll('.shortcut-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.shortcut-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const days = parseInt(btn.dataset.days);
+      const to = new Date(TODAY);
+      const from = new Date(TODAY);
+      from.setDate(from.getDate() - days + 1);
+      dateFromInput.value = fmtDateISO(from);
+      dateToInput.value = fmtDateISO(to);
+    });
+  });
+
+  // 適用ボタン
+  document.getElementById('pickerApply').addEventListener('click', () => {
+    const from = new Date(dateFromInput.value);
+    const to = new Date(dateToInput.value);
+    if (from > to) {
+      alert('開始日が終了日より後になっています');
+      return;
+    }
+    document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('customChip').classList.add('active');
+    currentPeriod = 'custom';
+    periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
+    
+    // 日数をカスタムラベルに表示
+    const days = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
+    customLabel.textContent = `自由選択 (${days}日間)`;
+    
+    closePicker();
+  });
+
+  // ===== ドーナツチャート描画 =====
+  // SVG path の arc を使って各セグメントを描画
+  function renderDonut(svgEl, legendEl, data, centerLabel) {
+    const total = data.reduce((s, d) => s + d.value, 0);
+    const cx = 100, cy = 100;
+    const rOuter = 85;
+    const rInner = 55;
+    
+    // SVG namespace で要素を作成
+    const svgNS = 'http://www.w3.org/2000/svg';
+    
+    // 既存の中身をクリア
+    while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+    
+    // 角度計算用ヘルパー(0度=12時方向、時計回りに増加)
+    function polarToCartesian(angleDeg, r) {
+      const rad = (angleDeg - 90) * Math.PI / 180;
+      return {
+        x: cx + r * Math.cos(rad),
+        y: cy + r * Math.sin(rad),
+      };
+    }
+    
+    // 1セグメント分のpath文字列を生成
+    function segmentPath(startAngle, endAngle) {
+      // 完全な円(360度)の特殊処理
+      if (endAngle - startAngle >= 359.99) {
+        const top1 = polarToCartesian(0, rOuter);
+        const bot1 = polarToCartesian(180, rOuter);
+        const top2 = polarToCartesian(0, rInner);
+        const bot2 = polarToCartesian(180, rInner);
+        return `
+          M ${top1.x} ${top1.y}
+          A ${rOuter} ${rOuter} 0 1 1 ${bot1.x} ${bot1.y}
+          A ${rOuter} ${rOuter} 0 1 1 ${top1.x} ${top1.y}
+          M ${top2.x} ${top2.y}
+          A ${rInner} ${rInner} 0 1 0 ${bot2.x} ${bot2.y}
+          A ${rInner} ${rInner} 0 1 0 ${top2.x} ${top2.y}
+          Z
+        `;
+      }
+      
+      const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+      const startOuter = polarToCartesian(startAngle, rOuter);
+      const endOuter = polarToCartesian(endAngle, rOuter);
+      const startInner = polarToCartesian(endAngle, rInner);
+      const endInner = polarToCartesian(startAngle, rInner);
+      
+      return `
+        M ${startOuter.x} ${startOuter.y}
+        A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${endOuter.x} ${endOuter.y}
+        L ${startInner.x} ${startInner.y}
+        A ${rInner} ${rInner} 0 ${largeArc} 0 ${endInner.x} ${endInner.y}
+        Z
+      `;
+    }
+    
+    let cumulativeAngle = 0;
+    data.forEach(d => {
+      const portion = d.value / total;
+      const sweep = portion * 360;
+      const startAngle = cumulativeAngle;
+      const endAngle = cumulativeAngle + sweep;
+      
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', segmentPath(startAngle, endAngle));
+      path.setAttribute('fill', d.color);
+      path.setAttribute('stroke', '#ffffff');
+      path.setAttribute('stroke-width', '2');
+      path.classList.add('donut-segment');
+      
+      const title = document.createElementNS(svgNS, 'title');
+      title.textContent = `${d.name}: ${d.value}件 (${(portion*100).toFixed(1)}%)`;
+      path.appendChild(title);
+      
+      svgEl.appendChild(path);
+      cumulativeAngle = endAngle;
+    });
+    
+    // 中央のテキスト
+    const numText = document.createElementNS(svgNS, 'text');
+    numText.setAttribute('x', cx);
+    numText.setAttribute('y', cy - 4);
+    numText.setAttribute('class', 'donut-center donut-center-num');
+    numText.textContent = total;
+    svgEl.appendChild(numText);
+    
+    const labelText = document.createElementNS(svgNS, 'text');
+    labelText.setAttribute('x', cx);
+    labelText.setAttribute('y', cy + 16);
+    labelText.setAttribute('class', 'donut-center donut-center-label');
+    labelText.textContent = centerLabel;
+    svgEl.appendChild(labelText);
+    
+    // 凡例
+    let legendContent = '';
+    data.forEach(d => {
+      const pct = (d.value / total * 100).toFixed(1);
+      legendContent += `
+        <div class="legend-item">
+          <span class="legend-color" style="background:${d.color};"></span>
+          <span class="legend-name">${d.name}</span>
+          <span class="legend-num">${d.value}件</span>
+          <span class="legend-pct">${pct}%</span>
+        </div>
+      `;
+    });
+    legendEl.innerHTML = legendContent;
+  }
+
+  // ドーナツ用データを実データから集計
+  function getTelData() {
+    const counts = { '不在': 0, '留守': 0, '拒否': 0, '検討中': 0, 'アポ': 0, 'その他': 0 };
+    const knownKeys = ['不在', '留守', '拒否', '検討中', 'アポ'];
+    cases.forEach(c => {
+      c.calls.forEach(call => {
+        if (knownKeys.includes(call.result)) {
+          counts[call.result]++;
+        } else if (call.result) {
+          counts['その他']++;
+        }
+      });
+    });
+    return [
+      { name: '不在',     value: counts['不在'],   color: 'rgba(200,144,48,0.55)' },
+      { name: '留守',     value: counts['留守'],   color: 'rgba(26,26,26,0.45)' },
+      { name: '拒否',     value: counts['拒否'],   color: 'rgba(198,56,56,0.55)' },
+      { name: '検討中',   value: counts['検討中'], color: 'rgba(44,82,130,0.55)' },
+      { name: 'アポ獲得', value: counts['アポ'],   color: 'rgba(184,49,47,0.55)' },
+      { name: 'その他',   value: counts['その他'], color: 'rgba(184,149,74,0.6)' },
+    ].filter(d => d.value > 0);
+  }
+  
+  function getResultData() {
+    const counts = {
+      '入庫済み': 0, '成約': 0, '検討(直近)': 0, '検討(長期)': 0,
+      '他社結果待ち': 0, '他社売却': 0, '自社代替': 0, '売却しない': 0
+    };
+    cases.forEach(c => {
+      if (counts.hasOwnProperty(c.result)) counts[c.result]++;
+    });
+    return [
+      { name: '入庫済み',     value: counts['入庫済み'],     color: 'rgba(74,124,74,0.65)' },
+      { name: '成約',         value: counts['成約'],         color: 'rgba(74,124,74,0.4)' },
+      { name: '検討(直近)',   value: counts['検討(直近)'],   color: 'rgba(200,144,48,0.55)' },
+      { name: '検討(長期)',   value: counts['検討(長期)'],   color: 'rgba(184,149,74,0.6)' },
+      { name: '他社結果待ち', value: counts['他社結果待ち'], color: 'rgba(44,82,130,0.55)' },
+      { name: '他社売却',     value: counts['他社売却'],     color: 'rgba(136,136,136,0.6)' },
+      { name: '自社代替',     value: counts['自社代替'],     color: 'rgba(107,74,124,0.55)' },
+      { name: '売却しない',   value: counts['売却しない'],   color: 'rgba(170,170,170,0.55)' },
+    ].filter(d => d.value > 0);
+  }
+  
+  function renderDonuts() {
+    const telData = getTelData();
+    const resultData = getResultData();
+    const telSvg = document.getElementById('donut-tel');
+    const resultSvg = document.getElementById('donut-result');
+    
+    if (telSvg && telData.length > 0) {
+      renderDonut(telSvg, document.getElementById('legend-tel'), telData, '通話累計');
+    } else if (telSvg) {
+      telSvg.innerHTML = '';
+      document.getElementById('legend-tel').innerHTML = '<div class="priority-empty">データがありません</div>';
+    }
+    
+    if (resultSvg && resultData.length > 0) {
+      renderDonut(resultSvg, document.getElementById('legend-result'), resultData, '査定後');
+    } else if (resultSvg) {
+      resultSvg.innerHTML = '';
+      document.getElementById('legend-result').innerHTML = '<div class="priority-empty">データがありません</div>';
+    }
+  }
+  
+  // ============================================================
+  // 初期化:CSVを読み込んでダッシュボードを描画
+  // ============================================================
+  async function initDashboard() {
+    showLoading();
+    try {
+      // CSVをfetchで取得(キャッシュバスター付き)
+      const url = CSV_URL + '&_=' + Date.now();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      const loaded = rowsToCases(rows);
+      
+      if (loaded.length === 0) {
+        // データが空の場合はフォールバック使用
+        cases = fallbackCases;
+        console.warn('CSV is empty. Using fallback data.');
+      } else {
+        cases = loaded;
+        console.log(`✓ ${loaded.length}件のデータを読み込みました`);
+      }
+      
+      hideLoading();
+      renderAll();
+      renderDonuts();
+      
+      // 最終更新時刻の表示
+      const updateEl = document.getElementById('last-update');
+      if (updateEl) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const h = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        updateEl.textContent = `${y}.${m}.${d} ${h}:${min}`;
+      }
+    } catch (err) {
+      console.error('CSV load error:', err);
+      // エラー時はフォールバックで動作継続
+      cases = fallbackCases;
+      hideLoading();
+      renderAll();
+      renderDonuts();
+      // エラーバナーを表示
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background:rgba(198,56,56,0.1);border-left:3px solid var(--red);padding:10px 32px;font-size:11px;color:var(--ink-2);';
+      banner.innerHTML = `⚠ スプレッドシートからのデータ読み込みに失敗しました。サンプルデータを表示中です。 <span style="color:var(--ink-3);">エラー: ${err.message}</span>`;
+      document.body.insertBefore(banner, document.body.children[1]);
+    }
+  }
+  
+  // ページ読み込み完了時に初期化を実行
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+  } else {
+    initDashboard();
+  }
+</script>
+
+</body>
+</html>
