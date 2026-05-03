@@ -1351,302 +1351,9 @@
   </div>
 
   <div class="container">
-    <!-- ALL MEDIA VIEW -->
-    <div id="view-all">
-      <h2 class="section-title">全媒体サマリー <span class="ja">5月分主要指標</span></h2>
-      <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">248<span class="kpi-unit">件</span></div><div class="kpi-sub up">↑ 前月比 +20%</div></div>
-        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">187<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 75.4%</div></div>
-        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">82<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 33.1%</div></div>
-        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">64<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 78.0%</div></div>
-        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">38<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 15.3%</div></div>
-        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">14<span class="kpi-unit">件</span></div><div class="kpi-sub">うち本日期限 6件</div></div>
-      </div>
+    <!-- 動的に生成される媒体ビュー -->
+    <div id="view-container"></div>
 
-      <h2 class="section-title">媒体別パフォーマンス比較 <span class="ja">同条件で並べた成約率</span></h2>
-      <div class="panel">
-        <div style="margin-bottom: 16px;">
-          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信 → 成約 通過率</div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:90%;"></div></div><div class="pct">50.0%</div><div class="num">5/10</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:50%;"></div></div><div class="pct">27.3%</div><div class="num">6/22</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:30%;"></div></div><div class="pct">16.1%</div><div class="num">14/87</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:25%;"></div></div><div class="pct">13.4%</div><div class="num">11/82</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:24%;"></div></div><div class="pct">12.8%</div><div class="num">6/47</div></div>
-        </div>
-
-        <div style="margin-top: 24px;">
-          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">架電到達 → アポ率</div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:95%;"></div></div><div class="pct">90.0%</div><div class="num">9/10</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:75%;"></div></div><div class="pct">55.0%</div><div class="num">11/20</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:55%;"></div></div><div class="pct">45.9%</div><div class="num">28/61</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:45%;"></div></div><div class="pct">40.3%</div><div class="num">25/62</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:42%;"></div></div><div class="pct">37.5%</div><div class="num">15/40</div></div>
-        </div>
-
-        <div style="margin-top: 24px;">
-          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信件数(構成比)</div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-mota"></span>MOTA</div><div class="bar-bg"><div class="bar-fill mota" style="width:100%;"></div></div><div class="pct">35.1%</div><div class="num">87件</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-cs"></span>カーセンサー</div><div class="bar-bg"><div class="bar-fill cs" style="width:94%;"></div></div><div class="pct">33.1%</div><div class="num">82件</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-nav"></span>ナビクル</div><div class="bar-bg"><div class="bar-fill nav" style="width:54%;"></div></div><div class="pct">19.0%</div><div class="num">47件</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-self"></span>自社サイト</div><div class="bar-bg"><div class="bar-fill self" style="width:25%;"></div></div><div class="pct">8.9%</div><div class="num">22件</div></div>
-          <div class="media-compare"><div class="name"><span class="dot-m dot-shop"></span>店頭</div><div class="bar-bg"><div class="bar-fill shop" style="width:11%;"></div></div><div class="pct">4.0%</div><div class="num">10件</div></div>
-        </div>
-
-        <div style="margin-top:20px;font-size:11px;color:var(--ink-3);padding:12px 14px;background:var(--bg-soft);border-left:3px solid var(--gold);">
-          <b style="color:var(--ink);">💡 媒体別インサイト:</b> 店頭・自社サイトは件数こそ少ないが成約率が圧倒的に高い(50%/27%)ので、自社チャネル強化の優先度が高い。MOTA以下の3媒体は件数が多いが成約率は10%台で、効率改善の余地大。
-        </div>
-      </div>
-    </div>
-
-    <!-- MOTA VIEW -->
-    <div id="view-mota" style="display:none;">
-      <h2 class="section-title">MOTA サマリー <span class="ja">入札型 / 5月分</span></h2>
-      <div class="kpi-grid cols-7">
-        <div class="kpi mota-tag"><div class="kpi-label">配信受信</div><div class="kpi-value">142<span class="kpi-unit">件</span></div><div class="kpi-sub">配信通知の総数</div></div>
-        <div class="kpi mota-tag"><div class="kpi-label">入札件数</div><div class="kpi-value">98<span class="kpi-unit">件</span></div><div class="kpi-sub">入札率 69.0%</div></div>
-        <div class="kpi mota-tag"><div class="kpi-label">獲得件数</div><div class="kpi-value">87<span class="kpi-unit">件</span></div><div class="kpi-sub">獲得率 88.8%</div></div>
-        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">61<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 70.1%</div></div>
-        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">28<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 32.2%</div></div>
-        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">22<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 78.6%</div></div>
-        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">14<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 16.1%</div></div>
-      </div>
-
-      <h2 class="section-title">MOTA フェーズ別ファネル <span class="ja">配信 → 入札 → 獲得 → 架電 → 成約</span></h2>
-      <div class="panel">
-        <div class="panel-row">
-          <div>
-            <div class="funnel">
-              <div class="funnel-stage mota-only">
-                <div class="funnel-name"><span class="num">01</span>配信受信<span class="mota-badge">MOTA</span></div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:100%;">142</div></div>
-                <div class="funnel-count">142</div>
-                <div class="funnel-rate">100%</div>
-              </div>
-              <div class="funnel-stage mota-only">
-                <div class="funnel-name"><span class="num">02</span>入札<span class="mota-badge">MOTA</span></div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:69%;">98</div></div>
-                <div class="funnel-count">98</div>
-                <div class="funnel-rate drop">69.0%</div>
-              </div>
-              <div class="funnel-stage mota-only">
-                <div class="funnel-name"><span class="num">03</span>獲得(落札)<span class="mota-badge">MOTA</span></div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar mota" style="width:61.3%;">87</div></div>
-                <div class="funnel-count">87</div>
-                <div class="funnel-rate">61.3%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">04</span>架電到達</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:43.0%;">61</div></div>
-                <div class="funnel-count">61</div>
-                <div class="funnel-rate drop">43.0%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">05</span>アポ獲得</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:19.7%;">28</div></div>
-                <div class="funnel-count">28</div>
-                <div class="funnel-rate drop">19.7%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">06</span>査定〇</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:15.5%;">22</div></div>
-                <div class="funnel-count">22</div>
-                <div class="funnel-rate">15.5%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">07</span>成約</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:9.9%;background:linear-gradient(90deg,var(--ink),var(--green));">14</div></div>
-                <div class="funnel-count">14</div>
-                <div class="funnel-rate">9.9%</div>
-              </div>
-            </div>
-          </div>
-          <div class="conv-stats">
-            <div class="conv-card alert">
-              <div class="label">最大の離脱:架電到達 → アポ</div>
-              <div class="value">-23.3pt<span class="pct">33件離脱</span></div>
-              <div class="meta">架電は繋がるがアポにならない</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">入札率(配信→入札)</div>
-              <div class="value">69.0<span class="pct">%</span></div>
-              <div class="meta">配信のうち69%を入札判断</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">獲得率(入札→落札)</div>
-              <div class="value">88.8<span class="pct">%</span></div>
-              <div class="meta">入札のうち88.8%を落札</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">配信→成約 全体通過率</div>
-              <div class="value">9.9<span class="pct">%</span></div>
-              <div class="meta">前月 8.5% / 改善傾向</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CARSENSOR VIEW -->
-    <div id="view-carsensor" style="display:none;">
-      <h2 class="section-title">カーセンサー サマリー <span class="ja">全件配信型 / 5月分</span></h2>
-      <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">82<span class="kpi-unit">件</span></div><div class="kpi-sub up">↑ 前月比 +5%</div></div>
-        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">62<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 75.6%</div></div>
-        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">25<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 30.5%</div></div>
-        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">19<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 76.0%</div></div>
-        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">11<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 13.4%</div></div>
-        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">5<span class="kpi-unit">件</span></div><div class="kpi-sub">本日期限 2件</div></div>
-      </div>
-
-      <h2 class="section-title">カーセンサー フェーズ別ファネル <span class="ja">受信 → 架電 → 成約</span></h2>
-      <div class="panel">
-        <div class="panel-row">
-          <div>
-            <div class="funnel">
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">01</span>受信</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">82</div></div>
-                <div class="funnel-count">82</div>
-                <div class="funnel-rate">100%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">02</span>架電到達</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:75.6%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">62</div></div>
-                <div class="funnel-count">62</div>
-                <div class="funnel-rate">75.6%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">03</span>アポ獲得</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:30.5%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">25</div></div>
-                <div class="funnel-count">25</div>
-                <div class="funnel-rate drop">30.5%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">04</span>査定〇</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:23.2%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">19</div></div>
-                <div class="funnel-count">19</div>
-                <div class="funnel-rate">23.2%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">05</span>査定提示</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:20.7%;background:linear-gradient(90deg,#1a1a1a,var(--carsensor));">17</div></div>
-                <div class="funnel-count">17</div>
-                <div class="funnel-rate">20.7%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">06</span>成約</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:13.4%;background:linear-gradient(90deg,var(--carsensor),var(--green));">11</div></div>
-                <div class="funnel-count">11</div>
-                <div class="funnel-rate">13.4%</div>
-              </div>
-            </div>
-          </div>
-          <div class="conv-stats">
-            <div class="conv-card alert">
-              <div class="label">最大の離脱:架電到達 → アポ</div>
-              <div class="value">-45.1pt<span class="pct">37件離脱</span></div>
-              <div class="meta">アポ率がMOTAより低い</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">受信→成約 全体通過率</div>
-              <div class="value">13.4<span class="pct">%</span></div>
-              <div class="meta">前月 11.5%</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">アポ → 成約</div>
-              <div class="value">44.0<span class="pct">%</span></div>
-              <div class="meta">アポ獲得後の成約率</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">平均架電回数</div>
-              <div class="value">2.8<span class="pct">回</span></div>
-              <div class="meta">成約まで(中央値2回)</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NAVIKURU VIEW -->
-    <div id="view-navikuru" style="display:none;">
-      <h2 class="section-title">ナビクル サマリー <span class="ja">一括査定 / 5月分</span></h2>
-      <div class="kpi-grid">
-        <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">47<span class="kpi-unit">件</span></div><div class="kpi-sub down">↓ 前月比 -8%</div></div>
-        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">40<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 85.1%</div></div>
-        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">15<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 31.9%</div></div>
-        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">12<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 80.0%</div></div>
-        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">6<span class="kpi-unit">件</span></div><div class="kpi-sub down">成約率 12.8%</div></div>
-        <div class="kpi alert"><div class="kpi-label">他社売却</div><div class="kpi-value">4<span class="kpi-unit">件</span></div><div class="kpi-sub">競合に流出</div></div>
-      </div>
-
-      <h2 class="section-title">ナビクル フェーズ別ファネル <span class="ja">受信 → 架電 → 成約</span></h2>
-      <div class="panel">
-        <div class="panel-row">
-          <div>
-            <div class="funnel">
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">01</span>受信</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">47</div></div>
-                <div class="funnel-count">47</div>
-                <div class="funnel-rate">100%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">02</span>架電到達</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:85.1%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">40</div></div>
-                <div class="funnel-count">40</div>
-                <div class="funnel-rate">85.1%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">03</span>アポ獲得</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:31.9%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">15</div></div>
-                <div class="funnel-count">15</div>
-                <div class="funnel-rate drop">31.9%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">04</span>査定〇</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:25.5%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">12</div></div>
-                <div class="funnel-count">12</div>
-                <div class="funnel-rate">25.5%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">05</span>査定提示</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:21.3%;background:linear-gradient(90deg,#1a1a1a,var(--navikuru));">10</div></div>
-                <div class="funnel-count">10</div>
-                <div class="funnel-rate">21.3%</div>
-              </div>
-              <div class="funnel-stage">
-                <div class="funnel-name"><span class="num">06</span>成約</div>
-                <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:12.8%;background:linear-gradient(90deg,var(--navikuru),var(--green));">6</div></div>
-                <div class="funnel-count">6</div>
-                <div class="funnel-rate">12.8%</div>
-              </div>
-            </div>
-          </div>
-          <div class="conv-stats">
-            <div class="conv-card alert">
-              <div class="label">最大の離脱:架電到達 → アポ</div>
-              <div class="value">-53.2pt<span class="pct">25件離脱</span></div>
-              <div class="meta">一括査定特有の競合影響</div>
-            </div>
-            <div class="conv-card alert">
-              <div class="label">他社売却(失注理由TOP)</div>
-              <div class="value">4<span class="pct">件 / 失注の40%</span></div>
-              <div class="meta">競合価格で負けている</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">受信→成約 全体通過率</div>
-              <div class="value">12.8<span class="pct">%</span></div>
-              <div class="meta">3媒体中最低</div>
-            </div>
-            <div class="conv-card">
-              <div class="label">到達率(架電)</div>
-              <div class="value">85.1<span class="pct">%</span></div>
-              <div class="meta">3媒体中最高(顧客動機高)</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- TEL結果内訳 + 結果内訳(全媒体共通) -->
     <div class="two-col" style="margin-top: 32px;">
@@ -1915,6 +1622,258 @@
     return { '不在': '×', '留守': 'M', '拒否': '!', '検討中': '?', 'アポ': '◎' }[result] || '';
   }
 
+  // ============================================================
+  // KPI集計ロジック
+  // ============================================================
+  
+  // 「架電到達」の判定:1回でも 拒否/検討中/アポ で繋がれば到達
+  function hasReached(c) {
+    return c.calls.some(call => ['拒否', '検討中', 'アポ'].includes(call.result));
+  }
+  function hasApo(c) {
+    return c.calls.some(call => call.result === 'アポ');
+  }
+  function isAssessed(c) {
+    return c.assess === '〇';
+  }
+  function isDeal(c) {
+    return ['入庫済み', '成約'].includes(c.result);
+  }
+  function isInbound(c) {
+    return c.result === '入庫済み';
+  }
+  function isFollowupTarget(c) {
+    if (!c.followup) return false;
+    const fd = new Date(c.followup);
+    return fd <= today && !isDeal(c) && !['他社売却', '自社代替', '売却しない'].includes(c.result);
+  }
+  function isFollowupToday(c) {
+    if (!c.followup) return false;
+    const fd = new Date(c.followup);
+    return fd.getTime() === today.getTime();
+  }
+  
+  // 媒体ごとの案件抽出
+  function casesByMedia(media) {
+    if (!media || media === 'all') return cases;
+    return cases.filter(c => c.media === media);
+  }
+  
+  // 媒体別KPI算出
+  function computeKPI(media) {
+    const list = casesByMedia(media);
+    const total = list.length;
+    const reached = list.filter(hasReached).length;
+    const apo = list.filter(hasApo).length;
+    const assessedYes = list.filter(isAssessed).length;
+    const dealCount = list.filter(isDeal).length;
+    const inbound = list.filter(isInbound).length;
+    const followupTarget = list.filter(isFollowupTarget).length;
+    const followupToday = list.filter(isFollowupToday).length;
+    
+    // MOTA固有
+    const bidYes = list.filter(c => c.bid === '入札').length;
+    const bidWon = list.filter(c => c.bidResult === '落札').length;
+    
+    return {
+      total, reached, apo, assessedYes, dealCount, inbound,
+      followupTarget, followupToday,
+      bidYes, bidWon,
+      reachRate: total > 0 ? (reached / total * 100) : 0,
+      apoRate: reached > 0 ? (apo / reached * 100) : 0,
+      assessRate: apo > 0 ? (assessedYes / apo * 100) : 0,
+      dealRate: total > 0 ? (dealCount / total * 100) : 0,
+      bidRate: total > 0 ? (bidYes / total * 100) : 0,
+      winRate: bidYes > 0 ? (bidWon / bidYes * 100) : 0,
+    };
+  }
+  
+  // 数値整形
+  const fmtPct = n => (n || 0).toFixed(1);
+  
+  // ============================================================
+  // ビュー生成(全媒体・MOTA・他媒体)
+  // ============================================================
+  
+  // 全媒体ビュー
+  function renderAllView() {
+    const k = computeKPI('all');
+    const allMedias = ['mota', 'carsensor', 'navikuru', 'self', 'shop'];
+    const mediaKPIs = {};
+    allMedias.forEach(m => mediaKPIs[m] = computeKPI(m));
+    
+    // 各媒体の成約率を成約率順でソート
+    const sortByDeal = allMedias.slice().sort((a, b) => mediaKPIs[b].dealRate - mediaKPIs[a].dealRate);
+    const sortByApo = allMedias.slice().sort((a, b) => mediaKPIs[b].apoRate - mediaKPIs[a].apoRate);
+    const sortByCount = allMedias.slice().sort((a, b) => mediaKPIs[b].total - mediaKPIs[a].total);
+    
+    const dotClass = { mota: 'dot-mota', carsensor: 'dot-cs', navikuru: 'dot-nav', self: 'dot-self', shop: 'dot-shop' };
+    const fillClass = { mota: 'mota', carsensor: 'cs', navikuru: 'nav', self: 'self', shop: 'shop' };
+    
+    // 最大値で正規化
+    const maxDealRate = Math.max(...allMedias.map(m => mediaKPIs[m].dealRate), 1);
+    const maxApoRate = Math.max(...allMedias.map(m => mediaKPIs[m].apoRate), 1);
+    const maxCount = Math.max(...allMedias.map(m => mediaKPIs[m].total), 1);
+    
+    return `
+      <h2 class="section-title">全媒体サマリー <span class="ja">主要指標</span></h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">媒体横断合計</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">${k.apo}<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 ${fmtPct(k.apoRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 ${fmtPct(k.assessRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
+        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">${k.followupTarget}<span class="kpi-unit">件</span></div><div class="kpi-sub">うち本日期限 ${k.followupToday}件</div></div>
+      </div>
+
+      <h2 class="section-title">媒体別パフォーマンス比較 <span class="ja">同条件で並べた成約率</span></h2>
+      <div class="panel">
+        <div style="margin-bottom: 16px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信 → 成約 通過率</div>
+          ${sortByDeal.map(m => {
+            const mk = mediaKPIs[m];
+            if (mk.total === 0) return '';
+            const w = (mk.dealRate / Math.max(maxDealRate, 1)) * 100;
+            return `<div class="media-compare"><div class="name"><span class="dot-m ${dotClass[m]}"></span>${mediaLabels[m]}</div><div class="bar-bg"><div class="bar-fill ${fillClass[m]}" style="width:${w}%;"></div></div><div class="pct">${fmtPct(mk.dealRate)}%</div><div class="num">${mk.dealCount}/${mk.total}</div></div>`;
+          }).join('')}
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">架電到達 → アポ率</div>
+          ${sortByApo.map(m => {
+            const mk = mediaKPIs[m];
+            if (mk.reached === 0) return '';
+            const w = (mk.apoRate / Math.max(maxApoRate, 1)) * 100;
+            return `<div class="media-compare"><div class="name"><span class="dot-m ${dotClass[m]}"></span>${mediaLabels[m]}</div><div class="bar-bg"><div class="bar-fill ${fillClass[m]}" style="width:${w}%;"></div></div><div class="pct">${fmtPct(mk.apoRate)}%</div><div class="num">${mk.apo}/${mk.reached}</div></div>`;
+          }).join('')}
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div style="font-size:10px;color:var(--ink-3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">受信件数(構成比)</div>
+          ${sortByCount.map(m => {
+            const mk = mediaKPIs[m];
+            if (mk.total === 0) return '';
+            const w = (mk.total / Math.max(maxCount, 1)) * 100;
+            const pct = k.total > 0 ? (mk.total / k.total * 100) : 0;
+            return `<div class="media-compare"><div class="name"><span class="dot-m ${dotClass[m]}"></span>${mediaLabels[m]}</div><div class="bar-bg"><div class="bar-fill ${fillClass[m]}" style="width:${w}%;"></div></div><div class="pct">${fmtPct(pct)}%</div><div class="num">${mk.total}件</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ファネル1段の HTML を生成
+  function funnelStage(num, label, count, totalForRate, isDrop, accentClass) {
+    const rate = totalForRate > 0 ? (count / totalForRate * 100) : 0;
+    const w = totalForRate > 0 ? (count / totalForRate * 100) : 0;
+    return `
+      <div class="funnel-stage${accentClass ? ' mota-only' : ''}">
+        <div class="funnel-name"><span class="num">${num}</span>${label}${accentClass ? '<span class="mota-badge">MOTA</span>' : ''}</div>
+        <div class="funnel-bar-wrap"><div class="funnel-bar${accentClass ? ' mota' : ''}" style="width:${w}%;">${count}</div></div>
+        <div class="funnel-count">${count}</div>
+        <div class="funnel-rate${isDrop ? ' drop' : ''}">${fmtPct(rate)}%</div>
+      </div>
+    `;
+  }
+  
+  // MOTAビュー
+  function renderMotaView() {
+    const k = computeKPI('mota');
+    return `
+      <h2 class="section-title">MOTA サマリー <span class="ja">入札型</span></h2>
+      <div class="kpi-grid cols-7">
+        <div class="kpi mota-tag"><div class="kpi-label">配信受信</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">配信通知の総数</div></div>
+        <div class="kpi mota-tag"><div class="kpi-label">入札件数</div><div class="kpi-value">${k.bidYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">入札率 ${fmtPct(k.bidRate)}%</div></div>
+        <div class="kpi mota-tag"><div class="kpi-label">獲得件数</div><div class="kpi-value">${k.bidWon}<span class="kpi-unit">件</span></div><div class="kpi-sub">獲得率 ${fmtPct(k.winRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">${k.apo}<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 ${fmtPct(k.apoRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 ${fmtPct(k.assessRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
+      </div>
+      
+      <h2 class="section-title">MOTA フェーズ別ファネル <span class="ja">配信 → 入札 → 獲得 → 架電 → 成約</span></h2>
+      <div class="panel">
+        <div class="funnel">
+          ${funnelStage('01', '配信受信', k.total, k.total, false, true)}
+          ${funnelStage('02', '入札', k.bidYes, k.total, true, true)}
+          ${funnelStage('03', '獲得(落札)', k.bidWon, k.total, false, true)}
+          ${funnelStage('04', '架電到達', k.reached, k.total, true, false)}
+          ${funnelStage('05', 'アポ獲得', k.apo, k.total, true, false)}
+          ${funnelStage('06', '査定〇', k.assessedYes, k.total, false, false)}
+          ${funnelStage('07', '成約', k.dealCount, k.total, false, false)}
+        </div>
+      </div>
+    `;
+  }
+  
+  // 一般媒体ビュー(カーセンサー/ナビクル/自社/店頭)
+  function renderGeneralView(media, label, subtitle) {
+    const k = computeKPI(media);
+    return `
+      <h2 class="section-title">${label} サマリー <span class="ja">${subtitle}</span></h2>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">受信総数</div></div>
+        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">アポ獲得</div><div class="kpi-value">${k.apo}<span class="kpi-unit">件</span></div><div class="kpi-sub">アポ率 ${fmtPct(k.apoRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">査定〇</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">実施率 ${fmtPct(k.assessRate)}%</div></div>
+        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
+        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">${k.followupTarget}<span class="kpi-unit">件</span></div><div class="kpi-sub">本日期限 ${k.followupToday}件</div></div>
+      </div>
+      
+      <h2 class="section-title">${label} フェーズ別ファネル <span class="ja">受信 → 架電 → 成約</span></h2>
+      <div class="panel">
+        <div class="funnel">
+          ${funnelStage('01', '受信', k.total, k.total, false, false)}
+          ${funnelStage('02', '架電到達', k.reached, k.total, true, false)}
+          ${funnelStage('03', 'アポ獲得', k.apo, k.total, true, false)}
+          ${funnelStage('04', '査定〇', k.assessedYes, k.total, false, false)}
+          ${funnelStage('05', '成約', k.dealCount, k.total, false, false)}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ビュー切替
+  let currentMedia = 'all';
+  function renderMediaView(media) {
+    currentMedia = media;
+    const container = document.getElementById('view-container');
+    if (!container) return;
+    
+    if (media === 'all') {
+      container.innerHTML = renderAllView();
+    } else if (media === 'mota') {
+      container.innerHTML = renderMotaView();
+    } else if (media === 'carsensor') {
+      container.innerHTML = renderGeneralView('carsensor', 'カーセンサー', '全件配信型');
+    } else if (media === 'navikuru') {
+      container.innerHTML = renderGeneralView('navikuru', 'ナビクル', '一括査定型');
+    } else if (media === 'self') {
+      container.innerHTML = renderGeneralView('self', '自社サイト', '直接問い合わせ');
+    } else if (media === 'shop') {
+      container.innerHTML = renderGeneralView('shop', '店頭', '直接来店');
+    }
+    
+    // 媒体タブのカウント更新
+    updateMediaTabCounts();
+  }
+  
+  function updateMediaTabCounts() {
+    const counts = {
+      all: cases.length,
+      mota: cases.filter(c => c.media === 'mota').length,
+      carsensor: cases.filter(c => c.media === 'carsensor').length,
+      navikuru: cases.filter(c => c.media === 'navikuru').length,
+      self: cases.filter(c => c.media === 'self').length,
+      shop: cases.filter(c => c.media === 'shop').length,
+    };
+    document.querySelectorAll('.media-tab').forEach(tab => {
+      const m = tab.dataset.media;
+      const countEl = tab.querySelector('.count');
+      if (countEl && counts[m] !== undefined) countEl.textContent = counts[m];
+    });
+  }
+
   // テーブル描画
   function renderCaseTable() {
     const tbody = document.getElementById('case-tbody');
@@ -1984,8 +1943,8 @@
   // ===== HOT案件 (査定アポ + 査定後返事待ち) =====
   function renderHotCases() {
     const hotCases = cases.filter(c => {
-      const hasApo = c.calls.some(call => call.result === 'アポ');
-      const isAssessmentApo = hasApo && c.assess === null;
+      const ha = c.calls.some(call => call.result === 'アポ');
+      const isAssessmentApo = ha && c.assess === null;
       const isWaiting = c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result);
       return isAssessmentApo || isWaiting;
     });
@@ -1999,8 +1958,8 @@
       hotCases.forEach(c => {
         const row = document.createElement('div');
         row.className = 'priority-row';
-        const hasApo = c.calls.some(call => call.result === 'アポ');
-        const isAssessmentApo = hasApo && c.assess === null;
+        const ha = c.calls.some(call => call.result === 'アポ');
+        const isAssessmentApo = ha && c.assess === null;
         const statusClass = isAssessmentApo ? 'apo-est' : 'waiting';
         const statusLabel = isAssessmentApo ? '査定アポ' : '返事待ち';
         const followStr = c.followup ? c.followup.replace(/^\d{4}\//, '') : '—';
@@ -2020,8 +1979,8 @@
   function updateCountBadges() {
     const newCount = cases.filter(c => c.calls.length === 0).length;
     const hotCount = cases.filter(c => {
-      const hasApo = c.calls.some(call => call.result === 'アポ');
-      return (hasApo && c.assess === null) ||
+      const ha = c.calls.some(call => call.result === 'アポ');
+      return (ha && c.assess === null) ||
              (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
     }).length;
     
@@ -2031,16 +1990,19 @@
     const hotCountEl = document.querySelector('.priority-card.hot .priority-count');
     if (hotCountEl) hotCountEl.innerHTML = `${hotCount}<span class="unit">件</span>`;
     
-    // バナーの数値
+    // バナーの数値:新着 + HOT + 後追対象(重複排除)
     const bannerCountEl = document.querySelector('.today-banner .count');
     if (bannerCountEl) {
-      const followToday = cases.filter(c => {
-        if (!c.followup) return false;
-        const fd = new Date(c.followup);
-        return fd <= today;
-      }).length;
-      const total = newCount + hotCount + followToday;
-      bannerCountEl.innerHTML = `${total}<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span>`;
+      const targetIds = new Set();
+      cases.forEach((c, i) => {
+        const ha = c.calls.some(call => call.result === 'アポ');
+        const isHot = (ha && c.assess === null) ||
+                      (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
+        const isNew = c.calls.length === 0;
+        const isFollowup = isFollowupTarget(c);
+        if (isHot || isNew || isFollowup) targetIds.add(i);
+      });
+      bannerCountEl.innerHTML = `${targetIds.size}<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span>`;
     }
     
     // 案件一覧タブのバッジ
@@ -2050,6 +2012,7 @@
   
   // 全体描画
   function renderAll() {
+    renderMediaView(currentMedia);
     renderCaseTable();
     renderNewCases();
     renderHotCases();
@@ -2126,9 +2089,7 @@
     t.addEventListener('click', () => {
       document.querySelectorAll('.media-tab').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
-      ['all','mota','carsensor','navikuru'].forEach(m => {
-        document.getElementById('view-' + m).style.display = (m === t.dataset.media) ? 'block' : 'none';
-      });
+      renderMediaView(t.dataset.media);
     });
   });
 
@@ -2147,7 +2108,7 @@
   });
 
   // ===== 期間フィルタロジック =====
-  const TODAY = new Date('2026/05/03');
+  const TODAY = today; // 実行時の今日(初期化時)
   
   function fmtDateJP(d) {
     const y = d.getFullYear();
