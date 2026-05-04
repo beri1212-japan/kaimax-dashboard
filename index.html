@@ -1648,27 +1648,49 @@
 <div class="page-section" id="page-cases">
   <div class="filters">
     <div class="filter-group">
-      <span class="filter-label">優先表示</span>
-      <span class="chip active">HOT(自動並び替え)</span>
-      <span class="chip">本日対応</span>
-      <span class="chip">アポ以降</span>
-      <span class="chip">後追対象</span>
-      <span class="chip">成約済</span>
+      <span class="filter-label">期間</span>
+      <span class="chip period-chip-cases active" data-period="current">当月</span>
+      <span class="chip period-chip-cases" data-period="last">先月</span>
+      <span class="chip period-chip-cases" data-period="last2">先々月</span>
+      <span class="chip period-chip-cases" data-period="6m">過去6ヶ月</span>
+      <span class="chip period-chip-cases" data-period="1y">過去1年</span>
+      <span class="chip period-chip-cases" data-period="all">全期間</span>
     </div>
     <div class="filter-group">
       <span class="filter-label">媒体</span>
-      <span class="chip active">全媒体</span>
-      <span class="chip">MOTA</span>
-      <span class="chip">カーセンサー</span>
-      <span class="chip">ナビクル</span>
+      <span class="chip media-chip-cases active" data-cmedia="all">全媒体</span>
+      <span class="chip media-chip-cases" data-cmedia="mota">MOTA</span>
+      <span class="chip media-chip-cases" data-cmedia="carsensor">カーセンサー</span>
+      <span class="chip media-chip-cases" data-cmedia="navikuru">ナビクル</span>
+      <span class="chip media-chip-cases" data-cmedia="self">自社サイト</span>
+      <span class="chip media-chip-cases" data-cmedia="shop">店頭</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">フェーズ</span>
+      <span class="chip phase-chip-cases active" data-phase="all">全て</span>
+      <span class="chip phase-chip-cases" data-phase="not-called">未架電</span>
+      <span class="chip phase-chip-cases" data-phase="calling">架電中</span>
+      <span class="chip phase-chip-cases" data-phase="apo">アポ獲得</span>
+      <span class="chip phase-chip-cases" data-phase="assessed">査定済</span>
+      <span class="chip phase-chip-cases" data-phase="deal">成約</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">結果</span>
+      <span class="chip result-chip-cases active" data-cresult="all">全て</span>
+      <span class="chip result-chip-cases" data-cresult="入庫済み">入庫済み</span>
+      <span class="chip result-chip-cases" data-cresult="成約">成約</span>
+      <span class="chip result-chip-cases" data-cresult="検討(直近)">検討(直近)</span>
+      <span class="chip result-chip-cases" data-cresult="検討(長期)">検討(長期)</span>
+      <span class="chip result-chip-cases" data-cresult="他社結果待ち">他社結果待ち</span>
+      <span class="chip result-chip-cases" data-cresult="empty">未確定</span>
     </div>
   </div>
 
   <div class="container">
-    <h2 class="section-title">案件一覧(媒体横断HOT) <span class="ja">後追日が近い順 / 媒体は1列で表示</span></h2>
+    <h2 class="section-title">案件一覧 <span class="ja">後追日が近い順 / 媒体は1列で表示</span></h2>
     <div class="table-controls">
-      <input type="text" class="search-box" placeholder="顧客名・車種・案件番号で検索...">
-      <div class="table-info">表示: <b id="row-count">14</b> 件 / 全 216 件</div>
+      <input type="text" class="search-box" id="case-search" placeholder="顧客名・車種・案件番号で検索...">
+      <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
     </div>
 
     <table id="case-table">
@@ -2337,13 +2359,86 @@
   }
 
   // テーブル描画
+  // 案件一覧専用フィルタ状態
+  const caseFilters = {
+    period: 'current',
+    media: 'all',
+    phase: 'all',
+    result: 'all',
+    search: '',
+  };
+  
+  // 案件一覧専用の期間フィルタ
+  function applyCasePeriodFilter(list, period) {
+    if (period === 'all') return list;
+    const { from, to } = getPeriodRange(period);
+    return list.filter(c => {
+      const d = parseDateFlexible(c.date);
+      if (!d) return true;
+      return d >= from && d <= to;
+    });
+  }
+  
+  // フェーズ判定
+  function caseMatchesPhase(c, phase) {
+    if (phase === 'all') return true;
+    if (phase === 'not-called') return c.calls.length === 0;
+    if (phase === 'calling') {
+      return c.calls.length > 0 && !c.calls.some(call => call.result === 'アポ') && c.assess !== '〇' && c.assess !== '×';
+    }
+    if (phase === 'apo') {
+      return c.calls.some(call => call.result === 'アポ') && c.assess !== '〇' && c.assess !== '×';
+    }
+    if (phase === 'assessed') {
+      return c.assess === '〇' && !['入庫済み', '成約'].includes(c.result);
+    }
+    if (phase === 'deal') {
+      return ['入庫済み', '成約'].includes(c.result);
+    }
+    return true;
+  }
+  
   function renderCaseTable() {
     const tbody = document.getElementById('case-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // 案件一覧の表示対象に絞り込み
-    const filteredCases = cases.filter(isCaseListTarget);
+    // ベースは allCases(期間フィルタは案件一覧専用に独立)
+    let list = applyCasePeriodFilter(allCases.length > 0 ? allCases : cases, caseFilters.period);
+    
+    // 共通の除外(失注 + MOTA非権獲)
+    list = list.filter(isCaseListTarget);
+    
+    // 媒体絞込
+    if (caseFilters.media !== 'all') {
+      list = list.filter(c => c.media === caseFilters.media);
+    }
+    
+    // フェーズ絞込
+    if (caseFilters.phase !== 'all') {
+      list = list.filter(c => caseMatchesPhase(c, caseFilters.phase));
+    }
+    
+    // 結果絞込
+    if (caseFilters.result !== 'all') {
+      if (caseFilters.result === 'empty') {
+        list = list.filter(c => !c.result);
+      } else {
+        list = list.filter(c => c.result === caseFilters.result);
+      }
+    }
+    
+    // 検索絞込
+    if (caseFilters.search) {
+      const q = caseFilters.search.toLowerCase();
+      list = list.filter(c =>
+        (c.customer || '').toLowerCase().includes(q) ||
+        (c.car || '').toLowerCase().includes(q) ||
+        String(c.no).includes(q)
+      );
+    }
+    
+    const filteredCases = list;
     
     filteredCases.forEach(c => {
       const phase = getPhase(c);
@@ -2377,6 +2472,8 @@
     
     const rowCountEl = document.getElementById('row-count');
     if (rowCountEl) rowCountEl.textContent = filteredCases.length;
+    const rowCountAllEl = document.getElementById('row-count-all');
+    if (rowCountAllEl) rowCountAllEl.textContent = allCases.filter(isCaseListTarget).length;
   }
 
   // ===== 新着案件 (未コール) =====
@@ -2844,6 +2941,10 @@
     g.querySelectorAll('.chip').forEach(c => {
       // 期間chipは別ハンドラで処理するためスキップ
       if (c.classList.contains('period-chip')) return;
+      if (c.classList.contains('period-chip-cases')) return;
+      if (c.classList.contains('media-chip-cases')) return;
+      if (c.classList.contains('phase-chip-cases')) return;
+      if (c.classList.contains('result-chip-cases')) return;
       c.addEventListener('click', () => {
         g.querySelectorAll('.chip').forEach(x => {
           if (!x.classList.contains('period-chip')) x.classList.remove('active');
@@ -2852,6 +2953,32 @@
       });
     });
   });
+  
+  // 案件一覧専用フィルタのイベント設定
+  function setupCaseFilterChips(selector, key) {
+    document.querySelectorAll(selector).forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll(selector).forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const dataKey = chip.dataset.period || chip.dataset.cmedia || chip.dataset.phase || chip.dataset.cresult;
+        caseFilters[key] = dataKey;
+        renderCaseTable();
+      });
+    });
+  }
+  setupCaseFilterChips('.period-chip-cases', 'period');
+  setupCaseFilterChips('.media-chip-cases', 'media');
+  setupCaseFilterChips('.phase-chip-cases', 'phase');
+  setupCaseFilterChips('.result-chip-cases', 'result');
+  
+  // 検索ボックス
+  const caseSearch = document.getElementById('case-search');
+  if (caseSearch) {
+    caseSearch.addEventListener('input', () => {
+      caseFilters.search = caseSearch.value;
+      renderCaseTable();
+    });
+  }
 
   // ===== 期間フィルタロジック =====
   const TODAY = today; // 実行時の今日(初期化時)
@@ -2901,7 +3028,10 @@
   function getPeriodRange(period) {
     const today = new Date(TODAY);
     let from, to;
-    if (period === 'current') {
+    if (period === 'all') {
+      from = new Date(2000, 0, 1);
+      to = new Date(2099, 11, 31);
+    } else if (period === 'current') {
       from = new Date(today.getFullYear(), today.getMonth(), 1);
       to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     } else if (period === 'last') {
