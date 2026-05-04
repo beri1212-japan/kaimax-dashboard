@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>買取案件ダッシュボード v3 | 媒体別KPI + 横断HOT一覧</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Bodoni+Moda:wght@400;700&display=swap" rel="stylesheet">
+
+
+
 <style>
   :root {
     --bg: #f5f3ee;
@@ -50,7 +50,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
     font-size: 13px;
@@ -69,7 +69,7 @@
     gap: 24px;
   }
   .logo {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 22px;
     font-weight: 700;
     color: var(--gold);
@@ -132,7 +132,7 @@
     background: var(--accent);
     color: #fff;
     font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     border-radius: 10px;
   }
 
@@ -180,7 +180,7 @@
   .media-tab[data-media="self"] .indicator { color: var(--self); border-color: var(--self); }
   .media-tab[data-media="shop"] .indicator { color: var(--shop); border-color: var(--shop); }
   .media-tab .count {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
     background: var(--bg-soft);
@@ -228,7 +228,7 @@
   }
 
   .section-title {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 20px;
     font-weight: 700;
     margin: 32px 0 14px;
@@ -244,7 +244,7 @@
     background: var(--accent);
   }
   .section-title .ja {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
     letter-spacing: 0.2em;
@@ -274,14 +274,14 @@
     margin-bottom: 8px;
   }
   .kpi-value {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 28px;
     font-weight: 700;
     line-height: 1;
     color: var(--ink);
   }
   .kpi-unit {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: Arial, sans-serif;
     font-size: 12px;
     font-weight: 400;
     color: var(--ink-3);
@@ -291,7 +291,7 @@
     font-size: 10px;
     color: var(--ink-3);
     margin-top: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
   }
   .kpi-sub.up { color: var(--green); }
   .kpi-sub.down { color: var(--red); }
@@ -343,7 +343,7 @@
     gap: 6px;
   }
   .funnel-name .num {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     color: var(--ink-3);
     font-weight: 500;
     font-size: 10px;
@@ -375,19 +375,19 @@
     padding-right: 8px;
     color: #f5f3ee;
     font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-weight: 600;
   }
   .funnel-bar.mota { background: linear-gradient(90deg, rgba(138,74,37,0.6), rgba(217,119,66,0.7)); }
   .funnel-count {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 14px;
     font-weight: 600;
   }
   .funnel-rate {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -411,13 +411,13 @@
     margin-bottom: 4px;
   }
   .conv-card .value {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 24px;
     font-weight: 700;
     line-height: 1.1;
   }
   .conv-card .value .pct {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 14px;
     color: var(--ink-3);
     font-weight: 500;
@@ -427,7 +427,7 @@
     font-size: 10px;
     color: var(--ink-3);
     margin-top: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
   }
 
   /* Media comparison (全体view) */
@@ -471,7 +471,7 @@
   .media-compare .bar-fill.shop { background: rgba(184,149,74,0.6); }
   .media-compare .pct, .media-compare .num {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-weight: 600;
   }
   .media-compare .num { color: var(--ink-3); font-size: 11px; }
@@ -509,7 +509,7 @@
   .bar-fill.shop-c { background: rgba(184,149,74,0.6); }
   .bar-val {
     text-align: right;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     font-weight: 600;
   }
@@ -531,7 +531,7 @@
   }
   .today-banner .icon { font-size: 28px; color: var(--gold); }
   .today-banner h3 {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 18px;
     margin-bottom: 4px;
   }
@@ -542,7 +542,7 @@
   }
   .today-banner .count {
     margin-left: auto;
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 36px;
     font-weight: 700;
   }
@@ -567,7 +567,7 @@
     font-size: 11px;
     color: var(--ink-3);
     margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
   }
   table {
     width: 100%;
@@ -595,9 +595,9 @@
   }
   tbody tr:hover { background: #faf8f3; }
   tbody td { padding: 10px 12px; vertical-align: middle; }
-  td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+  td.num { text-align: right; font-family: Arial, sans-serif; }
   td.center { text-align: center; }
-  .case-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-3); }
+  .case-id { font-family: Arial, sans-serif; font-size: 10px; color: var(--ink-3); }
 
   /* Media tag */
   .m-tag {
@@ -645,7 +645,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     color: var(--ink-3);
     font-weight: 600;
   }
@@ -656,7 +656,7 @@
   .call-dot.apo { background: var(--accent); color: #fff; border-color: var(--accent); }
   .call-dot.empty { background: transparent; border-style: dashed; color: var(--line); }
 
-  .followup-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .followup-cell { font-family: Arial, sans-serif; font-size: 11px; }
   .followup-cell.today { color: var(--accent); font-weight: 700; }
   .followup-cell.past { color: var(--red); font-weight: 700; }
   .followup-cell.future { color: var(--ink-3); }
@@ -696,7 +696,7 @@
     font-size: 16px;
   }
   .detail-id {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 10px;
     color: var(--ink-3);
     letter-spacing: 0.1em;
@@ -706,7 +706,7 @@
     gap: 8px;
   }
   .detail-name {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 26px;
     font-weight: 700;
     line-height: 1.2;
@@ -732,7 +732,7 @@
   }
   .field-label { color: var(--ink-3); }
   .field-value { font-weight: 500; }
-  .field-value.mono { font-family: 'JetBrains Mono', monospace; }
+  .field-value.mono { font-family: Arial, sans-serif; }
 
   .call-log { display: flex; flex-direction: column; gap: 8px; }
   .call-row {
@@ -751,14 +751,14 @@
   .call-row.consider { border-left-color: var(--blue); }
   .call-row.apo { border-left-color: var(--accent); background: rgba(184,49,47,0.06); }
   .call-row .n {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 18px;
     font-weight: 700;
     color: var(--accent);
     text-align: center;
   }
   .call-row .date {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
   }
@@ -803,7 +803,7 @@
   .period-display {
     margin-left: 12px;
     padding: 4px 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
     background: var(--bg-soft);
@@ -848,7 +848,7 @@
     justify-content: space-between;
   }
   .picker-title {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -899,7 +899,7 @@
     padding: 8px 12px;
     border: 1px solid var(--line);
     background: var(--bg-panel);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 13px;
     color: var(--ink);
     transition: border-color 0.15s;
@@ -1020,7 +1020,7 @@
     flex: 1;
   }
   .priority-title .label {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -1032,7 +1032,7 @@
     margin-top: 2px;
   }
   .priority-count {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 28px;
     font-weight: 700;
     line-height: 1;
@@ -1040,7 +1040,7 @@
   .priority-card.new .priority-count { color: var(--green); }
   .priority-card.hot .priority-count { color: var(--accent); }
   .priority-count .unit {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: Arial, sans-serif;
     font-size: 11px;
     color: var(--ink-3);
     margin-left: 3px;
@@ -1064,7 +1064,7 @@
   .priority-row:hover { background: #faf8f3; }
   .priority-row:last-child { border-bottom: none; }
   .priority-row .pr-meta {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-size: 10px;
     color: var(--ink-3);
   }
@@ -1148,7 +1148,7 @@
     justify-content: space-between;
   }
   .edit-id {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 18px;
     font-weight: 700;
   }
@@ -1268,7 +1268,7 @@
     background: var(--bg-soft);
   }
   .call-row-input .num {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 14px;
     font-weight: 700;
     color: var(--accent);
@@ -1399,13 +1399,13 @@
     dominant-baseline: middle;
   }
   .donut-center-num {
-    font-family: 'Bodoni Moda', serif;
+    font-family: Arial, sans-serif;
     font-size: 32px;
     font-weight: 700;
     fill: var(--ink);
   }
   .donut-center-label {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: Arial, sans-serif;
     font-size: 9px;
     fill: var(--ink-3);
     letter-spacing: 0.2em;
@@ -1433,13 +1433,13 @@
   }
   .legend-name { color: var(--ink-2); }
   .legend-num {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     font-weight: 600;
     color: var(--ink);
     font-size: 11px;
   }
   .legend-pct {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: Arial, sans-serif;
     color: var(--ink-3);
     font-size: 10px;
     min-width: 42px;
@@ -1461,8 +1461,8 @@
 
 <!-- データ読み込み中のオーバーレイ -->
 <div id="data-loading" style="display:none;position:fixed;inset:0;background:rgba(245,243,238,0.95);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:14px;">
-  <div style="font-family:'Bodoni Moda',serif;font-size:24px;color:var(--ink);letter-spacing:0.05em;">データを読み込み中...</div>
-  <div style="font-size:11px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">スプレッドシートから取得しています</div>
+  <div style="font-family:Arial,serif;font-size:24px;color:var(--ink);letter-spacing:0.05em;">データを読み込み中...</div>
+  <div style="font-size:11px;color:var(--ink-3);font-family:Arial,monospace;">スプレッドシートから取得しています</div>
   <div style="width:40px;height:40px;border:3px solid var(--bg-soft);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
 </div>
 <style>
@@ -1484,18 +1484,18 @@
     <h3>本日の優先対応</h3>
     <div class="meta">新着(未コール) + HOT(査定アポ・返事待ち) + 後追日が今日以前</div>
   </div>
-  <div class="count">19<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span></div>
+  <div class="count">19<span style="font-size:14px;font-family:Arial;opacity:0.8;margin-left:6px;">件</span></div>
 </div>
 
 <!-- 新着 & HOT セクション -->
-<div style="padding: 20px 32px 0;">
+<div id="priority-section" style="padding: 20px 32px 0;">
   <div class="priority-grid">
     <!-- 新着案件 -->
     <div class="priority-card new">
       <div class="priority-header">
         <div class="priority-icon">●</div>
         <div class="priority-title">
-          <div class="label">新着案件 <span style="font-size:10px;color:var(--ink-3);font-family:'Noto Sans JP';font-weight:400;letter-spacing:0.1em;margin-left:6px;">未コール</span></div>
+          <div class="label">新着案件 <span style="font-size:10px;color:var(--ink-3);font-family:Arial;font-weight:400;letter-spacing:0.1em;margin-left:6px;">未コール</span></div>
           <div class="desc">受信したがまだ架電していない案件 — 早めの初回コールが鍵</div>
         </div>
         <div class="priority-count">8<span class="unit">件</span></div>
@@ -1508,7 +1508,7 @@
       <div class="priority-header">
         <div class="priority-icon">▲</div>
         <div class="priority-title">
-          <div class="label">HOT案件 <span style="font-size:10px;color:var(--ink-3);font-family:'Noto Sans JP';font-weight:400;letter-spacing:0.1em;margin-left:6px;">査定アポ・査定後返事待ち</span></div>
+          <div class="label">HOT案件 <span style="font-size:10px;color:var(--ink-3);font-family:Arial;font-weight:400;letter-spacing:0.1em;margin-left:6px;">査定アポ・査定後返事待ち</span></div>
           <div class="desc">熱い段階の案件 — 1本のフォローで成約に直結する可能性大</div>
         </div>
         <div class="priority-count">11<span class="unit">件</span></div>
@@ -1978,6 +1978,7 @@
   
   // グローバル変数(他のスクリプトから参照)
   let cases = [];
+  let allCases = [];  // フィルタ前の全件保持
   
   // 案件データ(媒体横断)— フォールバック用ダミーデータ
   const fallbackCases = [
@@ -2341,7 +2342,12 @@
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    cases.forEach(c => {
+    // casesは既にapplyPeriodFilter適用済み。ここでは失注のみ除外
+    const filteredCases = cases.filter(c => 
+      !['他社売却', '売却しない', '自社代替'].includes(c.result)
+    );
+    
+    filteredCases.forEach(c => {
       const phase = getPhase(c);
       const fu = getFollowupStatus(c.followup);
       let callTrail = '';
@@ -2354,16 +2360,16 @@
       }
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="text-align:center;color:var(--ink-3);font-family:'JetBrains Mono',monospace;font-size:10px;">${String(c.no).padStart(2,'0')}</td>
+        <td style="text-align:center;color:var(--ink-3);font-family:Arial,monospace;font-size:10px;">${String(c.no).padStart(2,'0')}</td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
           <div style="font-weight:600;">${c.customer || '<span style="color:var(--ink-3);font-weight:400;">(顧客名未入力)</span>'}</div>
-          <div style="font-size:10px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">${c.date}</div>
+          <div style="font-size:10px;color:var(--ink-3);font-family:Arial,monospace;">${c.date}</div>
         </td>
         <td style="font-size:11px;">${c.car}</td>
         <td class="center"><div class="call-trail">${callTrail}</div></td>
-        <td class="center" style="font-family:'Bodoni Moda',serif;font-size:18px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
+        <td class="center" style="font-family:Arial,serif;font-size:18px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
       `;
@@ -2372,12 +2378,24 @@
     });
     
     const rowCountEl = document.getElementById('row-count');
-    if (rowCountEl) rowCountEl.textContent = cases.length;
+    if (rowCountEl) rowCountEl.textContent = filteredCases.length;
   }
 
   // ===== 新着案件 (未コール) =====
+  // 表示条件:架電履歴ゼロ かつ
+  //   - MOTA以外 OR
+  //   - MOTAかつ入札結果=〇(落札済み)
   function renderNewCases() {
-    const newCases = cases.filter(c => c.calls.length === 0);
+    const newCases = cases.filter(c => {
+      if (c.calls.length > 0) return false;
+      // 結果欄が「他社売却」「売却しない」「自社代替」「他社結果待ち」は除外
+      if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
+      if (c.media === 'mota') {
+        // MOTAは落札済みのみ
+        return c.bidResult === '〇' || c.bidResult === '落札';
+      }
+      return true;
+    });
     const newList = document.getElementById('newList');
     if (!newList) return;
     newList.innerHTML = '';
@@ -2437,36 +2455,39 @@
   }
   
   // 全体の数値カウンタを更新
+  // 新着案件の判定(他箇所で使う共通ロジック)
+  function isNewCase(c) {
+    if (c.calls.length > 0) return false;
+    if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
+    if (c.media === 'mota') {
+      return c.bidResult === '〇' || c.bidResult === '落札';
+    }
+    return true;
+  }
+  function isHotCase(c) {
+    const ha = c.calls.some(call => call.result === 'アポ');
+    return (ha && c.assess === null) ||
+           (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
+  }
+  
   function updateCountBadges() {
-    const newCount = cases.filter(c => c.calls.length === 0).length;
-    const hotCount = cases.filter(c => {
-      const ha = c.calls.some(call => call.result === 'アポ');
-      return (ha && c.assess === null) ||
-             (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
-    }).length;
+    const newCount = cases.filter(isNewCase).length;
+    const hotCount = cases.filter(isHotCase).length;
     
-    // 新着パネルとHOTパネルのカウント更新
     const newCountEl = document.querySelector('.priority-card.new .priority-count');
     if (newCountEl) newCountEl.innerHTML = `${newCount}<span class="unit">件</span>`;
     const hotCountEl = document.querySelector('.priority-card.hot .priority-count');
     if (hotCountEl) hotCountEl.innerHTML = `${hotCount}<span class="unit">件</span>`;
     
-    // バナーの数値:新着 + HOT + 後追対象(重複排除)
     const bannerCountEl = document.querySelector('.today-banner .count');
     if (bannerCountEl) {
       const targetIds = new Set();
       cases.forEach((c, i) => {
-        const ha = c.calls.some(call => call.result === 'アポ');
-        const isHot = (ha && c.assess === null) ||
-                      (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
-        const isNew = c.calls.length === 0;
-        const isFollowup = isFollowupTarget(c);
-        if (isHot || isNew || isFollowup) targetIds.add(i);
+        if (isHotCase(c) || isNewCase(c) || isFollowupTarget(c)) targetIds.add(i);
       });
-      bannerCountEl.innerHTML = `${targetIds.size}<span style="font-size:14px;font-family:'Noto Sans JP';opacity:0.8;margin-left:6px;">件</span>`;
+      bannerCountEl.innerHTML = `${targetIds.size}<span style="font-size:14px;font-family:Arial;opacity:0.8;margin-left:6px;">件</span>`;
     }
     
-    // 案件一覧タブのバッジ
     const tabBadge = document.querySelector('[data-page="cases"] .badge');
     if (tabBadge) tabBadge.textContent = cases.length;
   }
@@ -2514,7 +2535,7 @@
       <div class="detail-section">
         <h3>査定・結果</h3>
         <div class="field-grid">
-          <span class="field-label">査定</span><span class="field-value" style="font-family:'Bodoni Moda',serif;font-size:18px;font-weight:700;">${c.assess || '—'}</span>
+          <span class="field-label">査定</span><span class="field-value" style="font-family:Arial,serif;font-size:18px;font-weight:700;">${c.assess || '—'}</span>
           <span class="field-label">結果</span><span class="field-value">${c.result || '—'}</span>
           <span class="field-label">次回後追日</span><span class="field-value mono">${c.followup || '—'}</span>
         </div>
@@ -2785,6 +2806,16 @@
       t.classList.add('active');
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       document.getElementById('page-' + t.dataset.page).classList.add('active');
+      
+      // 新着・HOTセクションの表示制御:案件一覧タブの時は隠す
+      const prioritySection = document.getElementById('priority-section');
+      if (prioritySection) {
+        prioritySection.style.display = (t.dataset.page === 'cases') ? 'none' : 'block';
+      }
+      // 案件一覧タブを切り替えたらテーブルも再描画(失注を除外/含めるため)
+      if (t.dataset.page === 'cases') {
+        renderCaseTable();
+      }
     });
   });
 
@@ -2813,6 +2844,36 @@
 
   // ===== 期間フィルタロジック =====
   const TODAY = today; // 実行時の今日(初期化時)
+  let currentPeriodFrom = null;
+  let currentPeriodTo = null;
+  
+  // 「2026/05/03」「5/3」「2026-05-03」など多様な日付形式をDateに変換
+  function parseDateFlexible(str) {
+    if (!str) return null;
+    const s = String(str).trim();
+    // 4/1 などの月日のみ → 当年として解釈
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) {
+      const y = TODAY.getFullYear();
+      return new Date(y, parseInt(m[1]) - 1, parseInt(m[2]));
+    }
+    // 2026/4/1 や 2026-04-01
+    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) {
+      return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    }
+    return null;
+  }
+  
+  // 期間で案件をフィルタリング(受信日基準)
+  function applyPeriodFilter(list) {
+    if (!currentPeriodFrom || !currentPeriodTo) return list;
+    return list.filter(c => {
+      const d = parseDateFlexible(c.date);
+      if (!d) return true; // 日付なしは保持
+      return d >= currentPeriodFrom && d <= currentPeriodTo;
+    });
+  }
   
   function fmtDateJP(d) {
     const y = d.getFullYear();
@@ -2858,20 +2919,25 @@
       const period = chip.dataset.period;
       
       if (period === 'custom') {
-        // カレンダーピッカーを開く
         openPicker();
         return;
       }
       
-      // 全chipのactive解除
       document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       currentPeriod = period;
       
-      // 期間表示更新
       const { from, to } = getPeriodRange(period);
       periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
       customLabel.textContent = '自由選択';
+      
+      // 期間範囲をグローバルに保存して再描画
+      currentPeriodFrom = from;
+      currentPeriodTo = to;
+      // 全体再描画
+      cases = applyPeriodFilter(allCases);
+      renderAll();
+      renderDonuts();
     });
   });
 
@@ -2921,9 +2987,15 @@
     currentPeriod = 'custom';
     periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
     
-    // 日数をカスタムラベルに表示
     const days = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
     customLabel.textContent = `自由選択 (${days}日間)`;
+    
+    // データフィルタを適用
+    currentPeriodFrom = from;
+    currentPeriodTo = to;
+    cases = applyPeriodFilter(allCases);
+    renderAll();
+    renderDonuts();
     
     closePicker();
   });
@@ -3134,7 +3206,6 @@
   async function initDashboard() {
     showLoading();
     try {
-      // CSVをfetchで取得(キャッシュバスター付き)
       const url = CSV_URL + '&_=' + Date.now();
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -3143,13 +3214,22 @@
       const loaded = rowsToCases(rows);
       
       if (loaded.length === 0) {
-        // データが空の場合はフォールバック使用
-        cases = fallbackCases;
+        allCases = fallbackCases;
         console.warn('CSV is empty. Using fallback data.');
       } else {
-        cases = loaded;
+        allCases = loaded;
         console.log(`✓ ${loaded.length}件のデータを読み込みました`);
       }
+      
+      // 初期期間フィルタを適用(当月)
+      if (!currentPeriodFrom) {
+        const { from, to } = getPeriodRange('current');
+        currentPeriodFrom = from;
+        currentPeriodTo = to;
+        const periodDisplay = document.getElementById('periodDisplay');
+        if (periodDisplay) periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
+      }
+      cases = applyPeriodFilter(allCases);
       
       hideLoading();
       renderAll();
@@ -3168,12 +3248,11 @@
       }
     } catch (err) {
       console.error('CSV load error:', err);
-      // エラー時はフォールバックで動作継続
+      allCases = fallbackCases;
       cases = fallbackCases;
       hideLoading();
       renderAll();
       renderDonuts();
-      // エラーバナーを表示
       const banner = document.createElement('div');
       banner.style.cssText = 'background:rgba(198,56,56,0.1);border-left:3px solid var(--red);padding:10px 32px;font-size:11px;color:var(--ink-2);';
       banner.innerHTML = `⚠ スプレッドシートからのデータ読み込みに失敗しました。サンプルデータを表示中です。 <span style="color:var(--ink-3);">エラー: ${err.message}</span>`;
