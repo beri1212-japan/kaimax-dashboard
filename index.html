@@ -1764,6 +1764,8 @@
             <option value=""></option>
             <option value="入札">入札</option>
             <option value="見送り">見送り</option>
+            <option value="〇">〇</option>
+            <option value="×">×</option>
           </select>
         </label>
         <label class="edit-field">
@@ -1772,7 +1774,13 @@
             <option value=""></option>
             <option value="落札">落札</option>
             <option value="失注">失注</option>
+            <option value="〇">〇</option>
+            <option value="×">×</option>
           </select>
+        </label>
+        <label class="edit-field full">
+          <span class="ef-label">ライバル社</span>
+          <input type="text" id="ef-rival" placeholder="例:ガリバー、ウィーカーズ、ネクステ">
         </label>
       </div>
     </div>
@@ -1903,47 +1911,50 @@
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       // 空行スキップ
-      if (!r || r.length < 5 || (!r[3] && !r[4])) continue;
+      if (!r || r.length < 5) continue;
+      // 案件NOが空の行もスキップ
+      if (!r[0] || !String(r[0]).trim()) continue;
       
-      // 列インデックス(マスタ案件シートに準拠)
+      // 列インデックス(マスタ案件シートの実構造に準拠)
       // A=0:案件NO, B=1:媒体, C=2:受信日, D=3:顧客名, E=4:TEL,
-      // F=5:車名, G=6:入札, H=7:入札結果,
-      // I=8:①TEL, J=9:①日付, K=10:②TEL, L=11:②日付,
-      // M=12:③TEL, N=13:③日付, O=14:④TEL, P=15:④日付,
-      // Q=16:⑤TEL, R=17:⑤日付, S=18:査定, T=19:結果,
-      // U=20:次回後追日, V=21:担当者, W=22:備考,
-      // X=23:顧客希望額, Y=24:査定提示額, Z=25:成約額
+      // F=5:車名, G=6:入札, H=7:入札結果, I=8:ライバル社,
+      // J=9:①TEL, K=10:①日付, L=11:②TEL, M=12:②日付,
+      // N=13:③TEL, O=14:③日付, P=15:④TEL, Q=16:④日付,
+      // R=17:⑤TEL, S=18:⑤日付, T=19:査定, U=20:結果,
+      // V=21:次回後追日, W=22:担当者, X=23:備考,
+      // Y=24:顧客希望額, Z=25:査定提示額, AA=26:成約額
       
       const calls = [];
       for (let n = 0; n < 5; n++) {
-        const result = r[8 + n * 2];
-        const date = r[9 + n * 2];
-        if (result && result.trim()) {
-          calls.push({ result: result.trim(), date: (date || '').trim() });
+        const result = r[9 + n * 2];
+        const date = r[10 + n * 2];
+        if (result && String(result).trim()) {
+          calls.push({ result: String(result).trim(), date: String(date || '').trim() });
         }
       }
       
-      const assessRaw = (r[18] || '').trim();
+      const assessRaw = String(r[19] || '').trim();
       const assess = assessRaw === '〇' ? '〇' : assessRaw === '×' ? '×' : null;
       
       cases.push({
         no: parseInt(r[0]) || (i),
-        media: MEDIA_MAP[(r[1] || '').trim()] || 'mota',
-        date: (r[2] || '').trim(),
-        customer: (r[3] || '').trim(),
-        tel: (r[4] || '').trim(),
-        car: (r[5] || '').trim(),
-        bid: (r[6] || '').trim(),
-        bidResult: (r[7] || '').trim(),
+        media: MEDIA_MAP[String(r[1] || '').trim()] || 'mota',
+        date: String(r[2] || '').trim(),
+        customer: String(r[3] || '').trim(),
+        tel: String(r[4] || '').trim(),
+        car: String(r[5] || '').trim(),
+        bid: String(r[6] || '').trim(),
+        bidResult: String(r[7] || '').trim(),
+        rival: String(r[8] || '').trim(),  // ライバル社(分析未使用だが保持)
         calls: calls,
         assess: assess,
-        result: (r[19] || '').trim(),
-        followup: (r[20] || '').trim(),
-        assignee: (r[21] || '').trim(),
-        note: (r[22] || '').trim(),
-        desired: parseInt((r[23] || '').replace(/[^\d]/g, '')) || null,
-        offered: parseInt((r[24] || '').replace(/[^\d]/g, '')) || null,
-        deal: parseInt((r[25] || '').replace(/[^\d]/g, '')) || null,
+        result: String(r[20] || '').trim(),
+        followup: String(r[21] || '').trim(),
+        assignee: String(r[22] || '').trim(),
+        note: String(r[23] || '').trim(),
+        desired: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
+        offered: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
+        deal: parseInt(String(r[26] || '').replace(/[^\d]/g, '')) || null,
       });
     }
     return cases;
@@ -2347,7 +2358,7 @@
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
-          <div style="font-weight:600;">${c.customer}</div>
+          <div style="font-weight:600;">${c.customer || '<span style="color:var(--ink-3);font-weight:400;">(顧客名未入力)</span>'}</div>
           <div style="font-size:10px;color:var(--ink-3);font-family:'JetBrains Mono',monospace;">${c.date}</div>
         </td>
         <td style="font-size:11px;">${c.car}</td>
@@ -2380,7 +2391,7 @@
         const dateStr = c.date ? c.date.replace(/^\d{4}\//, '') : '—';
         row.innerHTML = `
           <div class="pr-meta">${dateStr} <span class="m-tag ${c.media}" style="font-size:8px;padding:1px 4px;margin-left:2px;">${mediaLabels[c.media]}</span></div>
-          <div class="pr-name">${c.customer} 様<span class="car">${c.car}</span></div>
+          <div class="pr-name">${c.customer || "(未入力)"} 様<span class="car">${c.car}</span></div>
           <div class="pr-status uncalled">未コール</div>
         `;
         row.addEventListener('click', () => openDetail(c));
@@ -2415,7 +2426,7 @@
         const followStr = c.followup ? c.followup.replace(/^\d{4}\//, '') : '—';
         row.innerHTML = `
           <div class="pr-meta">${followStr}<br><span class="m-tag ${c.media}" style="font-size:8px;padding:1px 4px;">${mediaLabels[c.media]}</span></div>
-          <div class="pr-name">${c.customer} 様<span class="car">${c.car}</span></div>
+          <div class="pr-name">${c.customer || "(未入力)"} 様<span class="car">${c.car}</span></div>
           <div class="pr-status ${statusClass}">${statusLabel}</div>
         `;
         row.addEventListener('click', () => openDetail(c));
@@ -2490,7 +2501,7 @@
         <h3>案件情報</h3>
         <div class="field-grid">
           <span class="field-label">媒体</span><span class="field-value"><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></span>
-          <span class="field-label">顧客名</span><span class="field-value">${c.customer} 様</span>
+          <span class="field-label">顧客名</span><span class="field-value">${c.customer || "(未入力)"} 様</span>
           <span class="field-label">電話</span><span class="field-value mono">${c.tel}</span>
           <span class="field-label">車種</span><span class="field-value">${c.car}</span>
           <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
@@ -2577,6 +2588,8 @@
     document.getElementById('ef-car').value = '';
     document.getElementById('ef-bid').value = '';
     document.getElementById('ef-bidResult').value = '';
+    const rivalEl = document.getElementById('ef-rival');
+    if (rivalEl) rivalEl.value = '';
     document.getElementById('ef-assess').value = '';
     document.getElementById('ef-result').value = '';
     document.getElementById('ef-followup').value = '';
@@ -2598,7 +2611,7 @@
     if (!c) return;
     
     document.getElementById('editTitle').textContent = `案件編集 #${no}`;
-    document.getElementById('editSubtitle').textContent = `${c.customer} 様 / ${c.car}`;
+    document.getElementById('editSubtitle').textContent = `${c.customer || '(顧客名未入力)'} 様 / ${c.car}`;
     document.getElementById('ef-mode').value = 'update';
     document.getElementById('ef-no').value = no;
     document.getElementById('ef-media').value = MEDIA_REVERSE[c.media] || '';
@@ -2608,6 +2621,8 @@
     document.getElementById('ef-car').value = c.car || '';
     document.getElementById('ef-bid').value = c.bid || '';
     document.getElementById('ef-bidResult').value = c.bidResult || '';
+    const rivalEl = document.getElementById('ef-rival');
+    if (rivalEl) rivalEl.value = c.rival || '';
     document.getElementById('ef-assess').value = c.assess || '';
     document.getElementById('ef-result').value = c.result || '';
     document.getElementById('ef-followup').value = toDateInput(c.followup);
@@ -2638,15 +2653,11 @@
     const mode = document.getElementById('ef-mode').value;
     const no = document.getElementById('ef-no').value;
     
-    // バリデーション
+    // バリデーション(媒体のみ必須)
     const media = document.getElementById('ef-media').value;
     const customer = document.getElementById('ef-customer').value;
     if (!media) {
       showStatus('error', '媒体を選択してください');
-      return;
-    }
-    if (!customer) {
-      showStatus('error', '顧客名を入力してください');
       return;
     }
     
@@ -2669,6 +2680,7 @@
       car: document.getElementById('ef-car').value,
       bid: document.getElementById('ef-bid').value,
       bidResult: document.getElementById('ef-bidResult').value,
+      rival: (document.getElementById('ef-rival') || {}).value || '',
       ...calls,
       assess: document.getElementById('ef-assess').value,
       result: document.getElementById('ef-result').value,
