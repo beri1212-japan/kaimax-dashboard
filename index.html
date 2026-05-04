@@ -1560,11 +1560,12 @@
   <div class="filters">
     <div class="filter-group">
       <span class="filter-label">期間</span>
-      <span class="chip period-chip active" data-period="current">当月</span>
+      <span class="chip period-chip" data-period="current">当月</span>
       <span class="chip period-chip" data-period="last">先月</span>
       <span class="chip period-chip" data-period="last2">先々月</span>
       <span class="chip period-chip" data-period="6m">過去6ヶ月</span>
       <span class="chip period-chip" data-period="1y">過去1年</span>
+      <span class="chip period-chip active" data-period="all">全期間</span>
       <span class="chip period-chip custom-chip" data-period="custom" id="customChip">
         <span class="cal-icon">📅</span>
         <span id="customLabel">自由選択</span>
@@ -1649,12 +1650,12 @@
   <div class="filters">
     <div class="filter-group">
       <span class="filter-label">期間</span>
-      <span class="chip period-chip-cases active" data-period="current">当月</span>
+      <span class="chip period-chip-cases" data-period="current">当月</span>
       <span class="chip period-chip-cases" data-period="last">先月</span>
       <span class="chip period-chip-cases" data-period="last2">先々月</span>
       <span class="chip period-chip-cases" data-period="6m">過去6ヶ月</span>
       <span class="chip period-chip-cases" data-period="1y">過去1年</span>
-      <span class="chip period-chip-cases" data-period="all">全期間</span>
+      <span class="chip period-chip-cases active" data-period="all">全期間</span>
     </div>
     <div class="filter-group">
       <span class="filter-label">媒体</span>
@@ -2361,7 +2362,7 @@
   // テーブル描画
   // 案件一覧専用フィルタ状態
   const caseFilters = {
-    period: 'current',
+    period: 'all',
     media: 'all',
     phase: 'all',
     result: 'all',
@@ -2403,8 +2404,24 @@
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // ベースは allCases(期間フィルタは案件一覧専用に独立)
-    let list = applyCasePeriodFilter(allCases.length > 0 ? allCases : cases, caseFilters.period);
+    // ベースリスト決定:allCases優先、なければcases、両方空なら何もしない
+    const baseList = (allCases && allCases.length > 0) ? allCases : (cases || []);
+    if (baseList.length === 0) {
+      const rowCountEl = document.getElementById('row-count');
+      if (rowCountEl) rowCountEl.textContent = 0;
+      const rowCountAllEl = document.getElementById('row-count-all');
+      if (rowCountAllEl) rowCountAllEl.textContent = 0;
+      return;
+    }
+    
+    // 期間フィルタ適用(エラー時は全件返す)
+    let list;
+    try {
+      list = applyCasePeriodFilter(baseList, caseFilters.period);
+    } catch (e) {
+      console.warn('Period filter error, using all:', e);
+      list = baseList;
+    }
     
     // 共通の除外(失注 + MOTA非権獲)
     list = list.filter(isCaseListTarget);
@@ -2473,7 +2490,7 @@
     const rowCountEl = document.getElementById('row-count');
     if (rowCountEl) rowCountEl.textContent = filteredCases.length;
     const rowCountAllEl = document.getElementById('row-count-all');
-    if (rowCountAllEl) rowCountAllEl.textContent = allCases.filter(isCaseListTarget).length;
+    if (rowCountAllEl) rowCountAllEl.textContent = baseList.filter(isCaseListTarget).length;
   }
 
   // ===== 新着案件 (未コール) =====
@@ -3362,9 +3379,9 @@
         console.log(`✓ ${loaded.length}件のデータを読み込みました`);
       }
       
-      // 初期期間フィルタを適用(当月)
+      // 初期期間フィルタを適用(全期間)
       if (!currentPeriodFrom) {
-        const { from, to } = getPeriodRange('current');
+        const { from, to } = getPeriodRange('all');
         currentPeriodFrom = from;
         currentPeriodTo = to;
         const periodDisplay = document.getElementById('periodDisplay');
