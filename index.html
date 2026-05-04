@@ -2402,16 +2402,8 @@
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // ベースリスト決定:allCases優先、なければcases、両方空なら何もしない
+    // ベースリスト決定:allCases優先
     const baseList = (allCases && allCases.length > 0) ? allCases : (cases || []);
-    
-    // デバッグログ
-    console.log('=== renderCaseTable Debug ===');
-    console.log('baseList件数:', baseList.length);
-    if (baseList.length > 0) {
-      console.log('1件目のデータ:', baseList[0]);
-      console.log('media値の例:', baseList.slice(0,5).map(c => `[${c.media}|${c.bid}|${c.bidResult}]`));
-    }
     
     if (baseList.length === 0) {
       const rowCountEl = document.getElementById('row-count');
@@ -2421,34 +2413,31 @@
       return;
     }
     
-    // 期間フィルタ適用(エラー時は全件返す)
-    let list;
-    try {
-      list = applyCasePeriodFilter(baseList, caseFilters.period);
-    } catch (e) {
-      console.warn('Period filter error, using all:', e);
-      list = baseList;
-    }
-    console.log('期間フィルタ後:', list.length);
+    let list = baseList.slice();
     
-    // 共通の除外(失注 + MOTA非権獲)
-    // デバッグ:なぜ除外されているか調査
-    const sample = list.slice(0, 5);
-    console.log('=== isCaseListTarget判定詳細 ===');
-    sample.forEach(c => {
-      const bidOK = (c.bid === '〇' || c.bid === '入札');
-      const wonOK = ['〇', '落札', '権利獲得'].includes(c.bidResult);
-      const resultExclude = ['他社売却', '売却しない', '自社代替'].includes(c.result);
-      console.log(`NO=${c.no} media="${c.media}" bid="${c.bid}"(charCode=${c.bid ? c.bid.charCodeAt(0) : 'null'}) bidResult="${c.bidResult}" → bidOK=${bidOK} wonOK=${wonOK} excluded=${resultExclude}`);
+    // 期間フィルタ
+    if (caseFilters.period !== 'all') {
+      try {
+        list = applyCasePeriodFilter(list, caseFilters.period);
+      } catch (e) {
+        console.warn('Period filter error:', e);
+      }
+    }
+    
+    // 結果欄が「他社売却」「売却しない」「自社代替」は除外
+    list = list.filter(c => !['他社売却', '売却しない', '自社代替'].includes(c.result));
+    
+    // MOTAの場合は「権利獲得」したものだけ表示
+    list = list.filter(c => {
+      if (c.media !== 'mota') return true;  // MOTA以外は全て表示
+      // MOTAは入札結果が「権利獲得」「〇」「落札」のいずれかの場合のみ
+      return ['権利獲得', '〇', '落札'].includes(c.bidResult);
     });
-    list = list.filter(isCaseListTarget);
-    console.log('isCaseListTarget後:', list.length);
     
     // 媒体絞込
     if (caseFilters.media !== 'all') {
       list = list.filter(c => c.media === caseFilters.media);
     }
-    console.log('媒体絞込後:', list.length);
     
     // フェーズ絞込
     if (caseFilters.phase !== 'all') {
@@ -2463,7 +2452,6 @@
         list = list.filter(c => c.result === caseFilters.result);
       }
     }
-    console.log('全フィルタ後:', list.length);
     
     // 検索絞込
     if (caseFilters.search) {
