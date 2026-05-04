@@ -2122,7 +2122,7 @@
     
     // MOTA固有
     const bidYes = list.filter(c => c.bid === '入札').length;
-    const bidWon = list.filter(c => c.bidResult === '落札').length;
+    const bidWon = list.filter(c => ['〇', '落札', '権利獲得'].includes(c.bidResult)).length;
     
     // 結果別の内訳
     const resultBreakdown = {
@@ -2178,12 +2178,11 @@
     
     return `
       <h2 class="section-title">全媒体サマリー <span class="ja">主要指標</span></h2>
-      <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">媒体横断合計</div></div>
         <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
         <div class="kpi"><div class="kpi-label">査定済</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">査定率 ${fmtPct(k.assessRate)}%</div></div>
         <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
-        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">${k.followupTarget}<span class="kpi-unit">件</span></div><div class="kpi-sub">うち本日期限 ${k.followupToday}件</div></div>
       </div>
 
       <h2 class="section-title">結果内訳 <span class="ja">査定後の状態 / 構成比</span></h2>
@@ -2285,12 +2284,11 @@
     const k = computeKPI(media);
     return `
       <h2 class="section-title">${label} サマリー <span class="ja">${subtitle}</span></h2>
-      <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
+      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi"><div class="kpi-label">受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">受信総数</div></div>
         <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
         <div class="kpi"><div class="kpi-label">査定済</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">査定率 ${fmtPct(k.assessRate)}%</div></div>
         <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
-        <div class="kpi alert"><div class="kpi-label">後追対象</div><div class="kpi-value">${k.followupTarget}<span class="kpi-unit">件</span></div><div class="kpi-sub">本日期限 ${k.followupToday}件</div></div>
       </div>
       
       <h2 class="section-title">結果内訳 <span class="ja">${label}経由案件の結果</span></h2>
@@ -2572,9 +2570,9 @@
     if (c.calls.length > 0) return false;
     if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
     if (c.media === 'mota') {
-      // MOTAは「入札〇 かつ 入札結果〇」(権利獲得済み)のみ
+      // MOTAは「入札〇 かつ 入札結果が権獲(〇/落札/権利獲得)」のみ
       const bidOK = (c.bid === '〇' || c.bid === '入札');
-      const wonOK = (c.bidResult === '〇' || c.bidResult === '落札');
+      const wonOK = ['〇', '落札', '権利獲得'].includes(c.bidResult);
       return bidOK && wonOK;
     }
     return true;
@@ -2584,12 +2582,12 @@
     return (ha && c.assess === null) ||
            (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
   }
-  // 案件一覧に表示する案件の判定(MOTAは権獲のみ、失注除外)
+  // 案件一覧に表示する案件の判定
   function isCaseListTarget(c) {
     if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
     if (c.media === 'mota') {
       const bidOK = (c.bid === '〇' || c.bid === '入札');
-      const wonOK = (c.bidResult === '〇' || c.bidResult === '落札');
+      const wonOK = ['〇', '落札', '権利獲得'].includes(c.bidResult);
       return bidOK && wonOK;
     }
     return true;
