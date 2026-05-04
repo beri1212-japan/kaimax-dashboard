@@ -2342,10 +2342,8 @@
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    // casesは既にapplyPeriodFilter適用済み。ここでは失注のみ除外
-    const filteredCases = cases.filter(c => 
-      !['他社売却', '売却しない', '自社代替'].includes(c.result)
-    );
+    // 案件一覧の表示対象に絞り込み
+    const filteredCases = cases.filter(isCaseListTarget);
     
     filteredCases.forEach(c => {
       const phase = getPhase(c);
@@ -2460,7 +2458,10 @@
     if (c.calls.length > 0) return false;
     if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
     if (c.media === 'mota') {
-      return c.bidResult === '〇' || c.bidResult === '落札';
+      // MOTAは「入札〇 かつ 入札結果〇」(権利獲得済み)のみ
+      const bidOK = (c.bid === '〇' || c.bid === '入札');
+      const wonOK = (c.bidResult === '〇' || c.bidResult === '落札');
+      return bidOK && wonOK;
     }
     return true;
   }
@@ -2468,6 +2469,16 @@
     const ha = c.calls.some(call => call.result === 'アポ');
     return (ha && c.assess === null) ||
            (c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result));
+  }
+  // 案件一覧に表示する案件の判定(MOTAは権獲のみ、失注除外)
+  function isCaseListTarget(c) {
+    if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
+    if (c.media === 'mota') {
+      const bidOK = (c.bid === '〇' || c.bid === '入札');
+      const wonOK = (c.bidResult === '〇' || c.bidResult === '落札');
+      return bidOK && wonOK;
+    }
+    return true;
   }
   
   function updateCountBadges() {
