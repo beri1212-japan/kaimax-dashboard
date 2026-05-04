@@ -2432,6 +2432,15 @@
     console.log('期間フィルタ後:', list.length);
     
     // 共通の除外(失注 + MOTA非権獲)
+    // デバッグ:なぜ除外されているか調査
+    const sample = list.slice(0, 5);
+    console.log('=== isCaseListTarget判定詳細 ===');
+    sample.forEach(c => {
+      const bidOK = (c.bid === '〇' || c.bid === '入札');
+      const wonOK = ['〇', '落札', '権利獲得'].includes(c.bidResult);
+      const resultExclude = ['他社売却', '売却しない', '自社代替'].includes(c.result);
+      console.log(`NO=${c.no} media="${c.media}" bid="${c.bid}"(charCode=${c.bid ? c.bid.charCodeAt(0) : 'null'}) bidResult="${c.bidResult}" → bidOK=${bidOK} wonOK=${wonOK} excluded=${resultExclude}`);
+    });
     list = list.filter(isCaseListTarget);
     console.log('isCaseListTarget後:', list.length);
     
