@@ -220,6 +220,26 @@
     color: #f5f3ee;
     border-color: var(--ink);
   }
+  
+  /* タスクプリセットボタン */
+  .task-preset-group {
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .task-chip {
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .task-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  }
+  .task-chip.active {
+    box-shadow: 0 0 0 2px #1a1a1a, 0 3px 8px rgba(0,0,0,0.2);
+    transform: scale(1.02);
+  }
 
   .container {
     padding: 24px 32px;
@@ -1648,6 +1668,12 @@
 <!-- ============================================== -->
 <div class="page-section" id="page-cases">
   <div class="filters">
+    <div class="filter-group task-preset-group">
+      <span class="filter-label" style="font-weight:700;">タスク</span>
+      <span class="chip task-chip" data-task="call" style="background:#b8312f;color:#fff;border-color:#b8312f;font-weight:700;">📞 コール案件</span>
+      <span class="chip task-chip" data-task="hot" style="background:#c89030;color:#fff;border-color:#c89030;font-weight:700;">🔥 HOT案件</span>
+      <span class="chip task-chip" data-task="reset" style="background:#888;color:#fff;border-color:#888;">↺ リセット</span>
+    </div>
     <div class="filter-group">
       <span class="filter-label">期間</span>
       <span class="chip period-chip-cases" data-period="current">当月</span>
@@ -2357,12 +2383,11 @@
     });
   }
 
-  // テーブル描画
   // 案件一覧専用フィルタ状態
   const caseFilters = {
     period: 'all',
     media: 'all',
-    phase: 'all',
+    phase: 'all',  // 'all' or 単一値 or ['phase1','phase2'] の配列(複数選択)
     result: 'all',
     search: '',
   };
@@ -2378,9 +2403,13 @@
     });
   }
   
-  // フェーズ判定
+  // フェーズ判定(複数フェーズ対応)
   function caseMatchesPhase(c, phase) {
     if (phase === 'all') return true;
+    // 配列の場合、いずれかにマッチすればOK
+    if (Array.isArray(phase)) {
+      return phase.some(p => caseMatchesPhase(c, p));
+    }
     if (phase === 'not-called') return c.calls.length === 0;
     if (phase === 'calling') {
       return c.calls.length > 0 && !c.calls.some(call => call.result === 'アポ') && c.assess !== '〇' && c.assess !== '×';
@@ -2995,6 +3024,67 @@
   setupCaseFilterChips('.media-chip-cases', 'media');
   setupCaseFilterChips('.phase-chip-cases', 'phase');
   setupCaseFilterChips('.result-chip-cases', 'result');
+  
+  // タスクプリセットボタン
+  function applyTaskPreset(taskName) {
+    if (taskName === 'call') {
+      // コール案件:期間1ヶ月以内、全媒体、フェーズ=未架電・架電中、結果=全て
+      caseFilters.period = 'current';
+      caseFilters.media = 'all';
+      caseFilters.phase = ['not-called', 'calling'];
+      caseFilters.result = 'all';
+      // UI更新
+      updateChipUI('.period-chip-cases', 'data-period', 'current');
+      updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
+      updateChipUI('.phase-chip-cases', 'data-phase', null);  // 複数なので個別UI不可
+      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+    } else if (taskName === 'hot') {
+      // HOT案件:全期間、全媒体、フェーズ=アポ獲得・査定済、結果=全て
+      caseFilters.period = 'all';
+      caseFilters.media = 'all';
+      caseFilters.phase = ['apo', 'assessed'];
+      caseFilters.result = 'all';
+      updateChipUI('.period-chip-cases', 'data-period', 'all');
+      updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
+      updateChipUI('.phase-chip-cases', 'data-phase', null);
+      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+    } else if (taskName === 'reset') {
+      // リセット
+      caseFilters.period = 'all';
+      caseFilters.media = 'all';
+      caseFilters.phase = 'all';
+      caseFilters.result = 'all';
+      caseFilters.search = '';
+      const searchBox = document.getElementById('case-search');
+      if (searchBox) searchBox.value = '';
+      updateChipUI('.period-chip-cases', 'data-period', 'all');
+      updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
+      updateChipUI('.phase-chip-cases', 'data-phase', 'all');
+      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+    }
+    
+    // タスクボタンの表示状態
+    document.querySelectorAll('.task-chip').forEach(c => c.classList.remove('active'));
+    const activeBtn = document.querySelector(`.task-chip[data-task="${taskName}"]`);
+    if (activeBtn && taskName !== 'reset') activeBtn.classList.add('active');
+    
+    renderCaseTable();
+  }
+  
+  function updateChipUI(selector, dataAttr, value) {
+    document.querySelectorAll(selector).forEach(chip => {
+      chip.classList.remove('active');
+      if (value !== null && chip.getAttribute(dataAttr) === value) {
+        chip.classList.add('active');
+      }
+    });
+  }
+  
+  document.querySelectorAll('.task-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyTaskPreset(btn.dataset.task);
+    });
+  });
   
   // 検索ボックス
   const caseSearch = document.getElementById('case-search');
