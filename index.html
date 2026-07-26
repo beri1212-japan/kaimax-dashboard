@@ -2492,8 +2492,15 @@
       );
     }
     
+    // 後追日が近い順（期限切れ→本日→近い順）に自動並べ替え。後追日が空の案件は末尾へ。
+    const followupSortKey = (c) => {
+      if (!c.followup) return Infinity;
+      const t = new Date(c.followup).getTime();
+      return isNaN(t) ? Infinity : t;
+    };
+    list.sort((a, b) => followupSortKey(a) - followupSortKey(b));
     const filteredCases = list;
-    
+
     filteredCases.forEach(c => {
       const phase = getPhase(c);
       const fu = getFollowupStatus(c.followup);
@@ -2685,7 +2692,7 @@
         <div class="field-grid">
           <span class="field-label">媒体</span><span class="field-value"><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></span>
           <span class="field-label">顧客名</span><span class="field-value">${c.customer || "(未入力)"} 様</span>
-          <span class="field-label">電話</span><span class="field-value mono">${c.tel}</span>
+          <span class="field-label">電話</span><span class="field-value mono">${c.tel ? `<a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;">${c.tel} 📞</a>` : '—'}</span>
           <span class="field-label">車種</span><span class="field-value">${c.car}</span>
           <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
         </div>
