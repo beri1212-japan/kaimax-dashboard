@@ -614,10 +614,18 @@
     transition: background 0.1s;
   }
   tbody tr:hover { background: #faf8f3; }
-  tbody td { padding: 10px 12px; vertical-align: middle; }
+  tbody td { padding: 12px 14px; vertical-align: middle; font-size:14px; line-height:1.5; }
   td.num { text-align: right; font-family: Arial, sans-serif; }
   td.center { text-align: center; }
   .case-id { font-family: Arial, sans-serif; font-size:12px; color: var(--ink-3); }
+  .call-line { display:flex; align-items:baseline; gap:6px; font-size:12px; line-height:1.7; white-space:nowrap; }
+  .call-line .cl-n { font-family: Arial, sans-serif; color: var(--ink-3); font-size:11px; }
+  .call-line .cl-r { font-weight:700; }
+  .call-line .cl-d { color: var(--ink-3); font-family: Arial, monospace; font-size:11px; margin-left:auto; padding-left:6px; }
+  .call-line.apo .cl-r { color: var(--green); }
+  .call-line.consider .cl-r { color: var(--accent); }
+  .call-line.reject .cl-r { color: var(--red); }
+  .call-line.absent .cl-r, .call-line.message .cl-r { color: var(--ink-2); }
 
   /* Media tag */
   .m-tag {
@@ -1726,9 +1734,9 @@
           <th style="width:32px;">#</th>
           <th style="width:90px;">媒体</th>
           <th style="width:90px;">案件番号</th>
-          <th style="width:130px;">顧客名 / 入札日</th>
+          <th style="width:180px;">顧客名 / 入札日 / TEL</th>
           <th>車種</th>
-          <th class="center" style="width:130px;">架電履歴 ①〜⑤</th>
+          <th style="width:190px;">架電プロセス ①〜⑤</th>
           <th class="center" style="width:50px;">査定</th>
           <th style="width:130px;">結果 / フェーズ</th>
           <th style="width:90px;">後追日</th>
@@ -2507,22 +2515,23 @@
       let callTrail = '';
       for (let n = 0; n < 5; n++) {
         if (c.calls[n]) {
-          callTrail += `<span class="call-dot ${callDotClass(c.calls[n].result)}" title="${c.calls[n].date} ${c.calls[n].result}">${callDotChar(c.calls[n].result)}</span>`;
-        } else {
-          callTrail += `<span class="call-dot empty">·</span>`;
+          const cd = c.calls[n];
+          callTrail += `<div class="call-line ${callDotClass(cd.result)}"><span class="cl-n">${['①','②','③','④','⑤'][n]}</span><span class="cl-r">${cd.result}</span><span class="cl-d">${cd.date || ''}</span></div>`;
         }
       }
+      if (!callTrail) callTrail = '<span style="color:var(--ink-3);font-size:12px;">未架電</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="text-align:center;color:var(--ink-3);font-family:Arial,monospace;font-size:12px;">${String(c.no).padStart(2,'0')}</td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
-          <div style="font-weight:600;">${c.customer || '<span style="color:var(--ink-3);font-weight:400;">(顧客名未入力)</span>'}</div>
-          <div style="font-size:12px;color:var(--ink-3);font-family:Arial,monospace;">${c.date}</div>
+          <div style="font-weight:700;font-size:15px;">${c.customer || '<span style="color:var(--ink-3);font-weight:400;">(顧客名未入力)</span>'}</div>
+          <div style="font-size:12px;color:var(--ink-2);margin-top:2px;"><span style="color:var(--ink-3);">入札 </span><span style="font-family:Arial,monospace;">${c.date}</span></div>
+          ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
         </td>
-        <td style="font-size:13px;">${c.car}</td>
-        <td class="center"><div class="call-trail">${callTrail}</div></td>
+        <td style="font-size:14px;font-weight:500;">${c.car}</td>
+        <td><div class="call-trail">${callTrail}</div></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
