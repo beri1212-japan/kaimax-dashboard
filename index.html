@@ -1485,6 +1485,42 @@
     min-width: 42px;
     text-align: right;
   }
+
+  /* ================= スマホ最適化 (max-width: 680px) ================= */
+  @media (max-width: 680px) {
+    /* ヘッダー: 折り返して横書き・余白を詰める */
+    header { flex-wrap: wrap; padding: 12px 16px; gap: 6px 12px; }
+    .logo { font-size: 20px; }
+    .breadcrumb { border-left: none; padding-left: 0; letter-spacing: 0.04em; font-size: 12px; }
+    .header-meta { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+    .source-badge { padding: 4px 8px; }
+
+    /* タブ類: 横スクロールで一列を維持 */
+    .page-tabs { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .page-tab { padding: 12px 12px; font-size: 14px; white-space: nowrap; }
+    .media-tabs { padding: 10px 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+    .media-tab { padding: 10px 12px 8px; white-space: nowrap; flex: 0 0 auto; }
+
+    /* 横余白を詰める */
+    .container { padding: 16px 12px; }
+    #priority-section { padding: 14px 12px 0 !important; }
+    .filters { padding: 12px !important; gap: 10px; }
+    .filter-group { flex-wrap: wrap; }
+
+    /* バナー・カード・KPIグリッドを縦積み/2列に */
+    .priority-grid { grid-template-columns: 1fr; gap: 12px; }
+    .two-col { grid-template-columns: 1fr !important; }
+    .kpi-grid, .kpi-grid.cols-7 { grid-template-columns: repeat(2, 1fr) !important; }
+    .today-banner { padding: 16px !important; }
+
+    /* 案件一覧テーブルは横スクロール（文字の縦積みを防止） */
+    #page-cases .container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #case-table { min-width: 760px; }
+    #case-table .m-tag { white-space: nowrap; }
+
+    /* 明細パネル・編集モーダルを全幅に */
+    .detail-panel, .edit-modal { width: 100% !important; max-width: 100% !important; }
+  }
 </style>
 </head>
 <body>
