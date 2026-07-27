@@ -618,13 +618,14 @@
   td.num { text-align: right; font-family: Arial, sans-serif; }
   td.center { text-align: center; }
   .case-id { font-family: Arial, sans-serif; font-size:12px; color: var(--ink-3); }
-  .call-line { display:flex; align-items:baseline; gap:7px; font-size:14px; line-height:1.85; white-space:nowrap; }
-  .call-line .cl-n { font-family: Arial, sans-serif; color: var(--ink); font-size:13px; font-weight:700; }
-  .call-line .cl-r { font-weight:700; color: var(--ink); }
-  .call-line .cl-d { color: var(--ink); font-family: Arial, monospace; font-size:13px; margin-left:auto; padding-left:8px; }
-  .call-line.apo .cl-r { color: var(--green); }
-  .call-line.consider .cl-r { color: var(--accent); }
-  .call-line.reject .cl-r { color: var(--red); }
+  #case-table .m-tag { white-space: nowrap; }
+  .call-view { display:flex; flex-wrap:wrap; gap:5px 6px; align-content:flex-start; }
+  .call-chip { display:inline-flex; align-items:baseline; gap:3px; font-size:13px; font-weight:700; white-space:nowrap; background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:2px 7px; color:var(--ink); }
+  .call-chip .cc-n { color: var(--ink-3); font-family: Arial, sans-serif; font-weight:700; }
+  .call-chip .cc-d { color: var(--ink-3); font-family: Arial, monospace; font-size:11px; }
+  .call-chip.apo { color: var(--green); border-color: var(--green); }
+  .call-chip.consider { color: var(--accent); }
+  .call-chip.reject { color: var(--red); border-color: var(--red); }
   /* 一覧の直接編集 */
   .call-cell { position: relative; }
   .call-edit-btn { margin-top:4px; font-size:11px; padding:2px 8px; border:1px solid var(--line); background:var(--bg-soft); color:var(--ink-2); border-radius:5px; cursor:pointer; }
@@ -1515,7 +1516,7 @@
 
     /* 案件一覧テーブルは横スクロール（文字の縦積みを防止） */
     #page-cases .container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    #case-table { min-width: 760px; }
+    #case-table { min-width: 880px; }
     #case-table .m-tag { white-space: nowrap; }
 
     /* 明細パネル・編集モーダルを全幅に */
@@ -1779,15 +1780,15 @@
     <table id="case-table">
       <thead>
         <tr>
-          <th style="width:32px;">#</th>
-          <th style="width:90px;">媒体</th>
-          <th style="width:90px;">案件番号</th>
-          <th style="width:180px;">顧客名 / 入札日 / TEL</th>
+          <th style="width:95px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('date')" title="入札日で並べ替え">入札日<span id="sort-arrow-date" style="color:var(--accent);margin-left:3px;"></span></th>
+          <th style="width:90px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:3px;"></span></th>
+          <th style="width:104px;">媒体</th>
+          <th style="width:78px;">案件番号</th>
+          <th style="width:150px;">顧客名 / TEL</th>
           <th>車種</th>
-          <th style="width:190px;">架電プロセス ①〜⑤</th>
-          <th class="center" style="width:50px;">査定</th>
-          <th style="width:130px;">結果 / フェーズ</th>
-          <th style="width:90px;">後追日</th>
+          <th style="width:120px;">結果 / フェーズ</th>
+          <th style="width:220px;">架電プロセス ①〜⑤</th>
+          <th class="center" style="width:48px;">査定</th>
         </tr>
       </thead>
       <tbody id="case-tbody"></tbody>
@@ -2482,6 +2483,14 @@
     return true;
   }
   
+  let caseSort = { key: 'followup', dir: 'asc' };
+  function toggleCaseSort(key) {
+    if (caseSort.key === key) { caseSort.dir = (caseSort.dir === 'asc') ? 'desc' : 'asc'; }
+    else { caseSort = { key: key, dir: 'asc' }; }
+    renderCaseTable();
+  }
+  window.toggleCaseSort = toggleCaseSort;
+
   function renderCaseTable() {
     const tbody = document.getElementById('case-tbody');
     if (!tbody) return;
@@ -2549,12 +2558,25 @@
     }
     
     // 後追日が近い順（期限切れ→本日→近い順）に自動並べ替え。後追日が空の案件は末尾へ。
-    const followupSortKey = (c) => {
-      if (!c.followup) return Infinity;
-      const t = new Date(c.followup).getTime();
-      return isNaN(t) ? Infinity : t;
+    // 並べ替え（入札日 date / 後追日 followup を昇順・降順で切替）。日付なしは末尾。
+    const sortVal = (c) => {
+      const s = (caseSort.key === 'date') ? c.date : c.followup;
+      if (!s) return null;
+      const t = new Date(s).getTime();
+      return isNaN(t) ? null : t;
     };
-    list.sort((a, b) => followupSortKey(a) - followupSortKey(b));
+    list.sort((a, b) => {
+      const va = sortVal(a), vb = sortVal(b);
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      return caseSort.dir === 'asc' ? va - vb : vb - va;
+    });
+    const _arrow = caseSort.dir === 'asc' ? '▲' : '▼';
+    const _ad = document.getElementById('sort-arrow-date');
+    const _af = document.getElementById('sort-arrow-followup');
+    if (_ad) _ad.textContent = caseSort.key === 'date' ? _arrow : '';
+    if (_af) _af.textContent = caseSort.key === 'followup' ? _arrow : '';
     const filteredCases = list;
 
     filteredCases.forEach(c => {
@@ -2564,25 +2586,24 @@
       for (let n = 0; n < 5; n++) {
         if (c.calls[n]) {
           const cd = c.calls[n];
-          callTrail += `<div class="call-line ${callDotClass(cd.result)}"><span class="cl-n">${['①','②','③','④','⑤'][n]}</span><span class="cl-r">${cd.result}</span><span class="cl-d">${cd.date || ''}</span></div>`;
+          callTrail += `<span class="call-chip ${callDotClass(cd.result)}"><b class="cc-n">${['①','②','③','④','⑤'][n]}</b>${cd.result || ''}${cd.date ? `<span class="cc-d">${cd.date}</span>` : ''}</span>`;
         }
       }
-      if (!callTrail) callTrail = '<span style="color:var(--ink-3);font-size:12px;">未架電</span>';
+      if (!callTrail) callTrail = '<span style="color:var(--ink-2);font-size:13px;">未架電</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="text-align:center;color:var(--ink-3);font-family:Arial,monospace;font-size:12px;">${String(c.no).padStart(2,'0')}</td>
+        <td style="font-family:Arial,monospace;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
+        <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
-          <div style="font-weight:700;font-size:15px;">${c.customer || '<span style="color:var(--ink-3);font-weight:400;">(顧客名未入力)</span>'}</div>
-          <div style="font-size:12px;color:var(--ink-2);margin-top:2px;"><span style="color:var(--ink-3);">入札 </span><span style="font-family:Arial,monospace;">${c.date}</span></div>
+          <div style="font-weight:700;font-size:15px;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
         </td>
         <td style="font-size:14px;font-weight:500;">${c.car}</td>
+        <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
         <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
-        <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
-        <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
       `;
       tr.addEventListener('click', () => openDetail(c));
       const _editBtn = tr.querySelector('.call-edit-btn');
