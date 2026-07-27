@@ -618,14 +618,26 @@
   td.num { text-align: right; font-family: Arial, sans-serif; }
   td.center { text-align: center; }
   .case-id { font-family: Arial, sans-serif; font-size:12px; color: var(--ink-3); }
-  .call-line { display:flex; align-items:baseline; gap:6px; font-size:12px; line-height:1.7; white-space:nowrap; }
-  .call-line .cl-n { font-family: Arial, sans-serif; color: var(--ink-3); font-size:11px; }
-  .call-line .cl-r { font-weight:700; }
-  .call-line .cl-d { color: var(--ink-3); font-family: Arial, monospace; font-size:11px; margin-left:auto; padding-left:6px; }
+  .call-line { display:flex; align-items:baseline; gap:7px; font-size:14px; line-height:1.85; white-space:nowrap; }
+  .call-line .cl-n { font-family: Arial, sans-serif; color: var(--ink); font-size:13px; font-weight:700; }
+  .call-line .cl-r { font-weight:700; color: var(--ink); }
+  .call-line .cl-d { color: var(--ink); font-family: Arial, monospace; font-size:13px; margin-left:auto; padding-left:8px; }
   .call-line.apo .cl-r { color: var(--green); }
   .call-line.consider .cl-r { color: var(--accent); }
   .call-line.reject .cl-r { color: var(--red); }
-  .call-line.absent .cl-r, .call-line.message .cl-r { color: var(--ink-2); }
+  /* 一覧の直接編集 */
+  .call-cell { position: relative; }
+  .call-edit-btn { margin-top:4px; font-size:11px; padding:2px 8px; border:1px solid var(--line); background:var(--bg-soft); color:var(--ink-2); border-radius:5px; cursor:pointer; }
+  .call-edit-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .call-editor { display:flex; flex-direction:column; gap:5px; }
+  .call-editor .ce-row { display:flex; align-items:center; gap:6px; }
+  .call-editor .ce-n { font-family:Arial; font-weight:700; width:16px; color:var(--ink); }
+  .call-editor .ce-result { flex:1; min-width:70px; padding:3px 4px; font-size:13px; }
+  .call-editor .ce-date { width:56px; padding:3px 4px; font-size:13px; }
+  .call-editor .ce-actions { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .call-editor .ce-save { background:var(--accent); color:#fff; border:none; border-radius:5px; padding:4px 12px; font-weight:700; cursor:pointer; }
+  .call-editor .ce-cancel { background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:4px 10px; cursor:pointer; }
+  .call-editor .ce-msg { font-size:12px; }
 
   /* Media tag */
   .m-tag {
@@ -2531,12 +2543,14 @@
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
         </td>
         <td style="font-size:14px;font-weight:500;">${c.car}</td>
-        <td><div class="call-trail">${callTrail}</div></td>
+        <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
       `;
       tr.addEventListener('click', () => openDetail(c));
+      const _editBtn = tr.querySelector('.call-edit-btn');
+      if (_editBtn) _editBtn.addEventListener('click', (e) => { e.stopPropagation(); openCallEditor(tr.querySelector('.call-cell'), c); });
       tbody.appendChild(tr);
     });
     
@@ -2544,6 +2558,59 @@
     if (rowCountEl) rowCountEl.textContent = filteredCases.length;
     const rowCountAllEl = document.getElementById('row-count-all');
     if (rowCountAllEl) rowCountAllEl.textContent = baseList.filter(isCaseListTarget).length;
+  }
+
+  // ===== 一覧上でのコール結果 直接編集 =====
+  function openCallEditor(td, c) {
+    if (!td) return;
+    const opts = ['', '不在', '留守', '拒否', '検討中', 'アポ'];
+    let rows = '';
+    for (let i = 0; i < 5; i++) {
+      const cur = c.calls[i] || { result: '', date: '' };
+      rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤'][i]}</span>`
+        + `<select class="ce-result" data-idx="${i}">${opts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
+        + `<input class="ce-date" data-idx="${i}" placeholder="M/D" value="${cur.date || ''}"></div>`;
+    }
+    td.innerHTML = `<div class="call-editor">${rows}<div class="ce-actions"><button class="ce-save">保存</button><button class="ce-cancel">取消</button><span class="ce-msg"></span></div></div>`;
+    // 編集中はセル内クリックで詳細が開かないように
+    td.querySelector('.call-editor').addEventListener('click', (e) => e.stopPropagation());
+    td.querySelector('.ce-save').addEventListener('click', (e) => { e.stopPropagation(); saveCallEdit(td, c); });
+    td.querySelector('.ce-cancel').addEventListener('click', (e) => { e.stopPropagation(); renderCaseTable(); });
+  }
+
+  async function saveCallEdit(td, c) {
+    const msg = td.querySelector('.ce-msg');
+    const setMsg = (t, col) => { if (msg) { msg.textContent = t; msg.style.color = col; } };
+    setMsg('保存中...', 'var(--ink-3)');
+    const payload = { no: c.no };
+    const compact = [];
+    for (let i = 0; i < 5; i++) {
+      const sel = td.querySelector(`.ce-result[data-idx="${i}"]`);
+      const dt = td.querySelector(`.ce-date[data-idx="${i}"]`);
+      const result = sel ? sel.value : '';
+      const date = dt ? String(dt.value || '').trim() : '';
+      payload[`call${i + 1}`] = result;
+      payload[`call${i + 1}Date`] = date;
+      if (result) compact.push({ result, date });
+    }
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_calls', payload }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        c.calls = compact;   // ローカルに即反映（再取得なし＝CSVの反映遅延を回避）
+        setMsg('✓ 保存しました', 'var(--green)');
+        setTimeout(() => renderCaseTable(), 700);
+      } else {
+        setMsg('✗ ' + (data.message || '保存失敗'), 'var(--red)');
+      }
+    } catch (e) {
+      setMsg('✗ 通信エラー', 'var(--red)');
+    }
   }
 
   // ===== 新着案件 (未コール) =====
