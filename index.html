@@ -2062,6 +2062,7 @@
         desired: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
         offered: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
         deal: parseInt(String(r[26] || '').replace(/[^\d]/g, '')) || null,
+        memo: String(r[31] || '').trim(),  // AF列:通話メモ
       });
     }
     return cases;
@@ -2821,6 +2822,7 @@
     document.getElementById('detail-id').innerHTML = `<span class="m-tag ${c.media}">${mediaLabels[c.media]}</span> <span>M-2605-${String(c.no).padStart(3,'0')} / 入札 ${c.date}</span>`;
     document.getElementById('detail-name').textContent = c.customer + ' 様';
 
+    const escMemo = String(c.memo || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     document.getElementById('detail-body').innerHTML = `
       <div class="detail-section">
         <h3>案件情報</h3>
@@ -2844,6 +2846,14 @@
           <span class="field-label">次回後追日</span><span class="field-value mono">${c.followup || '—'}</span>
         </div>
       </div>
+      <div class="detail-section">
+        <h3>通話メモ</h3>
+        <textarea id="detail-memo" placeholder="通話内容・次回の要点などを記録..." style="width:100%;box-sizing:border-box;min-height:96px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;color:var(--ink);">${escMemo}</textarea>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+          <button class="detail-edit-btn" style="margin:0;" onclick="saveMemo(${c.no})">💾 通話メモを保存</button>
+          <span id="detail-memo-msg" style="font-size:13px;font-weight:700;"></span>
+        </div>
+      </div>
       <div class="detail-section" style="background:var(--bg-soft);">
         <h3>備考(査定額・後追メモ)</h3>
         <div style="font-size:14px;line-height:1.7;color:var(--ink-2);">${c.note || '—'}</div>
@@ -2853,6 +2863,33 @@
     overlay.classList.add('show');
     panel.classList.add('show');
   }
+
+  // 通話メモの保存（AF列だけ更新する安全な方式）
+  async function saveMemo(no) {
+    const ta = document.getElementById('detail-memo');
+    const msg = document.getElementById('detail-memo-msg');
+    const memo = ta ? ta.value : '';
+    if (msg) { msg.textContent = '保存中...'; msg.style.color = 'var(--ink-3)'; }
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_memo', payload: { no, memo } }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        const ca = (allCases || []).find(x => x.no === no); if (ca) ca.memo = memo;
+        const cb = (cases || []).find(x => x.no === no); if (cb) cb.memo = memo;
+        if (msg) { msg.textContent = '✓ 保存しました'; msg.style.color = 'var(--green)'; }
+      } else {
+        if (msg) { msg.textContent = '✗ ' + (data.message || '保存失敗'); msg.style.color = 'var(--red)'; }
+      }
+    } catch (e) {
+      if (msg) { msg.textContent = '✗ 通信エラー'; msg.style.color = 'var(--red)'; }
+    }
+  }
+  window.saveMemo = saveMemo;
 
   function closeDetail() {
     overlay.classList.remove('show');
