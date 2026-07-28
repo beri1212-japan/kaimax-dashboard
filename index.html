@@ -1781,12 +1781,13 @@
       <thead>
         <tr>
           <th style="width:95px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('date')" title="入札日で並べ替え">入札日<span id="sort-arrow-date" style="color:var(--accent);margin-left:3px;"></span></th>
-          <th style="width:90px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:3px;"></span></th>
+          <th style="width:80px;">担当者</th>
           <th style="width:104px;">媒体</th>
           <th style="width:78px;">案件番号</th>
           <th style="width:150px;">顧客名 / TEL</th>
           <th style="width:200px;">車種</th>
           <th style="width:120px;">結果 / フェーズ</th>
+          <th style="width:90px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:3px;"></span></th>
           <th style="width:250px;">架電プロセス ①〜⑤</th>
           <th class="center" style="width:48px;">査定</th>
           <th></th>
@@ -2022,27 +2023,29 @@
       // 案件NOが空の行もスキップ
       if (!r[0] || !String(r[0]).trim()) continue;
       
-      // 列インデックス(マスタ案件シートの実構造に準拠)
+      // 列インデックス(マスタ案件シートの「実際の」構造に準拠)
+      // ※①は結果のみで日付列が無く、②〜⑤は結果+日付を持つ点に注意
       // A=0:案件NO, B=1:媒体, C=2:受信日, D=3:顧客名, E=4:TEL,
       // F=5:車名, G=6:入札, H=7:入札結果, I=8:ライバル社,
-      // J=9:①TEL, K=10:①日付, L=11:②TEL, M=12:②日付,
-      // N=13:③TEL, O=14:③日付, P=15:④TEL, Q=16:④日付,
-      // R=17:⑤TEL, S=18:⑤日付, T=19:査定, U=20:結果,
-      // V=21:次回後追日, W=22:担当者, X=23:備考,
-      // Y=24:顧客希望額, Z=25:査定提示額, AA=26:成約額
-      
+      // J=9:①結果, K=10:②結果, L=11:②日付, M=12:③結果, N=13:③日付,
+      // O=14:④結果, P=15:④日付, Q=16:⑤結果, R=17:⑤日付,
+      // S=18:査定, T=19:結果, U=20:次回後追日, V=21:担当者, W=22:備考,
+      // X=23:顧客希望額, Y=24:査定提示額, Z=25:成約額, ... AF=31:通話メモ
+
       const calls = [];
+      const CALL_COLS = [[9, null], [10, 11], [12, 13], [14, 15], [16, 17]]; // [結果列, 日付列]。①は日付なし
       for (let n = 0; n < 5; n++) {
-        const result = r[9 + n * 2];
-        const date = r[10 + n * 2];
+        const result = r[CALL_COLS[n][0]];
+        const dcol = CALL_COLS[n][1];
+        const date = dcol !== null ? r[dcol] : '';
         if (result && String(result).trim()) {
           calls.push({ result: String(result).trim(), date: String(date || '').trim() });
         }
       }
-      
-      const assessRaw = String(r[19] || '').trim();
+
+      const assessRaw = String(r[18] || '').trim();
       const assess = assessRaw === '〇' ? '〇' : assessRaw === '×' ? '×' : null;
-      
+
       cases.push({
         no: parseInt(r[0]) || (i),
         media: MEDIA_MAP[String(r[1] || '').trim()] || 'mota',
@@ -2055,13 +2058,13 @@
         rival: String(r[8] || '').trim(),  // ライバル社(分析未使用だが保持)
         calls: calls,
         assess: assess,
-        result: String(r[20] || '').trim(),
-        followup: String(r[21] || '').trim(),
-        assignee: String(r[22] || '').trim(),
-        note: String(r[23] || '').trim(),
-        desired: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
-        offered: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
-        deal: parseInt(String(r[26] || '').replace(/[^\d]/g, '')) || null,
+        result: String(r[19] || '').trim(),
+        followup: String(r[20] || '').trim(),
+        assignee: String(r[21] || '').trim(),
+        note: String(r[22] || '').trim(),
+        desired: parseInt(String(r[23] || '').replace(/[^\d]/g, '')) || null,
+        offered: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
+        deal: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
         memo: String(r[31] || '').trim(),  // AF列:通話メモ
       });
     }
@@ -2595,7 +2598,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-family:Arial,monospace;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
-        <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
+        <td style="font-size:13px;color:var(--ink-2);white-space:nowrap;">${c.assignee || '<span style="color:var(--ink-3);">—</span>'}</td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
@@ -2604,6 +2607,7 @@
         </td>
         <td style="font-size:14px;font-weight:500;">${c.car}</td>
         <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
+        <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
         <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
