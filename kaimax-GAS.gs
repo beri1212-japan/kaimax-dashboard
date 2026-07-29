@@ -43,6 +43,7 @@ function doPost(e) {
 
     if (action === 'update_calls') return handleUpdateCalls(payload); // ★一覧から①〜⑤コール結果だけ安全に更新
     if (action === 'update_memo') return handleUpdateMemo(payload);   // ★通話メモ(AF列)だけ安全に更新
+    if (action === 'update_meta') return handleUpdateMeta(payload);   // ★担当者(V)・結果(T)・次回後追日(U)だけ安全に更新
 
     return jsonResponse({ status: 'error', message: '不明なアクション: ' + action });
   } catch (err) {
@@ -459,6 +460,29 @@ function handleUpdateMemo(payload) {
   if (!sheet.getRange(1, 32).getValue()) sheet.getRange(1, 32).setValue('通話メモ');
   sheet.getRange(targetRow, 32).setValue(payload.memo || ''); // AF列:通話メモ
   return jsonResponse({ status: 'success', message: `案件NO ${targetNo} の通話メモを保存しました`, no: targetNo });
+}
+
+// ============================================================
+// 担当者(V=22)・結果(T=20)・次回後追日(U=21)だけ安全に更新
+// 指定された項目だけ書き換える。架電・通話メモ・その他は一切触らない
+// payload: { no, (任意)assignee, (任意)result, (任意)followup }
+// ============================================================
+function handleUpdateMeta(payload) {
+  const sheet = getSheet();
+  const targetNo = payload.no;
+  if (!targetNo) return jsonResponse({ status: 'error', message: '案件NOが指定されていません' });
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ status: 'error', message: 'データがありません' });
+  const noColumn = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  let targetRow = -1;
+  for (let i = 0; i < noColumn.length; i++) {
+    if (noColumn[i][0] == targetNo) { targetRow = i + 2; break; }
+  }
+  if (targetRow === -1) return jsonResponse({ status: 'error', message: `案件NO ${targetNo} が見つかりません` });
+  if (payload.result !== undefined) sheet.getRange(targetRow, 20).setValue(payload.result || '');     // T:結果
+  if (payload.assignee !== undefined) sheet.getRange(targetRow, 22).setValue(payload.assignee || ''); // V:担当者
+  if (payload.followup !== undefined) sheet.getRange(targetRow, 21).setValue(payload.followup || ''); // U:次回後追日
+  return jsonResponse({ status: 'success', message: `案件NO ${targetNo} を更新しました`, no: targetNo });
 }
 
 // ============================================================

@@ -640,6 +640,18 @@
   .call-editor .ce-cancel { background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:4px 10px; cursor:pointer; }
   .call-editor .ce-msg { font-size:12px; }
 
+  /* 担当者・結果 のインライン編集 */
+  .editable-cell { cursor:pointer; }
+  .editable-cell:hover { background:var(--bg-soft); outline:1px dashed var(--line); }
+  .editable-cell .edit-hint { color:var(--ink-3); font-size:11px; margin-left:4px; opacity:0; }
+  .editable-cell:hover .edit-hint { opacity:1; }
+  .meta-editor { display:flex; flex-direction:column; gap:6px; }
+  .meta-editor .me-input, .meta-editor .me-select { padding:4px 6px; font-size:13px; min-width:96px; box-sizing:border-box; }
+  .meta-editor .me-actions { display:flex; align-items:center; gap:8px; }
+  .meta-editor .me-save { background:var(--accent); color:#fff; border:none; border-radius:5px; padding:4px 12px; font-weight:700; cursor:pointer; }
+  .meta-editor .me-cancel { background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:4px 10px; cursor:pointer; }
+  .meta-editor .me-msg { font-size:12px; font-weight:700; }
+
   /* Media tag */
   .m-tag {
     display: inline-block;
@@ -2598,7 +2610,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-family:Arial,monospace;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
-        <td style="font-size:13px;color:var(--ink-2);white-space:nowrap;">${c.assignee || '<span style="color:var(--ink-3);">—</span>'}</td>
+        <td class="editable-cell" title="クリックで担当者を編集" style="font-size:13px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint">✎</span></td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
@@ -2606,7 +2618,7 @@
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
         </td>
         <td style="font-size:14px;font-weight:500;">${c.car}</td>
-        <td><span class="phase ph-${phase.code}">${phase.name}</span></td>
+        <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
         <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
@@ -2615,6 +2627,11 @@
       tr.addEventListener('click', () => openDetail(c));
       const _editBtn = tr.querySelector('.call-edit-btn');
       if (_editBtn) _editBtn.addEventListener('click', (e) => { e.stopPropagation(); openCallEditor(tr.querySelector('.call-cell'), c); });
+      // 担当者(2列目)・結果/フェーズ(7列目) のインライン編集
+      const _asgCell = tr.children[1];
+      if (_asgCell) _asgCell.addEventListener('click', (e) => { e.stopPropagation(); openAssigneeEditor(_asgCell, c); });
+      const _resCell = tr.children[6];
+      if (_resCell) _resCell.addEventListener('click', (e) => { e.stopPropagation(); openResultEditor(_resCell, c); });
       tbody.appendChild(tr);
     });
     
@@ -2676,6 +2693,79 @@
       setMsg('✗ 通信エラー', 'var(--red)');
     }
   }
+
+  // ===== 一覧上での 担当者・結果/フェーズ 直接編集 =====
+  // 既存データから担当者の候補を集める
+  function distinctAssignees() {
+    const s = new Set();
+    (allCases || []).forEach(x => { if (x.assignee && String(x.assignee).trim()) s.add(String(x.assignee).trim()); });
+    return Array.from(s).sort();
+  }
+  const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(直近)', '検討(長期)', '他社結果待ち', '他社売却', '自社代替', '売却しない'];
+
+  function openAssigneeEditor(td, c) {
+    if (!td) return;
+    const names = distinctAssignees();
+    const dl = names.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}"></option>`).join('');
+    const cur = String(c.assignee || '').replace(/"/g, '&quot;');
+    td.innerHTML = `<div class="meta-editor">`
+      + `<input class="me-input" list="asg-list-${c.no}" value="${cur}" placeholder="担当者名">`
+      + `<datalist id="asg-list-${c.no}">${dl}</datalist>`
+      + `<div class="me-actions"><button class="me-save">保存</button><button class="me-cancel">取消</button><span class="me-msg"></span></div></div>`;
+    const box = td.querySelector('.meta-editor');
+    box.addEventListener('click', (e) => e.stopPropagation());
+    const inp = td.querySelector('.me-input');
+    inp.focus();
+    td.querySelector('.me-save').addEventListener('click', (e) => { e.stopPropagation(); saveMeta(td, c, { assignee: inp.value.trim() }); });
+    td.querySelector('.me-cancel').addEventListener('click', (e) => { e.stopPropagation(); renderCaseTable(); });
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveMeta(td, c, { assignee: inp.value.trim() }); } });
+  }
+
+  function openResultEditor(td, c) {
+    if (!td) return;
+    const autoName = getPhase(Object.assign({}, c, { result: '' })).name;
+    const optsHtml = RESULT_OPTIONS.map(o =>
+      `<option value="${o}"${o === (c.result || '') ? ' selected' : ''}>${o || '（未設定→自動:' + autoName + '）'}</option>`
+    ).join('');
+    td.innerHTML = `<div class="meta-editor">`
+      + `<select class="me-select">${optsHtml}</select>`
+      + `<div class="me-actions"><button class="me-save">保存</button><button class="me-cancel">取消</button><span class="me-msg"></span></div></div>`;
+    const box = td.querySelector('.meta-editor');
+    box.addEventListener('click', (e) => e.stopPropagation());
+    const sel = td.querySelector('.me-select');
+    sel.focus();
+    td.querySelector('.me-save').addEventListener('click', (e) => { e.stopPropagation(); saveMeta(td, c, { result: sel.value }); });
+    td.querySelector('.me-cancel').addEventListener('click', (e) => { e.stopPropagation(); renderCaseTable(); });
+  }
+
+  async function saveMeta(td, c, fields) {
+    const msg = td.querySelector('.me-msg');
+    const setMsg = (t, col) => { if (msg) { msg.textContent = t; msg.style.color = col; } };
+    setMsg('保存中...', 'var(--ink-3)');
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_meta', payload: Object.assign({ no: c.no }, fields) }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        redirect: 'follow',
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        // ローカルに即反映（allCases / cases / 当該オブジェクト）
+        Object.assign(c, fields);
+        const ca = (allCases || []).find(x => x.no === c.no); if (ca) Object.assign(ca, fields);
+        const cb = (cases || []).find(x => x.no === c.no); if (cb) Object.assign(cb, fields);
+        setMsg('✓ 保存しました', 'var(--green)');
+        setTimeout(() => renderCaseTable(), 600);
+      } else {
+        setMsg('✗ ' + (data.message || '保存失敗'), 'var(--red)');
+      }
+    } catch (e) {
+      setMsg('✗ 通信エラー', 'var(--red)');
+    }
+  }
+  window.openAssigneeEditor = openAssigneeEditor;
+  window.openResultEditor = openResultEditor;
 
   // ===== 新着案件 (未コール) =====
   // 表示条件:架電履歴ゼロ かつ
