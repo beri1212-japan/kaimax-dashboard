@@ -2085,10 +2085,15 @@
         deal: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
         memo: String(r[31] || '').trim(),  // AF列:通話メモ
         timing: (function(){
-          // 売却予定時期:専用列(AE=31列目/idx30)を優先、無ければ備考(W列)の「売却希望:○○」から抽出
-          let t = String(r[30] || '').trim();
-          if (!t) { const mm = String(r[22] || '').match(/売却(?:希望|予定)?時?期?[：:]\s*([^\/／\n]+)/); if (mm) t = mm[1].trim(); }
-          return t;
+          // 売却予定時期:行内のどこかにある「売却希望:○○」を探し、時期表現のときだけ採用
+          // （行によりMOTA明細が備考列とは別の列に入るため行全体を対象にし、走行距離等の誤検出を除外）
+          const whole = r.map(x => String(x || '')).join(' ／ ');
+          const mm = whole.match(/売却(?:希望|予定)?時?期?\s*[：:]\s*([^／\/|\n]+)/);
+          if (mm) {
+            const v = mm[1].trim();
+            if (/(以内|未定|すぐ|即|半年|[0-9０-９]\s*[ヶかヵ]月)/.test(v)) return v;
+          }
+          return '';
         })(),
       });
     }
