@@ -3387,10 +3387,11 @@
   // タスクプリセットボタン
   function applyTaskPreset(taskName) {
     if (taskName === 'call') {
-      // コール案件:期間1ヶ月以内、全媒体、未架電・架電中（結果未確定の案件）
+      // コール案件:期間1ヶ月以内、全媒体、未架電・架電中（結果未確定の案件）、入札日の降順(新しい順)
       caseFilters.period = 'current';
       caseFilters.media = 'all';
       caseFilters.stage = ['not-called', 'calling'];
+      caseSort = { key: 'date', dir: 'desc' };  // 入札日の降順
       updateChipUI('.period-chip-cases', 'data-period', 'current');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
       renderStageFilter();
@@ -3408,6 +3409,7 @@
       caseFilters.media = 'all';
       caseFilters.stage = 'all';
       caseFilters.search = '';
+      caseSort = { key: 'followup', dir: 'asc' };  // 既定の並べ替え(後追日が近い順)に戻す
       const searchBox = document.getElementById('case-search');
       if (searchBox) searchBox.value = '';
       updateChipUI('.period-chip-cases', 'data-period', 'all');
