@@ -2076,7 +2076,8 @@
         rival: String(r[8] || '').trim(),  // ライバル社(分析未使用だが保持)
         calls: calls,
         assess: assess,
-        result: String(r[19] || '').trim(),
+        // 結果はスプシで全角カッコ「検討（長期）」の場合があるため半角「検討(長期)」に正規化して判定・表示を揃える
+        result: String(r[19] || '').trim().replace(/（/g, '(').replace(/）/g, ')'),
         followup: String(r[20] || '').trim(),
         assignee: String(r[21] || '').trim(),
         note: String(r[22] || '').trim(),
