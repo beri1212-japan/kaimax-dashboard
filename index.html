@@ -693,6 +693,7 @@
   .ph-won { background: var(--green); color: #fff; border-color: var(--green); }
   .ph-lost { background: var(--bg-soft); color: var(--ink-3); border-color: var(--line); }
   .ph-revisit { background: rgba(200,144,48,0.1); color: var(--amber); border-color: var(--amber); }
+  .ph-other { background: rgba(107,74,124,0.08); color: var(--purple); border-color: var(--purple); }
 
   /* Call dots */
   .call-trail { display: inline-flex; gap: 3px; align-items: center; }
@@ -2163,10 +2164,16 @@
   })();
 
   function getPhase(c) {
-    if (c.result === '入庫済み') return { code: 'won', name: '入庫済み' };
-    if (c.result === '成約') return { code: 'deal', name: '成約' };
-    if (['他社売却', '自社代替', '売却しない'].includes(c.result)) return { code: 'lost', name: c.result };
-    if (['検討(直近)', '検討(長期)', '他社結果待ち'].includes(c.result)) return { code: 'revisit', name: c.result };
+    // 結果(T列)に値があれば必ずそのまま表示する（未知の値でも査定等にフォールバックしない）
+    const r = String(c.result || '').trim();
+    if (r) {
+      if (/入庫/.test(r)) return { code: 'won', name: r };
+      if (/成約/.test(r)) return { code: 'deal', name: r };
+      if (/(検討|返事|結果待ち|保留|相談|連絡待ち)/.test(r)) return { code: 'revisit', name: r };
+      if (/(他社売却|自社代替|売らない|売却しない|しない|売りたくない|媒体重複|重複|キャンセル|見送|着拒|着信拒否|拒否|失注|対象外|終了)/.test(r)) return { code: 'lost', name: r };
+      return { code: 'other', name: r };  // 未分類でも結果を尊重して表示
+    }
+    // 結果が空のときだけ、査定・架電の段階から推定表示
     if (c.assess === '〇') return { code: 'est', name: '査定〇' };
     if (c.assess === '×') return { code: 'est-x', name: '査定×' };
     if (c.calls.some(call => call.result === 'アポ')) return { code: 'apo', name: 'アポ獲得' };
@@ -2726,7 +2733,7 @@
     (allCases || []).forEach(x => { if (x.assignee && String(x.assignee).trim()) s.add(String(x.assignee).trim()); });
     return Array.from(s).sort();
   }
-  const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(直近)', '検討(長期)', '他社結果待ち', '他社売却', '自社代替', '売却しない'];
+  const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
 
   function openAssigneeEditor(td, c) {
     if (!td) return;
