@@ -1769,23 +1769,8 @@
       <span class="chip media-chip-cases" data-cmedia="shop">店頭</span>
     </div>
     <div class="filter-group">
-      <span class="filter-label">フェーズ</span>
-      <span class="chip phase-chip-cases active" data-phase="all">全て</span>
-      <span class="chip phase-chip-cases" data-phase="not-called">未架電</span>
-      <span class="chip phase-chip-cases" data-phase="calling">架電中</span>
-      <span class="chip phase-chip-cases" data-phase="apo">アポ獲得</span>
-      <span class="chip phase-chip-cases" data-phase="assessed">査定済</span>
-      <span class="chip phase-chip-cases" data-phase="deal">成約</span>
-    </div>
-    <div class="filter-group">
-      <span class="filter-label">結果</span>
-      <span class="chip result-chip-cases active" data-cresult="all">全て</span>
-      <span class="chip result-chip-cases" data-cresult="入庫済み">入庫済み</span>
-      <span class="chip result-chip-cases" data-cresult="成約">成約</span>
-      <span class="chip result-chip-cases" data-cresult="検討(直近)">検討(直近)</span>
-      <span class="chip result-chip-cases" data-cresult="検討(長期)">検討(長期)</span>
-      <span class="chip result-chip-cases" data-cresult="他社結果待ち">他社結果待ち</span>
-      <span class="chip result-chip-cases" data-cresult="empty">未確定</span>
+      <span class="filter-label">結果 / フェーズ</span>
+      <span id="stage-chips" style="display:contents;"></span>
     </div>
   </div>
 
@@ -2493,10 +2478,68 @@
   const caseFilters = {
     period: 'all',
     media: 'all',
-    phase: 'all',  // 'all' or 単一値 or ['phase1','phase2'] の配列(複数選択)
-    result: 'all',
+    // 結果/フェーズ統合フィルタ。'all' / 段階キー(not-called等) / 'r:<結果値>' / それらの配列(プリセット複数選択)
+    stage: 'all',
     search: '',
   };
+
+  // 統合フィルタ:段階(結果が空の案件)の定義
+  const STAGE_PHASES = [
+    { key: 'not-called', label: '未架電' },
+    { key: 'calling', label: '架電中' },
+    { key: 'apo', label: 'アポ獲得' },
+    { key: 'assessed', label: '査定〇' },
+  ];
+  // 結果値のボタン表示順（既知を優先、未知は後ろに自動追加）
+  const RESULT_ORDER = ['検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', 'アポ', '成約', '入庫済み', '他社売却', '自社代替', '売らない', '売却しない', 'しない', '着拒', '媒体重複'];
+
+  // 1件が指定した段階/結果に一致するか
+  function matchStage(c, s) {
+    if (!s || s === 'all') return true;
+    if (typeof s === 'string' && s.indexOf('r:') === 0) return c.result === s.slice(2);
+    // 段階系は「結果が空」の案件だけ（列に査定〇/架電中等が出ているもの）
+    if (c.result) return false;
+    return caseMatchesPhase(c, s);
+  }
+
+  // 現在データに存在する結果値を、表示順に並べて返す
+  function distinctResults() {
+    const base = (allCases && allCases.length > 0) ? allCases : (cases || []);
+    const set = new Set();
+    base.forEach(c => { const r = String(c.result || '').trim(); if (r) set.add(r); });
+    const arr = Array.from(set);
+    arr.sort((a, b) => {
+      const ia = RESULT_ORDER.indexOf(a), ib = RESULT_ORDER.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b, 'ja');
+    });
+    return arr;
+  }
+
+  // 統合フィルタのボタンを（実データに合わせて）生成
+  function renderStageFilter() {
+    const wrap = document.getElementById('stage-chips');
+    if (!wrap) return;
+    const chips = [{ key: 'all', label: '全て' }]
+      .concat(STAGE_PHASES)
+      .concat(distinctResults().map(r => ({ key: 'r:' + r, label: r })));
+    const cur = caseFilters.stage;
+    const isActive = (k) => (Array.isArray(cur) ? cur.includes(k) : cur === k);
+    wrap.innerHTML = chips.map(ch =>
+      `<span class="chip stage-chip-cases${isActive(ch.key) ? ' active' : ''}" data-stage="${String(ch.key).replace(/"/g, '&quot;')}">${ch.label}</span>`
+    ).join('');
+    wrap.querySelectorAll('.stage-chip-cases').forEach(chip => {
+      chip.addEventListener('click', () => {
+        caseFilters.stage = chip.dataset.stage;
+        wrap.querySelectorAll('.stage-chip-cases').forEach(x => x.classList.remove('active'));
+        chip.classList.add('active');
+        renderCaseTable();
+      });
+    });
+  }
+  window.renderStageFilter = renderStageFilter;
   
   // 案件一覧専用の期間フィルタ
   function applyCasePeriodFilter(list, period) {
@@ -2567,35 +2610,39 @@
       }
     }
     
-    // 結果欄が「他社売却」「売却しない」「自社代替」は除外
-    list = list.filter(c => !['他社売却', '売却しない', '自社代替'].includes(c.result));
-    
-    // MOTAの場合は「権利獲得」したものだけ表示
+    // 統合フィルタで「結果」を明示選択中かどうか（明示選択時は除外を解除して見せる）
+    const stageSel = caseFilters.stage;
+    const stageList = Array.isArray(stageSel) ? stageSel : [stageSel];
+    const activeResultKeys = stageList.filter(s => typeof s === 'string' && s.indexOf('r:') === 0).map(s => s.slice(2));
+    const resultFiltering = activeResultKeys.length > 0;
+
+    // 結果欄が「他社売却」「売却しない」「自社代替」は既定で除外（ただしその結果を明示選択中は表示）
     list = list.filter(c => {
-      if (c.media !== 'mota') return true;  // MOTA以外は全て表示
-      // MOTAは入札結果が「権利獲得」「〇」「落札」のいずれかの場合のみ
+      if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return activeResultKeys.includes(c.result);
+      return true;
+    });
+
+    // MOTAは「権利獲得/〇/落札」のみ表示（結果を明示選択中は勝敗に関わらず表示）
+    list = list.filter(c => {
+      if (c.media !== 'mota') return true;
+      if (resultFiltering) return true;
       return ['権利獲得', '〇', '落札'].includes(c.bidResult);
     });
-    
+
     // 媒体絞込
     if (caseFilters.media !== 'all') {
       list = list.filter(c => c.media === caseFilters.media);
     }
-    
-    // フェーズ絞込
-    if (caseFilters.phase !== 'all') {
-      list = list.filter(c => caseMatchesPhase(c, caseFilters.phase));
-    }
-    
-    // 結果絞込
-    if (caseFilters.result !== 'all') {
-      if (caseFilters.result === 'empty') {
-        list = list.filter(c => !c.result);
+
+    // 結果 / フェーズ 統合絞込
+    if (stageSel && stageSel !== 'all') {
+      if (Array.isArray(stageSel)) {
+        list = list.filter(c => stageSel.some(s => matchStage(c, s)));
       } else {
-        list = list.filter(c => c.result === caseFilters.result);
+        list = list.filter(c => matchStage(c, stageSel));
       }
     }
-    
+
     // 検索絞込
     if (caseFilters.search) {
       const q = caseFilters.search.toLowerCase();
@@ -3303,8 +3350,7 @@
       if (c.classList.contains('period-chip')) return;
       if (c.classList.contains('period-chip-cases')) return;
       if (c.classList.contains('media-chip-cases')) return;
-      if (c.classList.contains('phase-chip-cases')) return;
-      if (c.classList.contains('result-chip-cases')) return;
+      if (c.classList.contains('stage-chip-cases')) return;
       c.addEventListener('click', () => {
         g.querySelectorAll('.chip').forEach(x => {
           if (!x.classList.contains('period-chip')) x.classList.remove('active');
@@ -3328,45 +3374,37 @@
   }
   setupCaseFilterChips('.period-chip-cases', 'period');
   setupCaseFilterChips('.media-chip-cases', 'media');
-  setupCaseFilterChips('.phase-chip-cases', 'phase');
-  setupCaseFilterChips('.result-chip-cases', 'result');
+  // 結果/フェーズは統合フィルタ（renderStageFilterで動的生成・イベント付与）
   
   // タスクプリセットボタン
   function applyTaskPreset(taskName) {
     if (taskName === 'call') {
-      // コール案件:期間1ヶ月以内、全媒体、フェーズ=未架電・架電中、結果=全て
+      // コール案件:期間1ヶ月以内、全媒体、未架電・架電中（結果未確定の案件）
       caseFilters.period = 'current';
       caseFilters.media = 'all';
-      caseFilters.phase = ['not-called', 'calling'];
-      caseFilters.result = 'all';
-      // UI更新
+      caseFilters.stage = ['not-called', 'calling'];
       updateChipUI('.period-chip-cases', 'data-period', 'current');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
-      updateChipUI('.phase-chip-cases', 'data-phase', null);  // 複数なので個別UI不可
-      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+      renderStageFilter();
     } else if (taskName === 'hot') {
-      // HOT案件:全期間、全媒体、フェーズ=アポ獲得・査定済、結果=全て
+      // HOT案件:全期間、全媒体、アポ獲得・査定済 + 近い返事待ち（検討/他社結果待ち/★近日返事）
       caseFilters.period = 'all';
       caseFilters.media = 'all';
-      caseFilters.phase = ['apo', 'assessed'];
-      caseFilters.result = 'all';
+      caseFilters.stage = ['apo', 'assessed', 'r:検討(1ヶ月以内)', 'r:検討(直近)', 'r:他社結果待ち', 'r:★近日返事'];
       updateChipUI('.period-chip-cases', 'data-period', 'all');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
-      updateChipUI('.phase-chip-cases', 'data-phase', null);
-      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+      renderStageFilter();
     } else if (taskName === 'reset') {
       // リセット
       caseFilters.period = 'all';
       caseFilters.media = 'all';
-      caseFilters.phase = 'all';
-      caseFilters.result = 'all';
+      caseFilters.stage = 'all';
       caseFilters.search = '';
       const searchBox = document.getElementById('case-search');
       if (searchBox) searchBox.value = '';
       updateChipUI('.period-chip-cases', 'data-period', 'all');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
-      updateChipUI('.phase-chip-cases', 'data-phase', 'all');
-      updateChipUI('.result-chip-cases', 'data-cresult', 'all');
+      renderStageFilter();
     }
     
     // タスクボタンの表示状態
@@ -3792,11 +3830,12 @@
         if (periodDisplay) periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
       }
       cases = applyPeriodFilter(allCases);
-      
+      renderStageFilter();  // 実データの結果値に合わせて統合フィルタのボタンを生成
+
       hideLoading();
       renderAll();
       renderDonuts();
-      
+
       // 最終更新時刻の表示
       const updateEl = document.getElementById('last-update');
       if (updateEl) {
@@ -3812,6 +3851,7 @@
       console.error('CSV load error:', err);
       allCases = fallbackCases;
       cases = fallbackCases;
+      renderStageFilter();
       hideLoading();
       renderAll();
       renderDonuts();
