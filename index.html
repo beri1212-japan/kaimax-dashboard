@@ -652,6 +652,12 @@
   .meta-editor .me-cancel { background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:4px 10px; cursor:pointer; }
   .meta-editor .me-msg { font-size:12px; font-weight:700; }
 
+  /* 売却予定時期バッジ */
+  .sell-timing { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:700; line-height:1.6; white-space:nowrap; }
+  .sell-timing.urgent { background:#fdeaea; color:#c0392b; border:1px solid #e6b8b3; }
+  .sell-timing.soon   { background:#fdf3e2; color:#b9770e; border:1px solid #ecd6a8; }
+  .sell-timing.later  { background:var(--bg-soft); color:var(--ink-2); border:1px solid var(--line); }
+
   /* Media tag */
   .m-tag {
     display: inline-block;
@@ -2078,6 +2084,12 @@
         offered: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
         deal: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
         memo: String(r[31] || '').trim(),  // AF列:通話メモ
+        timing: (function(){
+          // 売却予定時期:専用列(AE=31列目/idx30)を優先、無ければ備考(W列)の「売却希望:○○」から抽出
+          let t = String(r[30] || '').trim();
+          if (!t) { const mm = String(r[22] || '').match(/売却(?:希望|予定)?時?期?[：:]\s*([^\/／\n]+)/); if (mm) t = mm[1].trim(); }
+          return t;
+        })(),
       });
     }
     return cases;
@@ -2165,6 +2177,13 @@
 
   function callDotClass(result) {
     return { '不在': 'absent', '留守': 'message', '拒否': 'reject', '検討中': 'consider', 'アポ': 'apo' }[result] || '';
+  }
+  // 売却予定時期の緊急度クラス（1ヶ月/即=緊急、3ヶ月=注意、その他=通常）
+  function timingClass(t) {
+    const s = String(t || '');
+    if (/(即|すぐ|今すぐ|できるだけ|1\s*ヶ?か?月|1ヵ月|一ヶ月)/.test(s)) return 'urgent';
+    if (/(3\s*ヶ?か?月|3ヵ月|三ヶ月)/.test(s)) return 'soon';
+    return 'later';
   }
   function callDotChar(result) {
     return { '不在': '×', '留守': 'M', '拒否': '!', '検討中': '?', 'アポ': '◎' }[result] || '';
@@ -2617,7 +2636,7 @@
           <div style="font-weight:700;font-size:15px;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
         </td>
-        <td style="font-size:14px;font-weight:500;">${c.car}</td>
+        <td style="font-size:14px;font-weight:500;">${c.car}${c.timing ? `<div style="margin-top:4px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
         <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
         <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
@@ -2926,6 +2945,7 @@
           <span class="field-label">電話</span><span class="field-value mono">${c.tel ? `<a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;">${c.tel} 📞</a>` : '—'}</span>
           <span class="field-label">車種</span><span class="field-value">${c.car}</span>
           <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
+          <span class="field-label">売却予定時期</span><span class="field-value">${c.timing ? `<span class="sell-timing ${timingClass(c.timing)}">🕐 ${c.timing}</span>` : '—'}</span>
         </div>
       </div>
       <div class="detail-section">
