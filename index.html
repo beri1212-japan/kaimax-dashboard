@@ -1775,7 +1775,7 @@
   </div>
 
   <div class="container">
-    <h2 class="section-title">案件一覧 <span class="ja">後追日が近い順 / 媒体は1列で表示</span></h2>
+    <h2 class="section-title">案件一覧 <span class="ja">入札日が新しい順 / 媒体は1列で表示</span></h2>
     <div class="table-controls">
       <input type="text" class="search-box" id="case-search" placeholder="顧客名・車種・案件番号で検索...">
       <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
@@ -2583,7 +2583,7 @@
     return true;
   }
   
-  let caseSort = { key: 'followup', dir: 'asc' };
+  let caseSort = { key: 'date', dir: 'desc' };  // 既定:入札日の降順(新しい順)
   function toggleCaseSort(key) {
     if (caseSort.key === key) { caseSort.dir = (caseSort.dir === 'asc') ? 'desc' : 'asc'; }
     else { caseSort = { key: key, dir: 'asc' }; }
@@ -3335,8 +3335,9 @@
       if (prioritySection) {
         prioritySection.style.display = (t.dataset.page === 'cases') ? 'none' : 'block';
       }
-      // 案件一覧タブを切り替えたらテーブルも再描画(失注を除外/含めるため)
+      // 案件一覧タブを開いたら、既定で入札日の降順(新しい順)に並べ替えてから再描画
       if (t.dataset.page === 'cases') {
+        caseSort = { key: 'date', dir: 'desc' };
         renderCaseTable();
       }
     });
@@ -3409,7 +3410,7 @@
       caseFilters.media = 'all';
       caseFilters.stage = 'all';
       caseFilters.search = '';
-      caseSort = { key: 'followup', dir: 'asc' };  // 既定の並べ替え(後追日が近い順)に戻す
+      caseSort = { key: 'date', dir: 'desc' };  // 既定の並べ替え(入札日の降順)に戻す
       const searchBox = document.getElementById('case-search');
       if (searchBox) searchBox.value = '';
       updateChipUI('.period-chip-cases', 'data-period', 'all');
