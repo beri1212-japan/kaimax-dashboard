@@ -2055,7 +2055,7 @@
         media: MEDIA_MAP[String(r[1] || '').trim()] || 'mota',
         date: String(r[2] || '').trim(),
         customer: String(r[3] || '').trim(),
-        tel: String(r[4] || '').trim(),
+        tel: formatTel(r[4]),  // 頭0が抜けた携帯番号に先頭0を補い、080-XXXX-XXXX形式に整形
         car: String(r[5] || '').trim(),
         bid: String(r[6] || '').trim(),
         bidResult: String(r[7] || '').trim(),
@@ -2175,6 +2175,14 @@
 
   function callDotClass(result) {
     return { '不在': 'absent', '留守': 'message', '拒否': 'reject', '検討中': 'consider', 'アポ': 'apo' }[result] || '';
+  }
+  // 電話番号:スプシの数値化で頭0が抜けた携帯/IP(10桁, 5/7/8/9始まり)に先頭0を補い、携帯は 0X0-XXXX-XXXX に整形
+  function formatTel(raw) {
+    let d = String(raw || '').replace(/[^\d]/g, '');
+    if (!d) return '';
+    if (d.length === 10 && /^[5789]/.test(d)) d = '0' + d;  // 頭0が抜けた携帯(070/080/090)・IP(050)
+    if (d.length === 11 && d[0] === '0') return d.slice(0, 3) + '-' + d.slice(3, 7) + '-' + d.slice(7);  // 携帯
+    return d;  // その他(固定電話等)は数字のまま(先頭0補正は反映済み)
   }
   // 売却予定時期の緊急度クラス（1ヶ月/即=緊急、3ヶ月=注意、その他=通常）
   function timingClass(t) {
