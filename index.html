@@ -1836,8 +1836,12 @@
   <h2 class="section-title" style="margin-top:20px;">目標設定 <span class="ja">担当者ごとの月間成約目標</span></h2>
   <div class="panel" style="max-width:620px;">
     <div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-bottom:16px;">
-      各担当者の<b>月間の成約目標件数</b>を入力してください。ダッシュボードの「担当者別実績」に進捗バーで反映されます。<br>
-      <span style="color:var(--ink-3);font-size:12px;">※ 目標はこの端末のブラウザに保存されます（PC・スマホ間では別々）。</span>
+      対象月を選び、各担当者の<b>その月の成約目標件数</b>を入力してください。ダッシュボードの「担当者別実績」に進捗バーで反映されます。<br>
+      <span style="color:var(--ink-3);font-size:12px;">※ 目標は月ごと・この端末のブラウザに保存されます（PC・スマホ間では別々）。</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-weight:700;font-size:14px;">対象月</span>
+      <input type="month" id="target-month" onchange="renderTargetsForm()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:15px;color:var(--ink);">
     </div>
     <div id="targets-form"></div>
   </div>
@@ -2325,33 +2329,66 @@
   // ============================================================
   // 担当者別実績 ＋ 目標（目標はこの端末のブラウザに保存）
   // ============================================================
-  function getTargets() {
-    try { return JSON.parse(localStorage.getItem('kaimax_targets') || '{}') || {}; } catch (e) { return {}; }
+  // 目標は「月ごと」に保存。形式: { "YYYY-MM": { 担当者名: 目標件数 } }
+  const TARGETS_KEY = 'kaimax_targets_v2';
+  function currentYM() { const d = new Date(TODAY); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  function getAllTargets() {
+    try {
+      const raw = localStorage.getItem(TARGETS_KEY);
+      if (raw) return JSON.parse(raw) || {};
+      // 旧形式(月なし)が残っていれば当月分として移行
+      const old = localStorage.getItem('kaimax_targets');
+      if (old) { const o = JSON.parse(old) || {}; const all = {}; all[currentYM()] = o; localStorage.setItem(TARGETS_KEY, JSON.stringify(all)); return all; }
+      return {};
+    } catch (e) { return {}; }
   }
-  function setTargetLocal(name, val) {
-    const t = getTargets();
+  function getMonthTargets(ym) { const all = getAllTargets(); return all[ym] || {}; }
+  function setMonthTarget(ym, name, val) {
+    const all = getAllTargets();
+    const m = all[ym] || (all[ym] = {});
     const n = parseInt(String(val).replace(/[^\d]/g, ''), 10);
-    if (!n || n <= 0) delete t[name]; else t[name] = n;
-    try { localStorage.setItem('kaimax_targets', JSON.stringify(t)); } catch (e) {}
+    if (!n || n <= 0) delete m[name]; else m[name] = n;
+    if (Object.keys(m).length === 0) delete all[ym];
+    try { localStorage.setItem(TARGETS_KEY, JSON.stringify(all)); } catch (e) {}
   }
-  window.saveAssigneeTarget = function (name, val) {
-    setTargetLocal(name, val);
-    if (currentMedia === 'all') renderMediaView('all');
-  };
+  // ダッシュボードの表示期間に含まれる月の目標を担当者別に合算
+  function monthsInRange(from, to) {
+    const res = []; let y = from.getFullYear(), mo = from.getMonth();
+    const ey = to.getFullYear(), em = to.getMonth();
+    let guard = 0;
+    while ((y < ey || (y === ey && mo <= em)) && guard < 240) { res.push(y + '-' + String(mo + 1).padStart(2, '0')); mo++; if (mo > 11) { mo = 0; y++; } guard++; }
+    return res;
+  }
+  function getPeriodTargets() {
+    const all = getAllTargets();
+    const result = {};
+    if (!currentPeriodFrom || !currentPeriodTo) return result;
+    const spanMonths = (currentPeriodTo.getFullYear() - currentPeriodFrom.getFullYear()) * 12 + (currentPeriodTo.getMonth() - currentPeriodFrom.getMonth());
+    if (spanMonths > 36) {
+      // 全期間など超広範囲は保存済みの全月を合算
+      Object.values(all).forEach(m => { for (const k in m) result[k] = (result[k] || 0) + m[k]; });
+    } else {
+      monthsInRange(currentPeriodFrom, currentPeriodTo).forEach(ym => { const m = all[ym] || {}; for (const k in m) result[k] = (result[k] || 0) + m[k]; });
+    }
+    return result;
+  }
 
-  // 目標設定タブ:担当者ごとの月間成約目標を入力するフォーム
+  // 目標設定タブ:選択した月の担当者別 成約目標を入力するフォーム
   function renderTargetsForm() {
     const wrap = document.getElementById('targets-form');
-    if (!wrap) return;
+    const monthInput = document.getElementById('target-month');
+    if (!wrap || !monthInput) return;
+    if (!monthInput.value) monthInput.value = currentYM();
+    const ym = monthInput.value;
     const names = distinctAssignees(); // データ上の担当者名
-    const targets = getTargets();
+    const targets = getMonthTargets(ym);
     const total = names.reduce((s, n) => s + (targets[n] || 0), 0);
     const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const rows = names.length ? names.map(n => `
       <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);">
         <span style="flex:1;font-weight:700;font-size:15px;">${n}</span>
         <input type="number" min="0" inputmode="numeric" value="${targets[n] || ''}" placeholder="—"
-          onchange="saveTargetInput('${esc(n)}', this.value)"
+          onchange="saveTargetInput('${ym}','${esc(n)}', this.value)"
           style="width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:15px;text-align:center;color:var(--ink);">
         <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
       </div>`).join('') : '<div style="color:var(--ink-3);padding:12px 0;">担当者データがありません</div>';
@@ -2365,8 +2402,8 @@
   }
   window.renderTargetsForm = renderTargetsForm;
 
-  window.saveTargetInput = function (name, val) {
-    setTargetLocal(name, val);
+  window.saveTargetInput = function (ym, name, val) {
+    setMonthTarget(ym, name, val);
     renderTargetsForm();
     const msg = document.getElementById('targets-saved-msg');
     if (msg) { msg.textContent = '✓ 保存しました'; setTimeout(() => { const m = document.getElementById('targets-saved-msg'); if (m) m.textContent = ''; }, 1500); }
@@ -2387,7 +2424,7 @@
     const list = cases; // 期間フィルタ済み
     const groups = {};
     list.forEach(c => { const a = (c.assignee || '').trim() || '未割当'; (groups[a] = groups[a] || []).push(c); });
-    const targets = getTargets();
+    const targets = getPeriodTargets();
     let names = Object.keys(groups).sort((a, b) => {
       if (a === '未割当') return 1; if (b === '未割当') return -1;
       const ka = assigneeKPI(groups[a]), kb = assigneeKPI(groups[b]);
