@@ -299,6 +299,25 @@
   .assignee-perf .ap-sub { display:inline-block; margin-left:5px; font-size:11px; color:var(--ink-3); font-weight:400; }
   .assignee-perf tfoot td { border-top:2px solid var(--line); border-bottom:none; font-weight:700; background:var(--bg-soft); }
 
+  /* ========== 当月ステータス（ヒーロー） ========== */
+  .month-hero { border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; background:linear-gradient(180deg,var(--bg-panel),var(--bg-soft)); padding:16px 18px; margin-bottom:22px; }
+  .month-hero .mh-head { font-size:14px; font-weight:800; color:var(--ink); letter-spacing:.03em; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .month-hero .mh-head .mh-badge { font-size:12px; font-weight:700; color:#fff; background:var(--accent); border-radius:20px; padding:2px 11px; }
+  .month-hero .mh-grid { display:grid; grid-template-columns:1fr 1fr 1.7fr 1fr; gap:14px; }
+  .month-hero .mh-tile { background:var(--bg-panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .month-hero .mh-tile.hot { border-color:var(--accent-soft); }
+  .month-hero .mh-label { font-size:12px; color:var(--ink-3); font-weight:700; margin-bottom:4px; }
+  .month-hero .mh-val { font-size:30px; font-weight:800; line-height:1.05; color:var(--ink); font-family:Arial,inherit; }
+  .month-hero .mh-val span { font-size:14px; font-weight:700; color:var(--ink-3); margin-left:3px; }
+  .month-hero .mh-val.accent { color:var(--accent); }
+  .month-hero .mh-val.hotc { color:var(--accent-dark); }
+  .month-hero .mh-sub { font-size:11px; color:var(--ink-3); margin-top:3px; }
+  .month-hero .mh-bar { height:9px; background:var(--bg-soft); border-radius:6px; overflow:hidden; margin-top:9px; }
+  .month-hero .mh-bar > div { height:100%; border-radius:6px; transition:width .3s; }
+  .month-hero .mh-sec { margin-top:13px; font-size:12.5px; color:var(--ink-2); font-weight:600; display:flex; gap:18px; flex-wrap:wrap; }
+  .month-hero .mh-sec b { color:var(--ink); font-family:Arial,inherit; }
+  @media (max-width:720px) { .month-hero .mh-grid { grid-template-columns:1fr 1fr; } }
+
   /* ========== KPI ========== */
   .kpi-grid {
     display: grid;
@@ -2512,6 +2531,48 @@
     `;
   }
 
+  // 当月ステータス（目標・実績・進捗率・HOT を上部にまとめて表示。期間フィルタに関係なく常に当月）
+  function renderMonthHero() {
+    const now = new Date(TODAY);
+    const ym = currentYM();
+    const monthCases = (allCases || []).filter(c => { const d = parseDateFlexible(c.date); return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
+    const deal = monthCases.filter(isDeal).length;
+    const apo = monthCases.filter(c => c.calls.some(k => k.result === 'アポ')).length;
+    const assess = monthCases.filter(isAssessed).length;
+    const reached = monthCases.filter(hasReached).length;
+    const totalM = monthCases.length;
+    const amount = monthCases.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
+    const mt = getMonthTargets(ym);
+    const target = Object.values(mt).reduce((s, v) => s + (v || 0), 0);
+    const rate = target > 0 ? (deal / target * 100) : 0;
+    const met = target > 0 && deal >= target;
+    // HOT（現在の商談パイプライン。月に関係なく全件から）
+    const hot = (allCases || []).filter(c => c.result === '検討(1ヶ月以内)' || c.result === '★近日返事').length;
+    const label = now.getFullYear() + '年' + (now.getMonth() + 1) + '月';
+    const barW = target > 0 ? Math.min(100, rate) : 0;
+    return `
+      <div class="month-hero">
+        <div class="mh-head">📅 当月ステータス <span class="mh-badge">${label}</span></div>
+        <div class="mh-grid">
+          <div class="mh-tile"><div class="mh-label">当月目標</div><div class="mh-val">${target || 0}<span>件</span></div><div class="mh-sub">成約目標</div></div>
+          <div class="mh-tile"><div class="mh-label">当月実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約（当月受信分）</div></div>
+          <div class="mh-tile"><div class="mh-label">進捗率</div><div class="mh-val accent">${target > 0 ? fmtPct(rate) : '—'}<span>${target > 0 ? '%' : ''}</span></div>
+            <div class="mh-bar"><div style="width:${barW}%;background:${met ? 'var(--green)' : 'var(--accent)'};"></div></div>
+            <div class="mh-sub">${target > 0 ? (deal + ' / ' + target + '件' + (met ? ' ✓達成' : '')) : '目標未設定（🎯目標設定タブで入力）'}</div>
+          </div>
+          <div class="mh-tile hot"><div class="mh-label">HOT案件</div><div class="mh-val hotc">${hot}<span>件</span></div><div class="mh-sub">検討1ヶ月以内＋近日返事</div></div>
+        </div>
+        <div class="mh-sec">
+          <span>当月受信 <b>${totalM}</b>件</span>
+          <span>架電到達 <b>${reached}</b></span>
+          <span>アポ <b>${apo}</b></span>
+          <span>査定〇 <b>${assess}</b></span>
+          <span>成約額 <b>${amount ? '¥' + amount.toLocaleString('ja-JP') : '¥0'}</b></span>
+        </div>
+      </div>
+    `;
+  }
+
   // 全媒体ビュー
   function renderAllView() {
     const k = computeKPI('all');
@@ -2533,6 +2594,8 @@
     const maxCount = Math.max(...allMedias.map(m => mediaKPIs[m].total), 1);
     
     return `
+      ${renderMonthHero()}
+
       <h2 class="section-title">全媒体サマリー <span class="ja">主要指標</span></h2>
       <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">媒体横断合計</div></div>
