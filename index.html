@@ -2531,39 +2531,39 @@
     `;
   }
 
-  // 当月ステータス（目標・実績・進捗率・HOT を上部にまとめて表示。期間フィルタに関係なく常に当月）
+  // ステータス帯（目標・実績・進捗率・HOT を上部にまとめて表示）。表示中の期間に連動（既定=当月）
   function renderMonthHero() {
-    const now = new Date(TODAY);
-    const ym = currentYM();
-    const monthCases = (allCases || []).filter(c => { const d = parseDateFlexible(c.date); return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); });
-    const deal = monthCases.filter(isDeal).length;
-    const apo = monthCases.filter(c => c.calls.some(k => k.result === 'アポ')).length;
-    const assess = monthCases.filter(isAssessed).length;
-    const reached = monthCases.filter(hasReached).length;
-    const totalM = monthCases.length;
-    const amount = monthCases.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
-    const mt = getMonthTargets(ym);
-    const target = Object.values(mt).reduce((s, v) => s + (v || 0), 0);
+    const list = cases; // 期間フィルタ済み（既定は当月）
+    const deal = list.filter(isDeal).length;
+    const apo = list.filter(c => c.calls.some(k => k.result === 'アポ')).length;
+    const assess = list.filter(isAssessed).length;
+    const reached = list.filter(hasReached).length;
+    const totalM = list.length;
+    const amount = list.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
+    const pt = getPeriodTargets();
+    const target = Object.values(pt).reduce((s, v) => s + (v || 0), 0);
     const rate = target > 0 ? (deal / target * 100) : 0;
     const met = target > 0 && deal >= target;
-    // HOT（現在の商談パイプライン。月に関係なく全件から）
+    // HOT（現在の商談パイプライン。期間に関係なく全件から）
     const hot = (allCases || []).filter(c => c.result === '検討(1ヶ月以内)' || c.result === '★近日返事').length;
-    const label = now.getFullYear() + '年' + (now.getMonth() + 1) + '月';
+    const labelMap = { current: '当月', last: '先月', last2: '先々月', '6m': '過去6ヶ月', '1y': '過去1年', all: '全期間', custom: '選択期間' };
+    const plabel = (labelMap[typeof currentPeriod !== 'undefined' ? currentPeriod : 'current']) || 'ステータス';
+    const disp = (document.getElementById('periodDisplay') || {}).textContent || '';
     const barW = target > 0 ? Math.min(100, rate) : 0;
     return `
       <div class="month-hero">
-        <div class="mh-head">📅 当月ステータス <span class="mh-badge">${label}</span></div>
+        <div class="mh-head">📅 ${plabel}ステータス <span class="mh-badge">${disp}</span></div>
         <div class="mh-grid">
-          <div class="mh-tile"><div class="mh-label">当月目標</div><div class="mh-val">${target || 0}<span>件</span></div><div class="mh-sub">成約目標</div></div>
-          <div class="mh-tile"><div class="mh-label">当月実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約（当月受信分）</div></div>
+          <div class="mh-tile"><div class="mh-label">目標</div><div class="mh-val">${target || 0}<span>件</span></div><div class="mh-sub">成約目標</div></div>
+          <div class="mh-tile"><div class="mh-label">実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約</div></div>
           <div class="mh-tile"><div class="mh-label">進捗率</div><div class="mh-val accent">${target > 0 ? fmtPct(rate) : '—'}<span>${target > 0 ? '%' : ''}</span></div>
             <div class="mh-bar"><div style="width:${barW}%;background:${met ? 'var(--green)' : 'var(--accent)'};"></div></div>
             <div class="mh-sub">${target > 0 ? (deal + ' / ' + target + '件' + (met ? ' ✓達成' : '')) : '目標未設定（🎯目標設定タブで入力）'}</div>
           </div>
-          <div class="mh-tile hot"><div class="mh-label">HOT案件</div><div class="mh-val hotc">${hot}<span>件</span></div><div class="mh-sub">検討1ヶ月以内＋近日返事</div></div>
+          <div class="mh-tile hot"><div class="mh-label">HOT案件 <span style="font-weight:400;">(現在)</span></div><div class="mh-val hotc">${hot}<span>件</span></div><div class="mh-sub">検討1ヶ月以内＋近日返事</div></div>
         </div>
         <div class="mh-sec">
-          <span>当月受信 <b>${totalM}</b>件</span>
+          <span>受信 <b>${totalM}</b>件</span>
           <span>架電到達 <b>${reached}</b></span>
           <span>アポ <b>${apo}</b></span>
           <span>査定〇 <b>${assess}</b></span>
