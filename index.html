@@ -1766,6 +1766,7 @@
       <span class="filter-label" style="font-weight:700;">タスク</span>
       <span class="chip task-chip" data-task="call" style="background:#b8312f;color:#fff;border-color:#b8312f;font-weight:700;">📞 コール案件</span>
       <span class="chip task-chip" data-task="hot" style="background:#c89030;color:#fff;border-color:#c89030;font-weight:700;">🔥 HOT案件</span>
+      <span class="chip task-chip" data-task="assess" style="background:#3a6ea5;color:#fff;border-color:#3a6ea5;font-weight:700;">📋 査定予定</span>
       <span class="chip task-chip" data-task="reset" style="background:#888;color:#fff;border-color:#888;">↺ リセット</span>
     </div>
     <div class="filter-group">
@@ -2081,7 +2082,7 @@
         calls: calls,
         assess: assess,
         // 結果はスプシで全角カッコ「検討（長期）」の場合があるため半角「検討(長期)」に正規化して判定・表示を揃える
-        result: String(r[19] || '').trim().replace(/（/g, '(').replace(/）/g, ')'),
+        result: String(r[19] || '').trim().replace(/（/g, '(').replace(/）/g, ')').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)),
         followup: String(r[20] || '').trim(),
         assignee: String(r[21] || '').trim(),
         note: String(r[22] || '').trim(),
@@ -2558,9 +2559,17 @@
     ).join('');
     wrap.querySelectorAll('.stage-chip-cases').forEach(chip => {
       chip.addEventListener('click', () => {
-        caseFilters.stage = chip.dataset.stage;
-        wrap.querySelectorAll('.stage-chip-cases').forEach(x => x.classList.remove('active'));
-        chip.classList.add('active');
+        const k = chip.dataset.stage;
+        if (k === 'all') {
+          caseFilters.stage = 'all';                 // 「全て」は単独選択（全解除）
+        } else {
+          const cur = caseFilters.stage;
+          let arr = Array.isArray(cur) ? cur.slice() : (cur === 'all' ? [] : [cur]);
+          const idx = arr.indexOf(k);
+          if (idx >= 0) arr.splice(idx, 1); else arr.push(k);  // トグルで複数選択
+          caseFilters.stage = arr.length ? arr : 'all';
+        }
+        renderStageFilter();   // 複数のactive状態を反映して再描画
         renderCaseTable();
       });
     });
@@ -3451,19 +3460,29 @@
   // タスクプリセットボタン
   function applyTaskPreset(taskName) {
     if (taskName === 'call') {
-      // コール案件:期間1ヶ月以内、全媒体、未架電・架電中（結果未確定の案件）、入札日の降順(新しい順)
-      caseFilters.period = 'current';
+      // コール案件:全期間、全媒体、コールして繋がっていない案件（未架電・架電中）、入札日の降順(新しい順)
+      caseFilters.period = 'all';
       caseFilters.media = 'all';
       caseFilters.stage = ['not-called', 'calling'];
       caseSort = { key: 'date', dir: 'desc' };  // 入札日の降順
-      updateChipUI('.period-chip-cases', 'data-period', 'current');
+      updateChipUI('.period-chip-cases', 'data-period', 'all');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
       renderStageFilter();
     } else if (taskName === 'hot') {
-      // HOT案件:全期間、全媒体、アポ獲得・査定済 + 近い返事待ち（検討/他社結果待ち/★近日返事）
+      // HOT案件:全期間、全媒体、検討(1ヶ月以内) + ★近日返事
       caseFilters.period = 'all';
       caseFilters.media = 'all';
-      caseFilters.stage = ['apo', 'assessed', 'r:検討(1ヶ月以内)', 'r:検討(直近)', 'r:他社結果待ち', 'r:★近日返事'];
+      caseFilters.stage = ['r:検討(1ヶ月以内)', 'r:★近日返事'];
+      caseSort = { key: 'date', dir: 'desc' };
+      updateChipUI('.period-chip-cases', 'data-period', 'all');
+      updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
+      renderStageFilter();
+    } else if (taskName === 'assess') {
+      // 査定予定:全期間、全媒体、アポ獲得済み かつ 査定は未実施（apo段階）
+      caseFilters.period = 'all';
+      caseFilters.media = 'all';
+      caseFilters.stage = ['apo'];
+      caseSort = { key: 'date', dir: 'desc' };
       updateChipUI('.period-chip-cases', 'data-period', 'all');
       updateChipUI('.media-chip-cases', 'data-cmedia', 'all');
       renderStageFilter();
