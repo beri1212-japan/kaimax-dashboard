@@ -2746,8 +2746,11 @@
     const m = String(v).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     return m ? (+m[2]) + '/' + (+m[3]) : String(v);
   }
-  // GAS Webhookは稀に一時的な503(Service Unavailable)を返す。その場合は自動で数回リトライして保存を確実にする
-  async function postWebhook(action, payload, tries = 4) {
+  // GAS Webhookは一時的な503(Service Unavailable)を「連続して」返すことがある（Google側の負荷）。
+  // その間は自動でリトライして保存を確実にする。連続503のバースト(数秒〜十数秒)を乗り切れるよう多めに試行。
+  async function postWebhook(action, payload, tries = 8) {
+    // バックオフ(ms): 300,700,1200,1800,2600,3500,4500 … 最大合計 ≈15秒
+    const waits = [300, 700, 1200, 1800, 2600, 3500, 4500];
     let lastStatus = 0, lastKind = '';
     for (let a = 0; a < tries; a++) {
       try {
@@ -2765,7 +2768,7 @@
           lastStatus = res.status; lastKind = 'http'; // 503等→リトライ
         }
       } catch (e) { lastKind = 'network'; }
-      if (a < tries - 1) await new Promise(r => setTimeout(r, 500 * (a + 1))); // バックオフ
+      if (a < tries - 1) await new Promise(r => setTimeout(r, waits[Math.min(a, waits.length - 1)]));
     }
     return { ok: false, status: lastStatus, kind: lastKind };
   }
