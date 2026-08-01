@@ -3371,7 +3371,7 @@
   //   - MOTA以外 OR
   //   - MOTAかつ入札結果=〇(落札済み)
   function renderNewCases() {
-    const newCases = cases.filter(c => {
+    const newCases = (allCases || []).filter(c => {
       if (c.calls.length > 0) return false;
       // 結果欄が「他社売却」「売却しない」「自社代替」「他社結果待ち」は除外
       if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
@@ -3406,7 +3406,7 @@
 
   // ===== HOT案件 (査定アポ + 査定後返事待ち) =====
   function renderHotCases() {
-    const hotCases = cases.filter(c => {
+    const hotCases = (allCases || []).filter(c => {
       const ha = c.calls.some(call => call.result === 'アポ');
       const isAssessmentApo = ha && c.assess === null;
       const isWaiting = c.assess === '〇' && ['検討(直近)', '他社結果待ち'].includes(c.result);
@@ -3469,18 +3469,20 @@
   }
   
   function updateCountBadges() {
-    const newCount = cases.filter(isNewCase).length;
-    const hotCount = cases.filter(isHotCase).length;
-    
+    // 新着・HOT・本日の優先対応は「現在の稼働案件全体」で集計（期間フィルタに依存しない運用リスト）
+    const book = allCases || [];
+    const newCount = book.filter(isNewCase).length;
+    const hotCount = book.filter(isHotCase).length;
+
     const newCountEl = document.querySelector('.priority-card.new .priority-count');
     if (newCountEl) newCountEl.innerHTML = `${newCount}<span class="unit">件</span>`;
     const hotCountEl = document.querySelector('.priority-card.hot .priority-count');
     if (hotCountEl) hotCountEl.innerHTML = `${hotCount}<span class="unit">件</span>`;
-    
+
     const bannerCountEl = document.querySelector('.today-banner .count');
     if (bannerCountEl) {
       const targetIds = new Set();
-      cases.forEach((c, i) => {
+      book.forEach((c, i) => {
         if (isHotCase(c) || isNewCase(c) || isFollowupTarget(c)) targetIds.add(i);
       });
       bannerCountEl.innerHTML = `${targetIds.size}<span style="font-size:16px;font-family:Arial;opacity:0.8;margin-left:6px;">件</span>`;
