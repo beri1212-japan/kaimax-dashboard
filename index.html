@@ -2775,12 +2775,15 @@
 
   function openCallEditor(td, c) {
     if (!td) return;
-    const opts = ['', '不在', '留守', '拒否', '検討中', 'アポ'];
+    // 実際に使われている架電結果の語彙に合わせた選択肢（すべて正常に保存できる値）
+    const opts = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
     let rows = '';
     for (let i = 0; i < 5; i++) {
       const cur = c.calls[i] || { result: '', date: '' };
+      // 既存の値が定型リストに無い場合も消えないように、その値を選択肢に追加して保持
+      const rowOpts = (cur.result && !opts.includes(cur.result)) ? opts.concat([cur.result]) : opts;
       rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤'][i]}</span>`
-        + `<select class="ce-result" data-idx="${i}">${opts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
+        + `<select class="ce-result" data-idx="${i}">${rowOpts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
         + `<input class="ce-date" type="date" data-idx="${i}" value="${mdToISO(cur.date)}"></div>`;
     }
     td.innerHTML = `<div class="call-editor">${rows}<div class="ce-actions"><button class="ce-save">保存</button><button class="ce-cancel">取消</button><span class="ce-msg"></span></div></div>`;
