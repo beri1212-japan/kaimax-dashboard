@@ -2773,6 +2773,29 @@
     return { ok: false, status: lastStatus, kind: lastKind };
   }
 
+  // 画面下に一瞬出る通知（保存成功/失敗）。楽観更新の結果を邪魔せず知らせる用
+  function showToast(text, isError) {
+    let t = document.getElementById('kx-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'kx-toast';
+      t.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99999;padding:10px 18px;border-radius:9px;font-weight:700;font-size:14px;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.22);transition:opacity .25s;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = text;
+    t.style.background = isError ? '#c0392b' : '#2e7d32';
+    t.style.opacity = '1';
+    clearTimeout(t._h);
+    t._h = setTimeout(() => { t.style.opacity = '0'; }, isError ? 6000 : 1500);
+  }
+
+  // 指定案件のcallsを allCases / cases / 当該オブジェクト にまとめて反映
+  function applyCallsLocal(c, calls) {
+    c.calls = calls;
+    const a = (allCases || []).find(x => x.no === c.no); if (a) a.calls = calls;
+    const b = (cases || []).find(x => x.no === c.no); if (b) b.calls = calls;
+  }
+
   function openCallEditor(td, c) {
     if (!td) return;
     // 実際に使われている架電結果の語彙に合わせた選択肢（すべて正常に保存できる値）
@@ -2793,10 +2816,7 @@
     td.querySelector('.ce-cancel').addEventListener('click', (e) => { e.stopPropagation(); renderCaseTable(); });
   }
 
-  async function saveCallEdit(td, c) {
-    const msg = td.querySelector('.ce-msg');
-    const setMsg = (t, col) => { if (msg) { msg.textContent = t; msg.style.color = col; } };
-    setMsg('保存中...', 'var(--ink-3)');
+  function saveCallEdit(td, c) {
     const payload = { no: c.no };
     const compact = [];
     for (let i = 0; i < 5; i++) {
@@ -2809,21 +2829,26 @@
       payload[`call${i + 1}Date`] = date;
       if (result) compact.push({ result, date });
     }
-    try {
-      const r = await postWebhook('update_calls', payload);
+    // ── 楽観更新：先に画面へ即反映してエディタを閉じる（体感を速く）。送信は裏で実行 ──
+    const prev = c.calls;
+    applyCallsLocal(c, compact);
+    renderCaseTable();               // 即座に一覧へ反映＆エディタを閉じる
+    // 裏で保存。成功なら小さく通知、失敗なら元に戻して知らせる
+    postWebhook('update_calls', payload).then(r => {
       const data = r.ok ? r.data : null;
       if (data && data.status === 'success') {
-        c.calls = compact;   // ローカルに即反映（再取得なし＝CSVの反映遅延を回避）
-        setMsg('✓ 保存しました', 'var(--green)');
-        setTimeout(() => renderCaseTable(), 700);
-      } else if (data) {
-        setMsg('✗ ' + (data.message || '保存失敗'), 'var(--red)');
+        showToast('✓ 保存しました（NO ' + c.no + '）', false);
       } else {
-        setMsg('✗ 通信エラー（再試行しました）もう一度お試しください', 'var(--red)');
+        applyCallsLocal(c, prev);    // 失敗時は元に戻す（未保存を保存済みに見せない）
+        renderCaseTable();
+        const why = data ? (data.message || '保存失敗') : '通信エラー（再試行後も失敗）';
+        showToast('✗ 保存できませんでした（NO ' + c.no + '）: ' + why + ' — もう一度お試しください', true);
       }
-    } catch (e) {
-      setMsg('✗ 通信エラー', 'var(--red)');
-    }
+    }).catch(() => {
+      applyCallsLocal(c, prev);
+      renderCaseTable();
+      showToast('✗ 保存できませんでした（NO ' + c.no + '）: 通信エラー — もう一度お試しください', true);
+    });
   }
 
   // ===== 一覧上での 担当者・結果/フェーズ 直接編集 =====
