@@ -290,6 +290,15 @@
     margin-left: 8px;
   }
 
+  /* ========== 担当者別実績テーブル ========== */
+  .assignee-perf { width:100%; border-collapse:collapse; font-size:14px; }
+  .assignee-perf th, .assignee-perf td { padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .assignee-perf thead th { font-size:12px; color:var(--ink-3); font-weight:700; letter-spacing:0.04em; background:var(--bg-soft); }
+  .assignee-perf tbody tr:hover { background:var(--bg-soft); }
+  .assignee-perf td.ap-num { text-align:right; font-variant-numeric:tabular-nums; font-family:Arial,inherit; }
+  .assignee-perf .ap-sub { display:inline-block; margin-left:5px; font-size:11px; color:var(--ink-3); font-weight:400; }
+  .assignee-perf tfoot td { border-top:2px solid var(--line); border-bottom:none; font-weight:700; background:var(--bg-soft); }
+
   /* ========== KPI ========== */
   .kpi-grid {
     display: grid;
@@ -1674,12 +1683,12 @@
   <div class="filters">
     <div class="filter-group">
       <span class="filter-label">期間</span>
-      <span class="chip period-chip" data-period="current">当月</span>
+      <span class="chip period-chip active" data-period="current">当月</span>
       <span class="chip period-chip" data-period="last">先月</span>
       <span class="chip period-chip" data-period="last2">先々月</span>
       <span class="chip period-chip" data-period="6m">過去6ヶ月</span>
       <span class="chip period-chip" data-period="1y">過去1年</span>
-      <span class="chip period-chip active" data-period="all">全期間</span>
+      <span class="chip period-chip" data-period="all">全期間</span>
       <span class="chip period-chip custom-chip" data-period="custom" id="customChip">
         <span class="cal-icon">📅</span>
         <span id="customLabel">自由選択</span>
@@ -2300,6 +2309,98 @@
   // ビュー生成(全媒体・MOTA・他媒体)
   // ============================================================
   
+  // ============================================================
+  // 担当者別実績 ＋ 目標（目標はこの端末のブラウザに保存）
+  // ============================================================
+  function getTargets() {
+    try { return JSON.parse(localStorage.getItem('kaimax_targets') || '{}') || {}; } catch (e) { return {}; }
+  }
+  function setTargetLocal(name, val) {
+    const t = getTargets();
+    const n = parseInt(String(val).replace(/[^\d]/g, ''), 10);
+    if (!n || n <= 0) delete t[name]; else t[name] = n;
+    try { localStorage.setItem('kaimax_targets', JSON.stringify(t)); } catch (e) {}
+  }
+  window.saveAssigneeTarget = function (name, val) {
+    setTargetLocal(name, val);
+    if (currentMedia === 'all') renderMediaView('all');
+  };
+
+  function assigneeKPI(list) {
+    const total = list.length;
+    const reached = list.filter(hasReached).length;
+    const apo = list.filter(c => c.calls.some(k => k.result === 'アポ')).length;
+    const assessed = list.filter(isAssessed).length;
+    const deal = list.filter(isDeal).length;
+    const amount = list.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
+    return { total, reached, apo, assessed, deal, amount, dealRate: total > 0 ? deal / total * 100 : 0 };
+  }
+
+  function renderAssigneePerformance() {
+    const list = cases; // 期間フィルタ済み
+    const groups = {};
+    list.forEach(c => { const a = (c.assignee || '').trim() || '未割当'; (groups[a] = groups[a] || []).push(c); });
+    const targets = getTargets();
+    let names = Object.keys(groups).sort((a, b) => {
+      if (a === '未割当') return 1; if (b === '未割当') return -1;
+      const ka = assigneeKPI(groups[a]), kb = assigneeKPI(groups[b]);
+      return kb.deal - ka.deal || kb.total - ka.total || a.localeCompare(b, 'ja');
+    });
+    const overall = assigneeKPI(list);
+    const overallTarget = Object.values(targets).reduce((s, v) => s + (v || 0), 0);
+    const yen = n => n ? ('¥' + n.toLocaleString('ja-JP')) : '—';
+    const progressBar = (deal, target) => {
+      if (!target) return '<span style="color:var(--ink-3);font-size:12px;">未設定</span>';
+      const pct = Math.min(100, deal / target * 100);
+      const met = deal >= target;
+      return `<div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;min-width:64px;height:8px;background:var(--bg-soft);border-radius:5px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${met ? 'var(--green)' : 'var(--accent)'};border-radius:5px;transition:width .3s;"></div>
+        </div>
+        <span style="font-size:12px;font-weight:700;color:${met ? 'var(--green)' : 'var(--ink-2)'};white-space:nowrap;">${deal}/${target}${met ? ' ✓' : ''}</span>
+      </div>`;
+    };
+    const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const rows = names.map(name => {
+      const k = assigneeKPI(groups[name]);
+      const t = targets[name] || '';
+      return `<tr>
+        <td style="font-weight:700;">${name}</td>
+        <td class="ap-num">${k.total}</td>
+        <td class="ap-num">${k.reached}<span class="ap-sub">${fmtPct(k.total > 0 ? k.reached / k.total * 100 : 0)}%</span></td>
+        <td class="ap-num">${k.apo}</td>
+        <td class="ap-num">${k.assessed}</td>
+        <td class="ap-num" style="font-weight:700;">${k.deal}<span class="ap-sub">${fmtPct(k.dealRate)}%</span></td>
+        <td class="ap-num">${yen(k.amount)}</td>
+        <td><input type="number" min="0" inputmode="numeric" value="${t}" onchange="saveAssigneeTarget('${esc(name)}', this.value)" placeholder="—" style="width:52px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;font-size:13px;text-align:center;color:var(--ink);"></td>
+        <td style="min-width:118px;">${progressBar(k.deal, targets[name] || 0)}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <h2 class="section-title">担当者別実績 <span class="ja">期間内の実績と月間目標（成約）</span></h2>
+      <div class="panel" style="overflow-x:auto;">
+        <table class="assignee-perf">
+          <thead><tr>
+            <th>担当者</th><th style="text-align:right;">担当件数</th><th style="text-align:right;">架電到達</th><th style="text-align:right;">アポ</th><th style="text-align:right;">査定〇</th><th style="text-align:right;">成約</th><th style="text-align:right;">成約額</th><th>目標</th><th>進捗</th>
+          </tr></thead>
+          <tbody>${rows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-3);padding:18px;">この期間の担当データがありません</td></tr>'}</tbody>
+          <tfoot><tr>
+            <td>合計</td>
+            <td class="ap-num">${overall.total}</td>
+            <td class="ap-num">${overall.reached}</td>
+            <td class="ap-num">${overall.apo}</td>
+            <td class="ap-num">${overall.assessed}</td>
+            <td class="ap-num">${overall.deal}</td>
+            <td class="ap-num">${yen(overall.amount)}</td>
+            <td class="ap-num">${overallTarget || '—'}</td>
+            <td>${progressBar(overall.deal, overallTarget)}</td>
+          </tr></tfoot>
+        </table>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px;">※ 目標は成約件数の月間目標です。数値を入力するとこの端末のブラウザに保存され、進捗バーに反映されます。</div>
+      </div>
+    `;
+  }
+
   // 全媒体ビュー
   function renderAllView() {
     const k = computeKPI('all');
@@ -2328,6 +2429,8 @@
         <div class="kpi"><div class="kpi-label">査定済</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">査定率 ${fmtPct(k.assessRate)}%</div></div>
         <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
       </div>
+
+      ${renderAssigneePerformance()}
 
       <h2 class="section-title">結果内訳 <span class="ja">査定後の状態 / 構成比</span></h2>
       <div class="panel">
@@ -3914,9 +4017,9 @@
         console.log(`✓ ${loaded.length}件のデータを読み込みました`);
       }
       
-      // 初期期間フィルタを適用(全期間)
+      // 初期期間フィルタを適用(当月をデフォルト表示)
       if (!currentPeriodFrom) {
-        const { from, to } = getPeriodRange('all');
+        const { from, to } = getPeriodRange('current');
         currentPeriodFrom = from;
         currentPeriodTo = to;
         const periodDisplay = document.getElementById('periodDisplay');
