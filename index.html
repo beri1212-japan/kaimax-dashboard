@@ -299,6 +299,27 @@
   .assignee-perf .ap-sub { display:inline-block; margin-left:5px; font-size:11px; color:var(--ink-3); font-weight:400; }
   .assignee-perf tfoot td { border-top:2px solid var(--line); border-bottom:none; font-weight:700; background:var(--bg-soft); }
 
+  /* ========== 事業責任者アクションボード ========== */
+  .action-board { background:var(--bg-panel); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:16px 18px; margin-bottom:18px; }
+  .action-board .ab-head { font-size:15px; font-weight:800; color:var(--ink); margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .action-board .ab-head .ab-when { font-size:11px; font-weight:700; color:var(--ink-3); }
+  .action-board .ab-diag { font-size:12.5px; color:var(--ink-2); line-height:1.75; margin-bottom:14px; background:var(--bg-soft); border-radius:8px; padding:10px 12px; }
+  .action-board .ab-diag b { color:var(--ink); font-family:Arial,inherit; }
+  .action-board .ab-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .action-board .ab-col h4 { font-size:13px; font-weight:800; margin:0 0 6px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  .action-board .ab-col.daily h4 { color:var(--accent); border-color:var(--accent-soft); }
+  .action-board .ab-col.weekly h4 { color:#3a6ea5; border-color:#a9c3e0; }
+  .action-board .ab-item { display:flex; gap:9px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px; align-items:flex-start; }
+  .action-board .ab-item:last-child { border-bottom:none; }
+  .action-board .ab-item.clickable { cursor:pointer; }
+  .action-board .ab-item.clickable:hover { background:var(--bg-soft); border-radius:6px; }
+  .action-board .ab-ico { font-size:15px; line-height:1.5; }
+  .action-board .ab-txt { flex:1; line-height:1.55; color:var(--ink); }
+  .action-board .ab-txt .go { color:var(--accent); font-size:11px; font-weight:700; margin-left:4px; }
+  .action-board .ab-cnt { font-weight:800; font-family:Arial; color:var(--accent); white-space:nowrap; font-size:15px; }
+  .action-board .ab-none { color:var(--green); font-size:12.5px; font-weight:700; padding:6px 0; }
+  @media (max-width:720px) { .action-board .ab-cols { grid-template-columns:1fr; } }
+
   /* ========== 当月ステータス（ヒーロー） ========== */
   .month-hero { border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; background:linear-gradient(180deg,var(--bg-panel),var(--bg-soft)); padding:16px 18px; margin-bottom:22px; }
   .month-hero .mh-head { font-size:14px; font-weight:800; color:var(--ink); letter-spacing:.03em; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
@@ -1632,6 +1653,7 @@
 
 <!-- 新着 & HOT セクション -->
 <div id="priority-section" style="padding: 20px 32px 0;">
+  <div id="action-board"></div>
   <div class="priority-grid">
     <!-- 新着案件 -->
     <div class="priority-card new">
@@ -3257,6 +3279,93 @@
   window.openAssigneeEditor = openAssigneeEditor;
   window.openResultEditor = openResultEditor;
 
+  // ===== 事業責任者アクションボード（現状分析→日次/週次でやるべきこと） =====
+  window.jumpToPreset = function (name) {
+    const tab = [...document.querySelectorAll('.page-tab')].find(t => t.dataset.page === 'cases');
+    if (tab) tab.click();
+    setTimeout(() => { if (typeof applyTaskPreset === 'function') applyTaskPreset(name); }, 60);
+  };
+  function renderActionBoard() {
+    const el = document.getElementById('action-board');
+    if (!el) return;
+    const book = allCases || [];
+    if (!book.length) { el.innerHTML = ''; return; }
+    const lostRe = /(他社売却|自社代替|売らない|売却しない|しない|売りたくない|媒体重複|重複|キャンセル|見送|着拒|着信拒否|拒否|失注|対象外|終了)/;
+    const isLost = c => lostRe.test(String(c.result || ''));
+    const active = c => !isDeal(c) && !isLost(c);
+    // 日次シグナル
+    const overdue = book.filter(c => isFollowupTarget(c));
+    const hot = book.filter(c => c.result === '検討(1ヶ月以内)' || c.result === '★近日返事');
+    const uncalled = book.filter(isNewCase);
+    const apoPending = book.filter(c => caseMatchesPhase(c, 'apo'));
+    // 週次シグナル
+    const assessedOpen = book.filter(c => c.assess === '〇' && active(c));
+    const stalled = book.filter(c => active(c) && c.calls.length >= 3 && !hasReached(c));
+    // ファネル（全書）
+    const total = book.length;
+    const reached = book.filter(hasReached).length;
+    const assessed = book.filter(isAssessed).length;
+    const deals = book.filter(isDeal).length;
+    const r1 = total ? reached / total * 100 : 0;
+    const r2 = reached ? assessed / reached * 100 : 0;
+    const r3 = assessed ? deals / assessed * 100 : 0;
+    const stages = [
+      { k: '架電到達', v: r1, adv: '架電回数・時間帯（夜間/休日）・リストの鮮度を見直し、初回コールの初動を速める' },
+      { k: '査定化', v: r2, adv: '到達後の訪問査定の打診を標準化し、その場提示・高価買取などのメリットを明確に訴求' },
+      { k: '成約', v: r3, adv: '提示額の見直し・他社対抗・即決特典・責任者同行でクロージングを強化' }
+    ];
+    const weak = stages.slice().sort((a, b) => a.v - b.v)[0];
+    // 担当者集中
+    const byA = {}; book.forEach(c => { const a = (c.assignee || '').trim(); if (a && !isArchived(a)) byA[a] = (byA[a] || 0) + 1; });
+    const topA = Object.entries(byA).sort((x, y) => y[1] - x[1])[0];
+    const share = topA ? Math.round(topA[1] / total * 100) : 0;
+    // 当月目標ギャップ
+    const now = new Date(TODAY);
+    const mt = getMonthTargets(currentYM());
+    const target = Object.values(mt).reduce((s, v) => s + (v || 0), 0);
+    const monthDeals = book.filter(c => { const d = parseDateFlexible(c.date); return isDeal(c) && d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length;
+    const remain = Math.max(0, target - monthDeals);
+    const needAssess = (r3 > 0 && remain > 0) ? Math.ceil(remain / (r3 / 100)) : 0;
+
+    const item = (ico, txt, cnt, preset) => `
+      <div class="ab-item${preset ? ' clickable' : ''}"${preset ? ` onclick="jumpToPreset('${preset}')"` : ''}>
+        <div class="ab-ico">${ico}</div>
+        <div class="ab-txt">${txt}${preset ? '<span class="go">▶一覧へ</span>' : ''}</div>
+        ${cnt != null ? `<div class="ab-cnt">${cnt}</div>` : ''}
+      </div>`;
+
+    // 日次
+    const daily = [];
+    if (overdue.length) daily.push(item('🔴', '<b>後追り期限が本日・超過</b>。全件フォロー（HOT/返事待ちから）', overdue.length));
+    if (hot.length) daily.push(item('🔥', '<b>HOT案件</b>（1ヶ月以内・近日返事）に本日中に接触してクロージング', hot.length, 'hot'));
+    if (uncalled.length) daily.push(item('📞', '<b>新着の未架電</b>。当日中に初回コール（初動の速さが成約率を左右）', uncalled.length, 'call'));
+    if (apoPending.length) daily.push(item('📋', '<b>アポ獲得済み・査定待ち</b>。訪問日程を確定させる', apoPending.length, 'assess'));
+    const dailyHtml = daily.length ? daily.join('') : '<div class="ab-none">✓ 本日の必須対応はありません。下記の週次でパイプラインを育成しましょう。</div>';
+
+    // 週次
+    const weekly = [];
+    if (assessedOpen.length) weekly.push(item('💰', '<b>査定済みで未成約</b>。返事待ちの追客＋価格見直し・責任者同行で刈り取り', assessedOpen.length));
+    if (stalled.length) weekly.push(item('☎️', '<b>3回以上コールしても未到達</b>。時間帯変更・SMS/別チャネルでアプローチを変える', stalled.length));
+    if (topA && share >= 45) weekly.push(item('👥', `案件が<b>${topA[0]}さんに集中（${share}%）</b>。負荷分散・応援体制と、目標未達者のケア`, topA[1]));
+    weekly.push(item('📈', `ファネル最弱は<b>「${weak.k}」（${weak.v.toFixed(0)}%）</b>。${weak.adv}`, null));
+    if (target > 0 && remain > 0) weekly.push(item('🎯', `<b>当月目標まで残り${remain}件</b>。成約率(査定→成約)${r3.toFixed(0)}%換算で、あと査定 <b>約${needAssess}件</b>の創出が必要`, null));
+    else if (target === 0) weekly.push(item('🎯', '<b>当月の目標が未設定</b>。「🎯目標設定」タブで担当者別に設定しましょう', null));
+    const weeklyHtml = weekly.join('');
+
+    const diag = `📊 現状：受信 <b>${total}</b>件 ／ 到達 <b>${reached}</b>（${r1.toFixed(0)}%）→ 査定 <b>${assessed}</b>（${r2.toFixed(0)}%）→ 成約 <b>${deals}</b>（査定→成約 ${r3.toFixed(0)}%）。`
+      + ` 稼働中の要対応：後追り超過 <b>${overdue.length}</b>・HOT <b>${hot.length}</b>・未架電 <b>${uncalled.length}</b>・査定待ち <b>${apoPending.length}</b>・査定済未成約 <b>${assessedOpen.length}</b>。`;
+
+    el.innerHTML = `
+      <div class="action-board">
+        <div class="ab-head">🧭 事業責任者アクション <span class="ab-when">現状分析にもとづく本日／今週の重点</span></div>
+        <div class="ab-diag">${diag}</div>
+        <div class="ab-cols">
+          <div class="ab-col daily"><h4>🗓 今日やること（日次）</h4>${dailyHtml}</div>
+          <div class="ab-col weekly"><h4>📅 今週やること（週次）</h4>${weeklyHtml}</div>
+        </div>
+      </div>`;
+  }
+
   // ===== 新着案件 (未コール) =====
   // 表示条件:架電履歴ゼロ かつ
   //   - MOTA以外 OR
@@ -3385,6 +3494,7 @@
   function renderAll() {
     renderMediaView(currentMedia);
     renderCaseTable();
+    renderActionBoard();
     renderNewCases();
     renderHotCases();
     updateCountBadges();
