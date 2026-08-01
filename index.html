@@ -2385,13 +2385,15 @@
     if (!wrap || !monthInput) return;
     if (!monthInput.value) monthInput.value = currentYM();
     const ym = monthInput.value;
-    const names = allAssignees(); // データ上＋手動追加の担当者名
     const dataSet = new Set(distinctAssignees());
+    const archivedSet = new Set(getArchived());
+    const names = allAssignees().filter(n => !archivedSet.has(n)); // 在籍者のみ（退職者は除外）
+    const archivedNames = allAssignees().filter(n => archivedSet.has(n));
     const targets = getMonthTargets(ym);
     const total = names.reduce((s, n) => s + (targets[n] || 0), 0);
     const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const rows = names.length ? names.map(n => {
-      const removable = !dataSet.has(n); // 手動追加分のみ削除可
+      const removable = !dataSet.has(n); // 手動追加分（データ無し）は完全削除、データ有りは退職
       return `
       <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);">
         <span style="flex:1;font-weight:700;font-size:15px;">${n}${removable ? '<span style="font-size:11px;color:var(--ink-3);font-weight:400;margin-left:6px;">(追加)</span>' : ''}</span>
@@ -2400,17 +2402,28 @@
           style="width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:15px;text-align:center;color:var(--ink);">
         <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
         ${removable
-          ? `<button onclick="removeAssignee('${esc(n)}')" title="この担当者を削除" style="width:24px;height:24px;line-height:1;border:none;background:var(--bg-soft);color:var(--ink-3);border-radius:6px;cursor:pointer;font-size:15px;">×</button>`
-          : '<span style="width:24px;"></span>'}
+          ? `<button onclick="removeAssignee('${esc(n)}')" title="この担当者を削除" style="width:52px;height:26px;border:none;background:var(--bg-soft);color:var(--ink-3);border-radius:6px;cursor:pointer;font-size:12px;">削除</button>`
+          : `<button onclick="archiveAssignee('${esc(n)}')" title="退職者にする（実績は残ります）" style="width:52px;height:26px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">退職</button>`}
       </div>`;
-    }).join('') : '<div style="color:var(--ink-3);padding:12px 0;">担当者がいません。下の入力欄から追加できます。</div>';
+    }).join('') : '<div style="color:var(--ink-3);padding:12px 0;">在籍中の担当者がいません。下の入力欄から追加できます。</div>';
+    const archivedBlock = archivedNames.length ? `
+      <div style="margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-3);margin-bottom:6px;">退職者 <span style="font-weight:400;">（目標対象外・過去実績は保持）</span></div>
+        ${archivedNames.map(n => `
+          <div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
+            <span style="flex:1;font-size:14px;color:var(--ink-3);text-decoration:line-through;">${n}</span>
+            <button onclick="restoreAssignee('${esc(n)}')" title="在籍に戻す" style="height:26px;padding:0 12px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">復帰</button>
+          </div>`).join('')}
+      </div>` : '';
     wrap.innerHTML = rows + `
       <div style="display:flex;align-items:center;gap:12px;padding:12px 0 2px;margin-top:4px;border-top:2px solid var(--line);">
         <span style="flex:1;font-weight:700;font-size:15px;">合計目標</span>
         <span style="width:84px;text-align:center;font-weight:700;font-size:16px;color:var(--accent);">${total || 0}</span>
         <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
+        <span style="width:52px;"></span>
       </div>
-      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>`;
+      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>`
+      + archivedBlock;
   }
   window.renderTargetsForm = renderTargetsForm;
 
@@ -2439,6 +2452,8 @@
     const targets = getPeriodTargets();
     let names = Object.keys(groups).sort((a, b) => {
       if (a === '未割当') return 1; if (b === '未割当') return -1;
+      const aa = isArchived(a), ab = isArchived(b);
+      if (aa !== ab) return aa ? 1 : -1; // 退職者は下へ
       const ka = assigneeKPI(groups[a]), kb = assigneeKPI(groups[b]);
       return kb.deal - ka.deal || kb.total - ka.total || a.localeCompare(b, 'ja');
     });
@@ -2461,7 +2476,7 @@
       const k = assigneeKPI(groups[name]);
       const t = targets[name] || '';
       return `<tr>
-        <td style="font-weight:700;">${name}</td>
+        <td style="font-weight:700;">${name}${isArchived(name) ? '<span style="font-size:10px;color:var(--ink-3);font-weight:700;background:var(--bg-soft);border-radius:4px;padding:1px 5px;margin-left:6px;">退職</span>' : ''}</td>
         <td class="ap-num">${k.total}</td>
         <td class="ap-num">${k.reached}<span class="ap-sub">${fmtPct(k.total > 0 ? k.reached / k.total * 100 : 0)}%</span></td>
         <td class="ap-num">${k.apo}</td>
@@ -3105,11 +3120,22 @@
     renderTargetsForm();
     if (currentMedia === 'all') renderMediaView('all');
   };
+  // 退職者（過去データは残すが、目標入力の対象外にする）
+  function getArchived() { try { return JSON.parse(localStorage.getItem('kaimax_archived') || '[]') || []; } catch (e) { return []; } }
+  function isArchived(name) { return getArchived().indexOf(name) !== -1; }
+  window.archiveAssignee = function (name) {
+    const a = getArchived(); if (a.indexOf(name) === -1) { a.push(name); try { localStorage.setItem('kaimax_archived', JSON.stringify(a)); } catch (e) {} }
+    renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all');
+  };
+  window.restoreAssignee = function (name) {
+    const a = getArchived().filter(x => x !== name); try { localStorage.setItem('kaimax_archived', JSON.stringify(a)); } catch (e) {}
+    renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all');
+  };
   const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
 
   function openAssigneeEditor(td, c) {
     if (!td) return;
-    const names = allAssignees();
+    const names = allAssignees().filter(n => !isArchived(n));
     const dl = names.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}"></option>`).join('');
     const cur = String(c.assignee || '').replace(/"/g, '&quot;');
     td.innerHTML = `<div class="meta-editor">`
