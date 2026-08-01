@@ -2746,6 +2746,30 @@
     const m = String(v).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     return m ? (+m[2]) + '/' + (+m[3]) : String(v);
   }
+  // GAS Webhookは稀に一時的な503(Service Unavailable)を返す。その場合は自動で数回リトライして保存を確実にする
+  async function postWebhook(action, payload, tries = 4) {
+    let lastStatus = 0, lastKind = '';
+    for (let a = 0; a < tries; a++) {
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          body: JSON.stringify({ secret: SECRET_KEY, action, payload }),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          redirect: 'follow',
+        });
+        if (res.ok) {
+          const txt = await res.text();
+          try { return { ok: true, data: JSON.parse(txt) }; }
+          catch (e) { lastKind = 'parse'; } // 200だが本文がJSONでない→リトライ
+        } else {
+          lastStatus = res.status; lastKind = 'http'; // 503等→リトライ
+        }
+      } catch (e) { lastKind = 'network'; }
+      if (a < tries - 1) await new Promise(r => setTimeout(r, 500 * (a + 1))); // バックオフ
+    }
+    return { ok: false, status: lastStatus, kind: lastKind };
+  }
+
   function openCallEditor(td, c) {
     if (!td) return;
     const opts = ['', '不在', '留守', '拒否', '検討中', 'アポ'];
@@ -2780,19 +2804,16 @@
       if (result) compact.push({ result, date });
     }
     try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_calls', payload }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
+      const r = await postWebhook('update_calls', payload);
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
         c.calls = compact;   // ローカルに即反映（再取得なし＝CSVの反映遅延を回避）
         setMsg('✓ 保存しました', 'var(--green)');
         setTimeout(() => renderCaseTable(), 700);
-      } else {
+      } else if (data) {
         setMsg('✗ ' + (data.message || '保存失敗'), 'var(--red)');
+      } else {
+        setMsg('✗ 通信エラー（再試行しました）もう一度お試しください', 'var(--red)');
       }
     } catch (e) {
       setMsg('✗ 通信エラー', 'var(--red)');
@@ -2848,22 +2869,19 @@
     const setMsg = (t, col) => { if (msg) { msg.textContent = t; msg.style.color = col; } };
     setMsg('保存中...', 'var(--ink-3)');
     try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_meta', payload: Object.assign({ no: c.no }, fields) }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
+      const r = await postWebhook('update_meta', Object.assign({ no: c.no }, fields));
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
         // ローカルに即反映（allCases / cases / 当該オブジェクト）
         Object.assign(c, fields);
         const ca = (allCases || []).find(x => x.no === c.no); if (ca) Object.assign(ca, fields);
         const cb = (cases || []).find(x => x.no === c.no); if (cb) Object.assign(cb, fields);
         setMsg('✓ 保存しました', 'var(--green)');
         setTimeout(() => renderCaseTable(), 600);
-      } else {
+      } else if (data) {
         setMsg('✗ ' + (data.message || '保存失敗'), 'var(--red)');
+      } else {
+        setMsg('✗ 通信エラー（再試行しました）もう一度お試しください', 'var(--red)');
       }
     } catch (e) {
       setMsg('✗ 通信エラー', 'var(--red)');
@@ -3071,19 +3089,16 @@
     const memo = ta ? ta.value : '';
     if (msg) { msg.textContent = '保存中...'; msg.style.color = 'var(--ink-3)'; }
     try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify({ secret: SECRET_KEY, action: 'update_memo', payload: { no, memo } }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
+      const r = await postWebhook('update_memo', { no, memo });
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
         const ca = (allCases || []).find(x => x.no === no); if (ca) ca.memo = memo;
         const cb = (cases || []).find(x => x.no === no); if (cb) cb.memo = memo;
         if (msg) { msg.textContent = '✓ 保存しました'; msg.style.color = 'var(--green)'; }
-      } else {
+      } else if (data) {
         if (msg) { msg.textContent = '✗ ' + (data.message || '保存失敗'); msg.style.color = 'var(--red)'; }
+      } else {
+        if (msg) { msg.textContent = '✗ 通信エラー（再試行しました）もう一度お試しください'; msg.style.color = 'var(--red)'; }
       }
     } catch (e) {
       if (msg) { msg.textContent = '✗ 通信エラー'; msg.style.color = 'var(--red)'; }
@@ -3257,31 +3272,19 @@
     showStatus('loading', '保存中...');
     
     try {
-      const body = JSON.stringify({
-        secret: SECRET_KEY,
-        action: mode,
-        payload: payload
-      });
-      
-      // GAS Webhookは Content-Type を text/plain にしないとCORS preflightで失敗する
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: body,
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-      });
-      
-      const data = await res.json();
-      
-      if (data.status === 'success') {
+      const r = await postWebhook(mode, payload);
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
         showStatus('success', `✓ ${data.message}`);
         // 2秒後にモーダルを閉じてダッシュボードを再読み込み
         setTimeout(() => {
           closeEditModal();
           initDashboard();
         }, 1500);
-      } else {
+      } else if (data) {
         showStatus('error', `エラー: ${data.message}`);
+      } else {
+        showStatus('error', '通信エラー（再試行しました）もう一度お試しください');
       }
     } catch (err) {
       showStatus('error', `通信エラー: ${err.message}`);
@@ -3301,25 +3304,18 @@
     showStatus('loading', '削除中...');
     
     try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          secret: SECRET_KEY,
-          action: 'delete',
-          payload: { no: parseInt(no) }
-        }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        redirect: 'follow',
-      });
-      const data = await res.json();
-      if (data.status === 'success') {
+      const r = await postWebhook('delete', { no: parseInt(no) });
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
         showStatus('success', `✓ ${data.message}`);
         setTimeout(() => {
           closeEditModal();
           initDashboard();
         }, 1500);
-      } else {
+      } else if (data) {
         showStatus('error', `エラー: ${data.message}`);
+      } else {
+        showStatus('error', '通信エラー（再試行しました）もう一度お試しください');
       }
     } catch (err) {
       showStatus('error', `通信エラー: ${err.message}`);
