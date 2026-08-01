@@ -1598,6 +1598,7 @@
 <div class="page-tabs">
   <div class="page-tab active" data-page="dashboard">📊 ダッシュボード</div>
   <div class="page-tab" data-page="cases">📋 案件一覧 (HOT) <span class="badge">14</span></div>
+  <div class="page-tab" data-page="targets">🎯 目標設定</div>
 </div>
 
 <!-- 今日のバナー (常時表示) -->
@@ -1827,6 +1828,18 @@
       </thead>
       <tbody id="case-tbody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- 目標設定ページ -->
+<div class="page-section" id="page-targets">
+  <h2 class="section-title" style="margin-top:20px;">目標設定 <span class="ja">担当者ごとの月間成約目標</span></h2>
+  <div class="panel" style="max-width:620px;">
+    <div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-bottom:16px;">
+      各担当者の<b>月間の成約目標件数</b>を入力してください。ダッシュボードの「担当者別実績」に進捗バーで反映されます。<br>
+      <span style="color:var(--ink-3);font-size:12px;">※ 目標はこの端末のブラウザに保存されます（PC・スマホ間では別々）。</span>
+    </div>
+    <div id="targets-form"></div>
   </div>
 </div>
 
@@ -2326,6 +2339,40 @@
     if (currentMedia === 'all') renderMediaView('all');
   };
 
+  // 目標設定タブ:担当者ごとの月間成約目標を入力するフォーム
+  function renderTargetsForm() {
+    const wrap = document.getElementById('targets-form');
+    if (!wrap) return;
+    const names = distinctAssignees(); // データ上の担当者名
+    const targets = getTargets();
+    const total = names.reduce((s, n) => s + (targets[n] || 0), 0);
+    const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const rows = names.length ? names.map(n => `
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);">
+        <span style="flex:1;font-weight:700;font-size:15px;">${n}</span>
+        <input type="number" min="0" inputmode="numeric" value="${targets[n] || ''}" placeholder="—"
+          onchange="saveTargetInput('${esc(n)}', this.value)"
+          style="width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:15px;text-align:center;color:var(--ink);">
+        <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
+      </div>`).join('') : '<div style="color:var(--ink-3);padding:12px 0;">担当者データがありません</div>';
+    wrap.innerHTML = rows + `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0 2px;margin-top:4px;border-top:2px solid var(--line);">
+        <span style="flex:1;font-weight:700;font-size:15px;">合計目標</span>
+        <span style="width:84px;text-align:center;font-weight:700;font-size:16px;color:var(--accent);">${total || 0}</span>
+        <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
+      </div>
+      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>`;
+  }
+  window.renderTargetsForm = renderTargetsForm;
+
+  window.saveTargetInput = function (name, val) {
+    setTargetLocal(name, val);
+    renderTargetsForm();
+    const msg = document.getElementById('targets-saved-msg');
+    if (msg) { msg.textContent = '✓ 保存しました'; setTimeout(() => { const m = document.getElementById('targets-saved-msg'); if (m) m.textContent = ''; }, 1500); }
+    if (currentMedia === 'all') renderMediaView('all'); // ダッシュボードの進捗にも反映
+  };
+
   function assigneeKPI(list) {
     const total = list.length;
     const reached = list.filter(hasReached).length;
@@ -2372,7 +2419,7 @@
         <td class="ap-num">${k.assessed}</td>
         <td class="ap-num" style="font-weight:700;">${k.deal}<span class="ap-sub">${fmtPct(k.dealRate)}%</span></td>
         <td class="ap-num">${yen(k.amount)}</td>
-        <td><input type="number" min="0" inputmode="numeric" value="${t}" onchange="saveAssigneeTarget('${esc(name)}', this.value)" placeholder="—" style="width:52px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;font-size:13px;text-align:center;color:var(--ink);"></td>
+        <td class="ap-num">${targets[name] ? targets[name] : '<span style="color:var(--ink-3);">—</span>'}</td>
         <td style="min-width:118px;">${progressBar(k.deal, targets[name] || 0)}</td>
       </tr>`;
     }).join('');
@@ -2396,7 +2443,7 @@
             <td>${progressBar(overall.deal, overallTarget)}</td>
           </tr></tfoot>
         </table>
-        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px;">※ 目標は成約件数の月間目標です。数値を入力するとこの端末のブラウザに保存され、進捗バーに反映されます。</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px;">※ 目標（成約件数の月間目標）は上部の「🎯 目標設定」タブで入力できます。</div>
       </div>
     `;
   }
@@ -3505,15 +3552,19 @@
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       document.getElementById('page-' + t.dataset.page).classList.add('active');
       
-      // 新着・HOTセクションの表示制御:案件一覧タブの時は隠す
+      // 新着・HOTセクションの表示制御:ダッシュボードタブの時だけ表示
       const prioritySection = document.getElementById('priority-section');
       if (prioritySection) {
-        prioritySection.style.display = (t.dataset.page === 'cases') ? 'none' : 'block';
+        prioritySection.style.display = (t.dataset.page === 'dashboard') ? 'block' : 'none';
       }
       // 案件一覧タブを開いたら、既定で入札日の降順(新しい順)に並べ替えてから再描画
       if (t.dataset.page === 'cases') {
         caseSort = { key: 'date', dir: 'desc' };
         renderCaseTable();
+      }
+      // 目標設定タブを開いたら、担当者ごとの目標入力フォームを生成
+      if (t.dataset.page === 'targets') {
+        renderTargetsForm();
       }
     });
   });
