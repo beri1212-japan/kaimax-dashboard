@@ -634,7 +634,7 @@
   .call-editor .ce-row { display:flex; align-items:center; gap:6px; }
   .call-editor .ce-n { font-family:Arial; font-weight:700; width:16px; color:var(--ink); }
   .call-editor .ce-result { flex:1; min-width:70px; padding:3px 4px; font-size:13px; }
-  .call-editor .ce-date { width:56px; padding:3px 4px; font-size:13px; }
+  .call-editor .ce-date { width:130px; padding:3px 4px; font-size:13px; }
   .call-editor .ce-actions { display:flex; align-items:center; gap:8px; margin-top:4px; }
   .call-editor .ce-save { background:var(--accent); color:#fff; border:none; border-radius:5px; padding:4px 12px; font-weight:700; cursor:pointer; }
   .call-editor .ce-cancel { background:var(--bg-soft); border:1px solid var(--line); border-radius:5px; padding:4px 10px; cursor:pointer; }
@@ -2729,6 +2729,23 @@
   }
 
   // ===== 一覧上でのコール結果 直接編集 =====
+  // 日付ヘルパ: シートは「M/D」形式、<input type=date>は「YYYY-MM-DD」形式
+  function _pad2(n) { return String(n).padStart(2, '0'); }
+  function todayISO() { const n = new Date(); return n.getFullYear() + '-' + _pad2(n.getMonth() + 1) + '-' + _pad2(n.getDate()); }
+  function mdToISO(md) {
+    // 既存の「M/D」→「YYYY-MM-DD」（年は今年）。空なら今日をプリセット
+    if (md) {
+      const m = String(md).match(/(\d{1,2})\s*[\/月.\-]\s*(\d{1,2})/);
+      if (m) return (new Date().getFullYear()) + '-' + _pad2(+m[1]) + '-' + _pad2(+m[2]);
+    }
+    return todayISO();
+  }
+  function isoToMd(v) {
+    // 「YYYY-MM-DD」→「M/D」（先頭0なし）。シートの表記に合わせる
+    if (!v) return '';
+    const m = String(v).match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    return m ? (+m[2]) + '/' + (+m[3]) : String(v);
+  }
   function openCallEditor(td, c) {
     if (!td) return;
     const opts = ['', '不在', '留守', '拒否', '検討中', 'アポ'];
@@ -2737,7 +2754,7 @@
       const cur = c.calls[i] || { result: '', date: '' };
       rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤'][i]}</span>`
         + `<select class="ce-result" data-idx="${i}">${opts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
-        + `<input class="ce-date" data-idx="${i}" placeholder="M/D" value="${cur.date || ''}"></div>`;
+        + `<input class="ce-date" type="date" data-idx="${i}" value="${mdToISO(cur.date)}"></div>`;
     }
     td.innerHTML = `<div class="call-editor">${rows}<div class="ce-actions"><button class="ce-save">保存</button><button class="ce-cancel">取消</button><span class="ce-msg"></span></div></div>`;
     // 編集中はセル内クリックで詳細が開かないように
@@ -2756,7 +2773,8 @@
       const sel = td.querySelector(`.ce-result[data-idx="${i}"]`);
       const dt = td.querySelector(`.ce-date[data-idx="${i}"]`);
       const result = sel ? sel.value : '';
-      const date = dt ? String(dt.value || '').trim() : '';
+      // 結果がある行だけ日付を保存（プリセットの今日が空行に入らないように）。ISO→M/Dに変換
+      const date = result ? isoToMd(dt ? dt.value : '') : '';
       payload[`call${i + 1}`] = result;
       payload[`call${i + 1}Date`] = date;
       if (result) compact.push({ result, date });
