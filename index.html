@@ -339,6 +339,23 @@
   .month-hero .mh-sec b { color:var(--ink); font-family:Arial,inherit; }
   @media (max-width:720px) { .month-hero .mh-grid { grid-template-columns:1fr 1fr; } }
 
+  /* ========== 架電クイック記録（電話タップ時） ========== */
+  .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:flex; align-items:flex-end; justify-content:center; }
+  .qc-overlay.show { display:flex; }
+  .qc-modal { background:var(--bg-panel); width:100%; max-width:460px; border-radius:16px 16px 0 0; padding:16px 18px 22px; box-shadow:0 -8px 30px rgba(0,0,0,.25); }
+  @media (min-width:560px) { .qc-overlay { align-items:center; } .qc-modal { border-radius:16px; } }
+  .qc-head { font-size:16px; font-weight:800; color:var(--ink); display:flex; align-items:center; justify-content:space-between; }
+  .qc-x { border:none; background:var(--bg-soft); color:var(--ink-2); width:30px; height:30px; border-radius:8px; font-size:18px; cursor:pointer; }
+  .qc-sub { font-size:12.5px; color:var(--ink-3); margin:6px 0 12px; line-height:1.6; }
+  .qc-sub b { color:var(--ink-2); }
+  .qc-date { font-size:13px; color:var(--ink-2); font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .qc-date input { padding:6px 9px; border:1px solid var(--line); border-radius:7px; font-size:14px; color:var(--ink); }
+  .qc-opts { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .qc-opts button { padding:12px 6px; border:1px solid var(--line); background:var(--bg-panel); color:var(--ink); border-radius:9px; font-size:14px; font-weight:700; cursor:pointer; }
+  .qc-opts button:hover { background:var(--bg-soft); }
+  .qc-opts button.apo { border-color:var(--accent-soft); color:var(--accent-dark); }
+  .qc-note { font-size:11.5px; color:var(--ink-3); margin-top:12px; text-align:center; }
+
   /* ========== KPI ========== */
   .kpi-grid {
     display: grid;
@@ -697,6 +714,8 @@
   .call-cell { position: relative; }
   .call-edit-btn { margin-top:4px; font-size:11px; padding:2px 8px; border:1px solid var(--line); background:var(--bg-soft); color:var(--ink-2); border-radius:5px; cursor:pointer; }
   .call-edit-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .call-quick-btn { margin-top:4px; margin-right:5px; font-size:11px; padding:2px 8px; border:1px solid var(--accent-soft); background:#fff; color:var(--accent-dark); border-radius:5px; cursor:pointer; font-weight:700; }
+  .call-quick-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
   .call-editor { display:flex; flex-direction:column; gap:5px; }
   .call-editor .ce-row { display:flex; align-items:center; gap:6px; }
   .call-editor .ce-n { font-family:Arial; font-weight:700; width:16px; color:var(--ink); }
@@ -3028,12 +3047,12 @@
         <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td>
           <div style="font-weight:700;font-size:15px;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
-          ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation();">${c.tel} 📞</a></div>` : ''}
+          ${c.tel ? `<div style="font-size:13px;margin-top:3px;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
         </td>
         <td style="font-size:14px;font-weight:500;">${c.car}${c.timing ? `<div style="margin-top:4px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
         <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
-        <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
+        <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-quick-btn" title="架電結果をワンタップ記録（電話なしでOK）" onclick="event.stopPropagation(); openQuickCall(${c.no});">⚡ 記録</button><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
       `;
@@ -3176,6 +3195,68 @@
       showToast('✗ 保存できませんでした（NO ' + c.no + '）: 通信エラー — もう一度お試しください', true);
     });
   }
+
+  // ===== 電話タップ時のクイック架電記録 =====
+  // callsArr(0=①..4=⑤) を保存（楽観更新＋webhook）
+  function saveCallsArray(c, callsArr) {
+    const payload = { no: c.no };
+    for (let i = 0; i < 5; i++) {
+      const e = callsArr[i] || { result: '', date: '' };
+      payload['call' + (i + 1)] = e.result || '';
+      payload['call' + (i + 1) + 'Date'] = e.result ? (e.date || '') : '';
+    }
+    const compact = callsArr.filter(e => e && e.result).map(e => ({ result: e.result, date: e.date || '' }));
+    applyCallsLocal(c, compact);
+    renderCaseTable();
+    if (currentMedia === 'all') renderMediaView('all');
+    postWebhook('update_calls', payload).then(r => {
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') showToast('✓ 架電を記録しました（NO ' + c.no + '）', false);
+      else showToast('✗ 記録できませんでした（NO ' + c.no + '）。もう一度お試しください', true);
+    }).catch(() => showToast('✗ 記録できませんでした（NO ' + c.no + '）。もう一度お試しください', true));
+  }
+
+  function closeQuickCall() { const o = document.getElementById('qc-overlay'); if (o) o.classList.remove('show'); }
+  window.closeQuickCall = closeQuickCall;
+
+  window.openQuickCall = function (no) {
+    const c = (allCases || []).find(x => x.no === no) || (cases || []).find(x => x.no === no);
+    if (!c) return;
+    // 次に記録する枠（①〜⑤で最初の空き。全部埋まっていれば⑤に上書き）
+    let idx = -1;
+    for (let i = 0; i < 5; i++) { const cur = c.calls[i]; if (!cur || !cur.result) { idx = i; break; } }
+    const full = idx === -1;
+    const targetIdx = full ? 4 : idx;
+    const marks = ['①', '②', '③', '④', '⑤'];
+    const opts = ['不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
+    const now = new Date(TODAY);
+    const iso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    let o = document.getElementById('qc-overlay');
+    if (!o) { o = document.createElement('div'); o.id = 'qc-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
+    o.innerHTML = `
+      <div class="qc-modal" onclick="event.stopPropagation();">
+        <div class="qc-head">📞 架電結果を記録 <button class="qc-x" onclick="closeQuickCall()">×</button></div>
+        <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.tel || ''}<br>記録先：<b>${marks[targetIdx]}</b>${full ? '（⑤に上書き）' : ''}　※結果を選ぶと自動保存されます</div>
+        <div class="qc-date">日付 <input type="date" id="qc-date" value="${iso}"></div>
+        <div class="qc-opts">${opts.map(r => `<button data-r="${r}"${r.indexOf('アポ') === 0 ? ' class="apo"' : ''}>${r}</button>`).join('')}</div>
+        <div class="qc-note">電話をかけずに記録だけでもOK。詳しく編集したい場合は一覧の「✎入力」から。</div>
+      </div>`;
+    o.classList.add('show');
+    o.onclick = closeQuickCall; // 背景タップで閉じる
+    o.querySelectorAll('.qc-opts button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const result = btn.dataset.r;
+        const dv = document.getElementById('qc-date');
+        const md = isoToMd(dv ? dv.value : iso);
+        // 既存callsを配列(長さ5)に展開して該当枠へ
+        const arr = [];
+        for (let i = 0; i < 5; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
+        arr[targetIdx] = { result, date: (targetIdx === 0 ? '' : md) }; // ①は日付列なし
+        closeQuickCall();
+        saveCallsArray(c, arr);
+      });
+    });
+  };
 
   // ===== 一覧上での 担当者・結果/フェーズ 直接編集 =====
   // 既存データから担当者の候補を集める
@@ -3525,7 +3606,7 @@
         <div class="field-grid">
           <span class="field-label">媒体</span><span class="field-value"><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></span>
           <span class="field-label">顧客名</span><span class="field-value">${c.customer || "(未入力)"} 様</span>
-          <span class="field-label">電話</span><span class="field-value mono">${c.tel ? `<a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;">${c.tel} 📞</a>` : '—'}</span>
+          <span class="field-label">電話</span><span class="field-value mono">${c.tel ? `<a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;" onclick="openQuickCall(${c.no});">${c.tel} 📞</a>` : '—'}</span>
           <span class="field-label">車種</span><span class="field-value">${c.car}</span>
           <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
           <span class="field-label">売却予定時期</span><span class="field-value">${c.timing ? `<span class="sell-timing ${timingClass(c.timing)}">🕐 ${c.timing}</span>` : '—'}</span>
