@@ -261,8 +261,20 @@
 
   .container {
     padding: 24px 32px;
-    max-width: 1600px;
+    max-width: 1240px;
     margin: 0 auto;
+  }
+
+  /* 全体の最大幅を抑えて中央寄せ（ワイドモニターで広がりすぎないように）。
+     ヘッダー・タブ・バナーは背景を全幅にしつつ、中身だけ同じ中央列に揃える */
+  header, .page-tabs, .today-banner {
+    padding-left: calc(max(0px, (100% - 1240px) / 2) + 32px) !important;
+    padding-right: calc(max(0px, (100% - 1240px) / 2) + 32px) !important;
+  }
+  #priority-section, .page-section {
+    max-width: 1240px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .section-title {
