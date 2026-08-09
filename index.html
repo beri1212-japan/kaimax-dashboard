@@ -1928,8 +1928,8 @@
   <h2 class="section-title" style="margin-top:20px;">目標設定 <span class="ja">担当者ごとの月間成約目標</span></h2>
   <div class="panel" style="max-width:620px;">
     <div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-bottom:16px;">
-      対象月を選び、各担当者の<b>その月の成約目標件数</b>を入力してください。ダッシュボードの「担当者別実績」に進捗バーで反映されます。<br>
-      <span style="color:var(--ink-3);font-size:12px;">※ 目標は月ごと・この端末のブラウザに保存されます（PC・スマホ間では別々）。</span>
+      目標は<b>スプレッドシートの「月別実績」シート</b>で管理します（全端末で共有）。編集は下の「スプレッドシートで目標を編集」ボタンから。対象月を選ぶとその月の目標を表示します。<br>
+      <span style="color:var(--ink-3);font-size:12px;">※ ダッシュボードの「担当者別実績」に進捗バーで反映されます（シート編集の反映まで数分）。</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
       <span style="font-weight:700;font-size:14px;">対象月</span>
@@ -2438,18 +2438,61 @@
   // ============================================================
   // 担当者別実績 ＋ 目標（目標はこの端末のブラウザに保存）
   // ============================================================
-  // 目標は「月ごと」に保存。形式: { "YYYY-MM": { 担当者名: 目標件数 } }
+  // 目標はスプレッドシート「月別実績」を"正"として全端末で共有。
+  // 形式: { "YYYY-MM": { 担当者名: 目標件数 } }。ローカル(端末)は取得失敗時のフォールバック。
   const TARGETS_KEY = 'kaimax_targets_v2';
+  // 月別実績タブ（gid=1140486118）の公開CSV
+  const SHEET_TARGETS_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?gid=1140486118&single=true&output=csv';
+  // 編集用（新規タブで開く）
+  const SHEET_EDIT_URL = 'https://docs.google.com/spreadsheets/d/1V1xWTjdin_zbEjyjOJh-3TymkOreFzaN18_iCZnCinI/edit?gid=1140486118#gid=1140486118';
+  let sheetTargets = {}; // スプレッドシート由来の目標（全端末共有）
   function currentYM() { const d = new Date(TODAY); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-  function getAllTargets() {
+
+  // 月別実績シートから目標を読み込む（行=月, 列=担当者ごとの目標/実績ペア。目標列のヘッダーに担当者名）
+  async function fetchSheetTargets() {
     try {
-      const raw = localStorage.getItem(TARGETS_KEY);
-      if (raw) return JSON.parse(raw) || {};
-      // 旧形式(月なし)が残っていれば当月分として移行
-      const old = localStorage.getItem('kaimax_targets');
-      if (old) { const o = JSON.parse(old) || {}; const all = {}; all[currentYM()] = o; localStorage.setItem(TARGETS_KEY, JSON.stringify(all)); return all; }
-      return {};
-    } catch (e) { return {}; }
+      const r = await fetch(SHEET_TARGETS_CSV + '&_=' + Date.now());
+      if (!r.ok) return;
+      const rows = parseCSV(await r.text());
+      if (!rows || rows.length < 3) return;
+      const names = rows[0], labels = rows[1];
+      const colMap = {}; // 列index -> 担当者名（目標列のみ）
+      for (let c = 1; c < labels.length; c++) {
+        if (String(labels[c] || '').trim() === '目標') {
+          const nm = String(names[c] || '').trim();
+          if (nm) colMap[c] = nm;
+        }
+      }
+      const res = {};
+      for (let r2 = 2; r2 < rows.length; r2++) {
+        const mcell = String((rows[r2] || [])[0] || '').trim();
+        if (!mcell) continue;
+        const mm = mcell.match(/(\d{4})[\/\-年](\d{1,2})/);
+        if (!mm) continue;
+        const ym = mm[1] + '-' + String(+mm[2]).padStart(2, '0');
+        const o = {};
+        for (const c in colMap) {
+          const raw = String((rows[r2] || [])[c] || '').replace(/[^\d.\-]/g, '');
+          if (raw !== '' && !isNaN(+raw) && +raw > 0) o[colMap[c]] = Math.round(+raw);
+        }
+        if (Object.keys(o).length) res[ym] = o;
+      }
+      sheetTargets = res;
+    } catch (e) { /* 取得失敗時はローカルにフォールバック */ }
+  }
+  window.fetchSheetTargets = fetchSheetTargets;
+
+  function getLocalTargets() {
+    try { const raw = localStorage.getItem(TARGETS_KEY); if (raw) return JSON.parse(raw) || {}; } catch (e) {}
+    return {};
+  }
+  // スプレッドシート（共有）＋ローカル（フォールバック）をマージ。スプシ優先
+  function getAllTargets() {
+    const local = getLocalTargets();
+    const out = {};
+    const months = new Set([...Object.keys(local), ...Object.keys(sheetTargets)]);
+    months.forEach(ym => { out[ym] = Object.assign({}, local[ym] || {}, sheetTargets[ym] || {}); });
+    return out;
   }
   function getMonthTargets(ym) { const all = getAllTargets(); return all[ym] || {}; }
   function setMonthTarget(ym, name, val) {
@@ -2482,34 +2525,26 @@
     return result;
   }
 
-  // 目標設定タブ:選択した月の担当者別 成約目標を入力するフォーム
+  // 目標設定タブ:月別実績シート（全端末共有）の目標を表示（編集はシートで）
   function renderTargetsForm() {
     const wrap = document.getElementById('targets-form');
     const monthInput = document.getElementById('target-month');
     if (!wrap || !monthInput) return;
     if (!monthInput.value) monthInput.value = currentYM();
     const ym = monthInput.value;
-    const dataSet = new Set(distinctAssignees());
     const archivedSet = new Set(getArchived());
-    const names = allAssignees().filter(n => !archivedSet.has(n)); // 在籍者のみ（退職者は除外）
+    const names = allAssignees().filter(n => !archivedSet.has(n));
     const archivedNames = allAssignees().filter(n => archivedSet.has(n));
     const targets = getMonthTargets(ym);
     const total = names.reduce((s, n) => s + (targets[n] || 0), 0);
     const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const rows = names.length ? names.map(n => {
-      const removable = !dataSet.has(n); // 手動追加分（データ無し）は完全削除、データ有りは退職
-      return `
+    const rows = names.length ? names.map(n => `
       <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);">
-        <span style="flex:1;font-weight:700;font-size:15px;">${n}${removable ? '<span style="font-size:11px;color:var(--ink-3);font-weight:400;margin-left:6px;">(追加)</span>' : ''}</span>
-        <input type="number" min="0" inputmode="numeric" value="${targets[n] || ''}" placeholder="—"
-          onchange="saveTargetInput('${ym}','${esc(n)}', this.value)"
-          style="width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;font-size:15px;text-align:center;color:var(--ink);">
+        <span style="flex:1;font-weight:700;font-size:15px;">${n}</span>
+        <span style="width:60px;text-align:right;font-weight:700;font-size:16px;color:${targets[n] ? 'var(--ink)' : 'var(--ink-3)'};">${targets[n] || '—'}</span>
         <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
-        ${removable
-          ? `<button onclick="removeAssignee('${esc(n)}')" title="この担当者を削除" style="width:52px;height:26px;border:none;background:var(--bg-soft);color:var(--ink-3);border-radius:6px;cursor:pointer;font-size:12px;">削除</button>`
-          : `<button onclick="archiveAssignee('${esc(n)}')" title="退職者にする（実績は残ります）" style="width:52px;height:26px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">退職</button>`}
-      </div>`;
-    }).join('') : '<div style="color:var(--ink-3);padding:12px 0;">在籍中の担当者がいません。下の入力欄から追加できます。</div>';
+        <button onclick="archiveAssignee('${esc(n)}')" title="退職者にする（実績は残ります）" style="width:52px;height:26px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">退職</button>
+      </div>`).join('') : '<div style="color:var(--ink-3);padding:12px 0;">担当者がいません。</div>';
     const archivedBlock = archivedNames.length ? `
       <div style="margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);">
         <div style="font-size:12px;font-weight:700;color:var(--ink-3);margin-bottom:6px;">退職者 <span style="font-weight:400;">（目標対象外・過去実績は保持）</span></div>
@@ -2519,17 +2554,32 @@
             <button onclick="restoreAssignee('${esc(n)}')" title="在籍に戻す" style="height:26px;padding:0 12px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">復帰</button>
           </div>`).join('')}
       </div>` : '';
-    wrap.innerHTML = rows + `
+    wrap.innerHTML = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--accent);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;">📄 スプレッドシートで目標を編集</a>
+        <button onclick="reloadSheetTargets()" style="padding:9px 14px;background:var(--bg-panel);color:var(--ink-2);border:1px solid var(--line);border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">🔄 シートから再取得</button>
+      </div>
+      <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:10px;line-height:1.7;">下の値は「月別実績」シートから読み込んだ <b>${ym}</b> の目標です（全端末で共有・ここでは表示のみ）。編集は上のボタンからシートで行ってください（反映まで数分かかります）。<br>シートの各担当者は、1行目に担当者名・その下の列に月ごとの目標を入力してください。</div>
+      ${rows}
       <div style="display:flex;align-items:center;gap:12px;padding:12px 0 2px;margin-top:4px;border-top:2px solid var(--line);">
         <span style="flex:1;font-weight:700;font-size:15px;">合計目標</span>
-        <span style="width:84px;text-align:center;font-weight:700;font-size:16px;color:var(--accent);">${total || 0}</span>
+        <span style="width:60px;text-align:right;font-weight:700;font-size:16px;color:var(--accent);">${total || 0}</span>
         <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
         <span style="width:52px;"></span>
       </div>
-      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>`
-      + archivedBlock;
+      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>
+      ${archivedBlock}`;
   }
   window.renderTargetsForm = renderTargetsForm;
+  window.reloadSheetTargets = async function () {
+    const msg = document.getElementById('targets-saved-msg');
+    if (msg) { msg.style.color = 'var(--ink-3)'; msg.textContent = '取得中...'; }
+    await fetchSheetTargets();
+    renderTargetsForm();
+    if (currentMedia === 'all') renderMediaView('all');
+    const m2 = document.getElementById('targets-saved-msg');
+    if (m2) { m2.style.color = 'var(--green)'; m2.textContent = '✓ 最新の目標を取得しました'; setTimeout(() => { const x = document.getElementById('targets-saved-msg'); if (x) x.textContent = ''; }, 2000); }
+  };
 
   window.saveTargetInput = function (ym, name, val) {
     setMonthTarget(ym, name, val);
@@ -4582,6 +4632,7 @@
         if (periodDisplay) periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
       }
       cases = applyPeriodFilter(allCases);
+      await fetchSheetTargets();  // 月別実績シートから目標を取得（全端末共有）
       renderStageFilter();  // 実データの結果値に合わせて統合フィルタのボタンを生成
 
       hideLoading();
