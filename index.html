@@ -321,15 +321,14 @@
   .action-board .ab-col h4 { font-size:13px; font-weight:800; margin:0 0 6px; padding-bottom:6px; border-bottom:2px solid var(--line); }
   .action-board .ab-col.daily h4 { color:var(--accent); border-color:var(--accent-soft); }
   .action-board .ab-col.weekly h4 { color:#3a6ea5; border-color:#a9c3e0; }
-  .action-board .ab-item { display:flex; gap:9px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px; align-items:flex-start; }
+  .action-board .ab-item { display:flex; gap:10px; padding:7px 2px; border-bottom:1px solid var(--line); font-size:13.5px; align-items:center; }
   .action-board .ab-item:last-child { border-bottom:none; }
   .action-board .ab-item.clickable { cursor:pointer; }
   .action-board .ab-item.clickable:hover { background:var(--bg-soft); border-radius:6px; }
-  .action-board .ab-ico { font-size:15px; line-height:1.5; }
-  .action-board .ab-txt { flex:1; line-height:1.55; color:var(--ink); }
-  .action-board .ab-txt .go { color:var(--accent); font-size:11px; font-weight:700; margin-left:4px; }
-  .action-board .ab-cnt { font-weight:800; font-family:Arial; color:var(--accent); white-space:nowrap; font-size:15px; }
-  .action-board .ab-none { color:var(--green); font-size:12.5px; font-weight:700; padding:6px 0; }
+  .action-board .ab-txt { flex:1; line-height:1.5; color:var(--ink); }
+  .action-board .ab-txt .go { color:var(--accent); font-size:11px; font-weight:700; margin-left:6px; white-space:nowrap; }
+  .action-board .ab-cnt { font-weight:800; font-family:Arial; color:var(--accent); white-space:nowrap; font-size:17px; min-width:26px; text-align:right; }
+  .action-board .ab-none { color:var(--ink-3); font-size:12.5px; padding:6px 0; }
   @media (max-width:720px) { .action-board .ab-cols { grid-template-columns:1fr; } }
 
   /* ========== 実績集計 ========== */
@@ -3607,41 +3606,40 @@
     const remain = Math.max(0, target - monthDeals);
     const needAssess = (r3 > 0 && remain > 0) ? Math.ceil(remain / (r3 / 100)) : 0;
 
-    const item = (ico, txt, cnt, preset) => `
+    const item = (txt, cnt, preset) => `
       <div class="ab-item${preset ? ' clickable' : ''}"${preset ? ` onclick="jumpToPreset('${preset}')"` : ''}>
-        <div class="ab-ico">${ico}</div>
-        <div class="ab-txt">${txt}${preset ? '<span class="go">▶一覧へ</span>' : ''}</div>
+        <div class="ab-txt">${txt}${preset ? '<span class="go">一覧 ›</span>' : ''}</div>
         ${cnt != null ? `<div class="ab-cnt">${cnt}</div>` : ''}
       </div>`;
+    const shortAdv = { '架電到達': '架電回数・時間帯を見直す', '査定化': '訪問査定の打診を標準化', '成約': '提示額見直し・責任者同行' };
 
     // 日次
     const daily = [];
-    if (overdue.length) daily.push(item('🔴', '<b>後追り期限が本日・超過</b>。全件フォロー（HOT/返事待ちから）', overdue.length));
-    if (hot.length) daily.push(item('🔥', '<b>HOT案件</b>（1ヶ月以内・近日返事）に本日中に接触してクロージング', hot.length, 'hot'));
-    if (uncalled.length) daily.push(item('📞', '<b>新着の未架電</b>。当日中に初回コール（初動の速さが成約率を左右）', uncalled.length, 'call'));
-    if (apoPending.length) daily.push(item('📋', '<b>アポ獲得済み・査定待ち</b>。訪問日程を確定させる', apoPending.length, 'assess'));
-    const dailyHtml = daily.length ? daily.join('') : '<div class="ab-none">✓ 本日の必須対応はありません。下記の週次でパイプラインを育成しましょう。</div>';
+    if (overdue.length) daily.push(item('後追り期限（本日・超過）をフォロー', overdue.length));
+    if (hot.length) daily.push(item('HOT（1ヶ月以内・近日返事）へ本日接触', hot.length, 'hot'));
+    if (uncalled.length) daily.push(item('新着の未架電に初回コール', uncalled.length, 'call'));
+    if (apoPending.length) daily.push(item('アポ済み・査定待ちの日程確定', apoPending.length, 'assess'));
+    const dailyHtml = daily.length ? daily.join('') : '<div class="ab-none">本日の必須対応はありません</div>';
 
     // 週次
     const weekly = [];
-    if (assessedOpen.length) weekly.push(item('💰', '<b>査定済みで未成約</b>。返事待ちの追客＋価格見直し・責任者同行で刈り取り', assessedOpen.length));
-    if (stalled.length) weekly.push(item('☎️', '<b>3回以上コールしても未到達</b>。時間帯変更・SMS/別チャネルでアプローチを変える', stalled.length));
-    if (topA && share >= 45) weekly.push(item('👥', `案件が<b>${topA[0]}さんに集中（${share}%）</b>。負荷分散・応援体制と、目標未達者のケア`, topA[1]));
-    weekly.push(item('📈', `ファネル最弱は<b>「${weak.k}」（${weak.v.toFixed(0)}%）</b>。${weak.adv}`, null));
-    if (target > 0 && remain > 0) weekly.push(item('🎯', `<b>当月目標まで残り${remain}件</b>。成約率(査定→成約)${r3.toFixed(0)}%換算で、あと査定 <b>約${needAssess}件</b>の創出が必要`, null));
-    else if (target === 0) weekly.push(item('🎯', '<b>当月の目標が未設定</b>。「🎯目標設定」タブで担当者別に設定しましょう', null));
+    if (assessedOpen.length) weekly.push(item('査定済み・未成約を刈り取り（追客/価格/同行）', assessedOpen.length));
+    if (stalled.length) weekly.push(item('未到達（3回以上）は時間帯変更・SMS', stalled.length));
+    if (topA && share >= 45) weekly.push(item(`${topA[0]}に集中（${share}%）→ 負荷分散・未達者ケア`, topA[1]));
+    weekly.push(item(`弱点は「${weak.k}」${weak.v.toFixed(0)}% → ${shortAdv[weak.k] || '強化'}`, null));
+    if (target > 0 && remain > 0) weekly.push(item(`当月あと${remain}件（査定 約${needAssess}件が必要）`, null));
+    else if (target === 0) weekly.push(item('当月目標が未設定（目標設定タブで入力）', null));
     const weeklyHtml = weekly.join('');
 
-    const diag = `📊 現状：受信 <b>${total}</b>件 ／ 到達 <b>${reached}</b>（${r1.toFixed(0)}%）→ 査定 <b>${assessed}</b>（${r2.toFixed(0)}%）→ 成約 <b>${deals}</b>（査定→成約 ${r3.toFixed(0)}%）。`
-      + ` 稼働中の要対応：後追り超過 <b>${overdue.length}</b>・HOT <b>${hot.length}</b>・未架電 <b>${uncalled.length}</b>・査定待ち <b>${apoPending.length}</b>・査定済未成約 <b>${assessedOpen.length}</b>。`;
+    const diag = `受信 <b>${total}</b> → 到達 <b>${reached}</b>（${r1.toFixed(0)}%） → 査定 <b>${assessed}</b>（${r2.toFixed(0)}%） → 成約 <b>${deals}</b>（${r3.toFixed(0)}%）`;
 
     el.innerHTML = `
       <div class="action-board">
-        <div class="ab-head">🧭 事業責任者アクション <span class="ab-when">現状分析にもとづく本日／今週の重点</span></div>
+        <div class="ab-head">事業責任者アクション <span class="ab-when">本日／今週の重点</span></div>
         <div class="ab-diag">${diag}</div>
         <div class="ab-cols">
-          <div class="ab-col daily"><h4>🗓 今日やること（日次）</h4>${dailyHtml}</div>
-          <div class="ab-col weekly"><h4>📅 今週やること（週次）</h4>${weeklyHtml}</div>
+          <div class="ab-col daily"><h4>今日やること</h4>${dailyHtml}</div>
+          <div class="ab-col weekly"><h4>今週やること</h4>${weeklyHtml}</div>
         </div>
       </div>`;
   }
