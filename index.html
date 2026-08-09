@@ -789,6 +789,7 @@
   .m-tag.navikuru { background: rgba(74,124,74,0.8); }
   .m-tag.self { background: rgba(107,74,124,0.8); }
   .m-tag.shop { background: rgba(184,149,74,0.85); }
+  .m-tag.other { background: rgba(120,120,120,0.8); }
 
   /* Phase badges */
   .phase {
@@ -1517,6 +1518,22 @@
     background: var(--accent);
     border-color: var(--accent);
   }
+  .btn-new-inline {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(184,49,47,0.25);
+    transition: all 0.15s;
+  }
+  .btn-new-inline:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(184,49,47,0.4); }
   .fab-new {
     position: fixed;
     bottom: 24px;
@@ -1898,6 +1915,7 @@
     <h2 class="section-title">案件一覧 <span class="ja">入札日が新しい順 / 媒体は1列で表示</span></h2>
     <div class="table-controls">
       <input type="text" class="search-box" id="case-search" placeholder="顧客名・車種・案件番号で検索...">
+      <button class="btn-new-inline" id="newCaseInline" title="店頭査定・カーセンサーなど、MOTA以外の案件を手入力で登録">＋ 新規案件登録</button>
       <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
     </div>
 
@@ -1994,7 +2012,8 @@
             <option value="カーセンサー">カーセンサー</option>
             <option value="ナビクル">ナビクル</option>
             <option value="自社サイト">自社サイト</option>
-            <option value="店頭">店頭</option>
+            <option value="店頭">店頭査定</option>
+            <option value="その他">その他</option>
           </select>
         </label>
         <label class="edit-field">
@@ -2166,6 +2185,8 @@
     'ナビクル': 'navikuru',
     '自社サイト': 'self',
     '店頭': 'shop',
+    '店頭査定': 'shop',
+    'その他': 'other',
   };
   
   // CSV → 案件データ配列に変換
@@ -2294,7 +2315,7 @@
     { no: 17, media: 'self', date: '2026/05/01', customer: '前田 千恵', tel: '080-7575-9090', car: 'ホンダ フィット', calls: [{ result: 'アポ', date: '05/01' }], assess: null, result: '', followup: '2026/05/03', note: '査定アポ確定 5/3 11:00' },
   ];
 
-  const mediaLabels = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭' };
+  const mediaLabels = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
   // 「今日」を実行時の日付で取得(時刻部分は切り捨て)
   const today = (() => {
     const t = new Date();
@@ -3875,7 +3896,7 @@
   // ============================================================
   
   // 媒体名:英字→日本語変換
-  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭' };
+  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
   
   // 架電履歴入力行を生成
   function buildCallRows(callsData) {
@@ -4087,6 +4108,7 @@
   
   // イベント設定
   document.getElementById('fabNew').addEventListener('click', openEditNew);
+  { const _ni = document.getElementById('newCaseInline'); if (_ni) _ni.addEventListener('click', openEditNew); }
   document.getElementById('editClose').addEventListener('click', closeEditModal);
   document.getElementById('editOverlay').addEventListener('click', closeEditModal);
   document.getElementById('ef-cancel').addEventListener('click', closeEditModal);
