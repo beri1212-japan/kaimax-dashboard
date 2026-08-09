@@ -320,6 +320,25 @@
   .action-board .ab-none { color:var(--green); font-size:12.5px; font-weight:700; padding:6px 0; }
   @media (max-width:720px) { .action-board .ab-cols { grid-template-columns:1fr; } }
 
+  /* ========== 実績集計 ========== */
+  .rep-toggle { display:inline-flex; gap:6px; }
+  .rep-unit { cursor:pointer; }
+  .rep-unit.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .rep-sec-title { font-size:14px; font-weight:800; color:var(--ink); margin:18px 0 8px; display:flex; align-items:center; gap:8px; }
+  .rep-note { font-size:11.5px; color:var(--ink-3); margin:2px 0 10px; }
+  .rep-table-wrap { overflow-x:auto; }
+  table.rep-table { width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+  table.rep-table th, table.rep-table td { padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; text-align:right; }
+  table.rep-table th { font-size:11.5px; color:var(--ink-3); font-weight:700; background:var(--bg-soft); position:sticky; top:0; }
+  table.rep-table th:first-child, table.rep-table td:first-child { text-align:left; font-weight:700; }
+  table.rep-table td { font-variant-numeric:tabular-nums; font-family:Arial,inherit; }
+  table.rep-table tbody tr:hover { background:var(--bg-soft); }
+  table.rep-table tfoot td { border-top:2px solid var(--line); font-weight:800; background:var(--bg-soft); }
+  .rep-chart { background:var(--bg-panel); border:1px solid var(--line); border-radius:10px; padding:12px 10px 6px; margin-top:8px; }
+  .rep-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); padding:2px 6px 8px; }
+  .rep-legend span { display:inline-flex; align-items:center; gap:5px; }
+  .rep-legend i { width:11px; height:11px; border-radius:3px; display:inline-block; }
+
   /* ========== 当月ステータス（ヒーロー） ========== */
   .month-hero { border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; background:linear-gradient(180deg,var(--bg-panel),var(--bg-soft)); padding:16px 18px; margin-bottom:22px; }
   .month-hero .mh-head { font-size:14px; font-weight:800; color:var(--ink); letter-spacing:.03em; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
@@ -1657,6 +1676,7 @@
 <div class="page-tabs">
   <div class="page-tab active" data-page="dashboard">📊 ダッシュボード</div>
   <div class="page-tab" data-page="cases">📋 案件一覧 (HOT) <span class="badge">14</span></div>
+  <div class="page-tab" data-page="report">📊 実績集計</div>
   <div class="page-tab" data-page="targets">🎯 目標設定</div>
 </div>
 
@@ -1910,6 +1930,18 @@
       <button onclick="addAssignee()" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;">＋ 追加</button>
     </div>
   </div>
+</div>
+
+<!-- 実績集計ページ -->
+<div class="page-section" id="page-report">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 4px;">
+    <h2 class="section-title" style="margin:0;">実績集計 <span class="ja">発生ベース＆活動ベース / 推移</span></h2>
+    <div class="rep-toggle">
+      <span class="chip rep-unit active" data-unit="month" onclick="setReportUnit('month')">月別</span>
+      <span class="chip rep-unit" data-unit="week" onclick="setReportUnit('week')">週別（土〜金）</span>
+    </div>
+  </div>
+  <div id="report-body"></div>
 </div>
 
 <!-- Detail Panel -->
@@ -3360,6 +3392,111 @@
   window.openAssigneeEditor = openAssigneeEditor;
   window.openResultEditor = openResultEditor;
 
+  // ===== 実績集計（月別 / 週別 土〜金、発生ベース＆活動ベース、推移グラフ） =====
+  const REACHED_SET = ['通話', '検討中', 'アポ'];
+  function ymKeyOf(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+  function monthLabel(key) { const p = key.split('-'); return p[0] + '/' + (+p[1]); }
+  function weekStartSat(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const off = (x.getDay() - 6 + 7) % 7; x.setDate(x.getDate() - off); return x; }
+  function weekKeyOf(d) { const s = weekStartSat(d); return s.getFullYear() + '-' + String(s.getMonth() + 1).padStart(2, '0') + '-' + String(s.getDate()).padStart(2, '0'); }
+  function weekLabel(key) { const p = key.split('-').map(Number); const s = new Date(p[0], p[1] - 1, p[2]); const e = new Date(p[0], p[1] - 1, p[2] + 6); return (s.getMonth() + 1) + '/' + s.getDate() + '〜' + (e.getMonth() + 1) + '/' + e.getDate(); }
+
+  function buildCohort(unit) { // 受信日ベース
+    const map = {};
+    (allCases || []).forEach(c => {
+      const d = parseDateFlexible(c.date); if (!d) return;
+      const key = unit === 'week' ? weekKeyOf(d) : ymKeyOf(d);
+      const o = map[key] || (map[key] = { cases: 0, bid: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0 });
+      o.cases++;
+      if (c.bid === '〇' || c.bid === '入札') o.bid++;
+      (c.calls || []).forEach(k => { if (k.result) { o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (k.result === 'アポ') o.apo++; } });
+      if (c.assess === '〇') o.assess++;
+      if (isDeal(c)) o.deal++;
+    });
+    return map;
+  }
+  function buildActivity(unit) { // 架電の実施日ベース（日付のある②〜⑤のみ）
+    const map = {};
+    (allCases || []).forEach(c => {
+      const rd = parseDateFlexible(c.date); const cy = rd ? rd.getFullYear() : new Date(TODAY).getFullYear();
+      (c.calls || []).forEach(k => {
+        if (!k.result || !k.date) return;
+        const m = String(k.date).match(/(\d{1,2})[\/月.\-](\d{1,2})/); if (!m) return;
+        const d = new Date(cy, +m[1] - 1, +m[2]);
+        const key = unit === 'week' ? weekKeyOf(d) : ymKeyOf(d);
+        const o = map[key] || (map[key] = { calls: 0, reach: 0, apo: 0 });
+        o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (k.result === 'アポ') o.apo++;
+      });
+    });
+    return map;
+  }
+
+  function niceMax(m) { if (m <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(m))); const f = m / p; const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10; return nf * p; }
+  function drawRepChart(labels, series) {
+    const n = labels.length; if (!n) return '<div class="rep-note">データがありません</div>';
+    const padL = 34, padR = 12, padT = 10, padB = 52, stepMin = 52;
+    const plotW = Math.max(1, n * stepMin), W = padL + padR + plotW, H = 230, plotH = H - padT - padB;
+    let maxY = 0; series.forEach(s => s.values.forEach(v => { if (v > maxY) maxY = v; })); maxY = niceMax(maxY);
+    const x = i => padL + (i + 0.5) * (plotW / n), y = v => padT + plotH * (1 - v / maxY);
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(f => { const yy = padT + plotH * (1 - f); return `<line x1="${padL}" y1="${yy}" x2="${padL + plotW}" y2="${yy}" stroke="var(--line)"/><text x="${padL - 5}" y="${yy + 3}" text-anchor="end" font-size="9" fill="var(--ink-3)">${Math.round(maxY * f)}</text>`; }).join('');
+    const barS = series.filter(s => s.type === 'bar'), lineS = series.filter(s => s.type === 'line');
+    const bw = Math.min(24, (plotW / n) * 0.5);
+    let bars = ''; barS.forEach(s => s.values.forEach((v, i) => { const h = plotH * (v / maxY); bars += `<rect x="${x(i) - bw / 2}" y="${padT + plotH - h}" width="${bw}" height="${h}" rx="2" fill="${s.color}" opacity="0.8"><title>${labels[i]} ${s.name}:${v}</title></rect>`; }));
+    let lines = ''; lineS.forEach(s => { const pts = s.values.map((v, i) => x(i) + ',' + y(v)).join(' '); lines += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2"/>`; s.values.forEach((v, i) => { lines += `<circle cx="${x(i)}" cy="${y(v)}" r="2.6" fill="${s.color}"><title>${labels[i]} ${s.name}:${v}</title></circle>`; }); });
+    const xl = labels.map((l, i) => `<text x="${x(i)}" y="${H - padB + 12}" text-anchor="end" font-size="9" fill="var(--ink-3)" transform="rotate(-40 ${x(i)} ${H - padB + 12})">${l}</text>`).join('');
+    const legend = series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('');
+    return `<div class="rep-legend">${legend}</div><div style="overflow-x:auto;"><svg viewBox="0 0 ${W} ${H}" width="${W}" style="max-width:100%;min-width:${Math.min(W, 680)}px;height:auto;display:block;">${grid}${bars}${lines}${xl}</svg></div>`;
+  }
+
+  window.reportUnit = 'month';
+  window.setReportUnit = function (u) {
+    window.reportUnit = u;
+    document.querySelectorAll('.rep-unit').forEach(c => c.classList.toggle('active', c.dataset.unit === u));
+    renderReport();
+  };
+  function renderReport() {
+    const host = document.getElementById('report-body'); if (!host) return;
+    const unit = window.reportUnit || 'month';
+    const lab = unit === 'week' ? weekLabel : monthLabel;
+    const coh = buildCohort(unit), act = buildActivity(unit);
+    const ck = Object.keys(coh).sort(), ak = Object.keys(act).sort();
+    const pct = (a, b) => b > 0 ? (a / b * 100).toFixed(0) + '%' : '—';
+    // 発生ベース表
+    const cSum = { cases: 0, bid: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0 };
+    const cRows = ck.map(k => { const o = coh[k]; Object.keys(cSum).forEach(f => cSum[f] += o[f]); return `<tr><td>${lab(k)}</td><td>${o.cases}</td><td>${o.bid}</td><td>${o.calls}</td><td>${o.reach}</td><td>${o.apo}</td><td>${o.assess}</td><td>${o.deal}</td><td>${pct(o.deal, o.cases)}</td></tr>`; }).join('');
+    const cohortTable = `
+      <div class="rep-sec-title">① 発生ベース（受信${unit === 'week' ? '週' : '月'}別）</div>
+      <div class="rep-note">その期間に受信した案件のコホート集計。案件数・入札・コール・着電・アポ・査定・成約をすべて含みます。</div>
+      <div class="rep-table-wrap"><table class="rep-table">
+        <thead><tr><th>期間</th><th>案件数</th><th>入札</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th>成約率</th></tr></thead>
+        <tbody>${cRows || '<tr><td colspan="9" style="text-align:center;color:var(--ink-3);">データなし</td></tr>'}</tbody>
+        <tfoot><tr><td>合計</td><td>${cSum.cases}</td><td>${cSum.bid}</td><td>${cSum.calls}</td><td>${cSum.reach}</td><td>${cSum.apo}</td><td>${cSum.assess}</td><td>${cSum.deal}</td><td>${pct(cSum.deal, cSum.cases)}</td></tr></tfoot>
+      </table></div>`;
+    const cohChart = `<div class="rep-chart">${drawRepChart(ck.map(lab), [
+      { name: '案件数', color: '#c99a3b', type: 'bar', values: ck.map(k => coh[k].cases) },
+      { name: 'アポ', color: '#3a6ea5', type: 'line', values: ck.map(k => coh[k].apo) },
+      { name: '査定', color: '#4a7c4a', type: 'line', values: ck.map(k => coh[k].assess) },
+      { name: '成約', color: '#b8312f', type: 'line', values: ck.map(k => coh[k].deal) }
+    ])}</div>`;
+    // 活動ベース表
+    const aSum = { calls: 0, reach: 0, apo: 0 };
+    const aRows = ak.map(k => { const o = act[k]; aSum.calls += o.calls; aSum.reach += o.reach; aSum.apo += o.apo; return `<tr><td>${lab(k)}</td><td>${o.calls}</td><td>${o.reach}</td><td>${o.apo}</td><td>${pct(o.reach, o.calls)}</td></tr>`; }).join('');
+    const actTable = `
+      <div class="rep-sec-title" style="margin-top:24px;">② 活動ベース（実施${unit === 'week' ? '週' : '日/月'}別）</div>
+      <div class="rep-note">実際に架電した日ベースの集計。※ ①初回コール・査定・成約は日付列が無いため対象外（それらは①の表を参照）。</div>
+      <div class="rep-table-wrap"><table class="rep-table">
+        <thead><tr><th>期間</th><th>コール</th><th>着電</th><th>アポ</th><th>着電率</th></tr></thead>
+        <tbody>${aRows || '<tr><td colspan="5" style="text-align:center;color:var(--ink-3);">データなし</td></tr>'}</tbody>
+        <tfoot><tr><td>合計</td><td>${aSum.calls}</td><td>${aSum.reach}</td><td>${aSum.apo}</td><td>${pct(aSum.reach, aSum.calls)}</td></tr></tfoot>
+      </table></div>`;
+    const actChart = `<div class="rep-chart">${drawRepChart(ak.map(lab), [
+      { name: 'コール', color: '#9aa0a8', type: 'line', values: ak.map(k => act[k].calls) },
+      { name: '着電', color: '#3a6ea5', type: 'line', values: ak.map(k => act[k].reach) },
+      { name: 'アポ', color: '#b8312f', type: 'line', values: ak.map(k => act[k].apo) }
+    ])}</div>`;
+    host.innerHTML = cohortTable + cohChart + actTable + actChart;
+  }
+  window.renderReport = renderReport;
+
   // ===== 事業責任者アクションボード（現状分析→日次/週次でやるべきこと） =====
   window.jumpToPreset = function (name) {
     const tab = [...document.querySelectorAll('.page-tab')].find(t => t.dataset.page === 'cases');
@@ -3917,6 +4054,10 @@
       // 目標設定タブを開いたら、担当者ごとの目標入力フォームを生成
       if (t.dataset.page === 'targets') {
         renderTargetsForm();
+      }
+      // 実績集計タブを開いたら集計＆グラフを生成
+      if (t.dataset.page === 'report') {
+        renderReport();
       }
     });
   });
