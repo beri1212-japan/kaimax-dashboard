@@ -1924,14 +1924,13 @@
         <tr>
           <th style="width:95px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('date')" title="入札日で並べ替え">入札日<span id="sort-arrow-date" style="color:var(--accent);margin-left:3px;"></span></th>
           <th style="width:80px;">担当者</th>
-          <th style="width:104px;">媒体</th>
-          <th style="width:78px;">案件番号</th>
+          <th style="width:83px;">媒体</th>
           <th style="width:160px;">顧客名 / TEL</th>
-          <th style="width:200px;">車種</th>
-          <th style="width:120px;">結果 / フェーズ</th>
+          <th style="width:240px;">車種</th>
+          <th style="width:108px;">結果フェーズ</th>
           <th style="width:90px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:3px;"></span></th>
           <th style="width:175px;">架電プロセス ①〜⑤</th>
-          <th class="center" style="width:48px;">査定</th>
+          <th class="center" style="width:38px;">査定</th>
           <th></th>
         </tr>
       </thead>
@@ -3158,7 +3157,6 @@
         <td style="font-family:Arial,monospace;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
         <td class="editable-cell" title="クリックで担当者を編集" style="font-size:13px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint">✎</span></td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
-        <td><span class="case-id">M-${String(c.no).padStart(4,'0')}</span></td>
         <td style="white-space:nowrap;">
           <div style="font-weight:700;font-size:15px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
@@ -3176,7 +3174,7 @@
       // 担当者(2列目)・結果/フェーズ(7列目) のインライン編集
       const _asgCell = tr.children[1];
       if (_asgCell) _asgCell.addEventListener('click', (e) => { e.stopPropagation(); openAssigneeEditor(_asgCell, c); });
-      const _resCell = tr.children[6];
+      const _resCell = tr.children[5];
       if (_resCell) _resCell.addEventListener('click', (e) => { e.stopPropagation(); openResultEditor(_resCell, c); });
       tbody.appendChild(tr);
     });
