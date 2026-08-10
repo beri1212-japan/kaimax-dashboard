@@ -383,7 +383,7 @@
   @media (max-width:720px) { .month-hero .mh-grid { grid-template-columns:1fr 1fr; } }
 
   /* ========== 架電クイック記録（電話タップ時） ========== */
-  .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:flex; align-items:flex-end; justify-content:center; }
+  .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:none; align-items:flex-end; justify-content:center; }
   .qc-overlay.show { display:flex; }
   .qc-modal { background:var(--bg-panel); width:100%; max-width:460px; border-radius:16px 16px 0 0; padding:16px 18px 22px; box-shadow:0 -8px 30px rgba(0,0,0,.25); }
   @media (min-width:560px) { .qc-overlay { align-items:center; } .qc-modal { border-radius:16px; } }
@@ -3261,7 +3261,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810f'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0810g'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
