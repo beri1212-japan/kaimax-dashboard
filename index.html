@@ -2070,6 +2070,7 @@
           <span class="ef-label">入札結果</span>
           <select id="ef-bidResult">
             <option value=""></option>
+            <option value="権利獲得">権利獲得</option>
             <option value="落札">落札</option>
             <option value="失注">失注</option>
             <option value="〇">〇</option>
@@ -2105,12 +2106,17 @@
             <option value=""></option>
             <option value="入庫済み">入庫済み</option>
             <option value="成約">成約</option>
+            <option value="検討(1ヶ月以内)">検討(1ヶ月以内)</option>
             <option value="検討(直近)">検討(直近)</option>
             <option value="検討(長期)">検討(長期)</option>
             <option value="他社結果待ち">他社結果待ち</option>
+            <option value="★近日返事">★近日返事</option>
             <option value="他社売却">他社売却</option>
             <option value="自社代替">自社代替</option>
+            <option value="売らない">売らない</option>
             <option value="売却しない">売却しない</option>
+            <option value="着拒">着拒</option>
+            <option value="媒体重複">媒体重複</option>
           </select>
         </label>
         <label class="edit-field">
@@ -3261,7 +3267,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810h'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0810i'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
