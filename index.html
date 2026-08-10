@@ -3240,6 +3240,7 @@
           body: JSON.stringify({ secret: SECRET_KEY, action, payload }),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           redirect: 'follow',
+          keepalive: true, // 通話復帰/画面遷移の直後でも送信が中断されにくくする
         });
         if (res.ok) {
           const txt = await res.text();
@@ -3253,6 +3254,39 @@
     }
     return { ok: false, status: lastStatus, kind: lastKind };
   }
+
+  // ===== 送信アウトボックス =====
+  // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
+  //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
+  //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
+  const OUTBOX_KEY = 'kaimax_outbox';
+  let _outboxFlushing = false;
+  function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
+  function outboxSet(a) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(a)); } catch (e) {} }
+  function outboxAdd(action, payload) {
+    const id = String(Date.now()) + '_' + Math.random().toString(36).slice(2, 8);
+    const a = outboxGet(); a.push({ id, action, payload, ts: Date.now() }); outboxSet(a);
+    return id;
+  }
+  function outboxRemove(id) { outboxSet(outboxGet().filter(x => x.id !== id)); }
+  async function outboxFlush() {
+    if (_outboxFlushing) return;
+    _outboxFlushing = true;
+    try {
+      let items = outboxGet();
+      for (const it of items) {
+        try {
+          const r = await postWebhook(it.action, it.payload);
+          if (r.ok && r.data && r.data.status === 'success') outboxRemove(it.id);
+        } catch (e) { /* 次の機会に再送 */ }
+      }
+      const remain = outboxGet().length;
+      if (remain === 0 && items.length > 0) showToast('✓ 保留していた記録を送信しました', false);
+    } finally { _outboxFlushing = false; }
+  }
+  // 画面復帰・オンライン復帰・読み込み時に自動再送
+  window.addEventListener('online', outboxFlush);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') outboxFlush(); });
 
   // 画面下に一瞬出る通知（保存成功/失敗）。楽観更新の結果を邪魔せず知らせる用
   function showToast(text, isError) {
@@ -3345,11 +3379,13 @@
     applyCallsLocal(c, compact);
     renderCaseTable();
     if (currentMedia === 'all') renderMediaView('all');
+    // まず端末に控えてから送信。成功したら控えを消す。失敗しても復帰/再読込で自動再送されるので消えない。
+    const entryId = outboxAdd('update_calls', payload);
     postWebhook('update_calls', payload).then(r => {
       const data = r.ok ? r.data : null;
-      if (data && data.status === 'success') showToast('✓ 架電を記録しました（NO ' + c.no + '）', false);
-      else showToast('✗ 記録できませんでした（NO ' + c.no + '）。もう一度お試しください', true);
-    }).catch(() => showToast('✗ 記録できませんでした（NO ' + c.no + '）。もう一度お試しください', true));
+      if (data && data.status === 'success') { outboxRemove(entryId); showToast('✓ 架電を記録しました（NO ' + c.no + '）', false); }
+      else showToast('△ 記録を保留しました。通信が戻ると自動送信します（NO ' + c.no + '）', true);
+    }).catch(() => showToast('△ 記録を保留しました。通信が戻ると自動送信します（NO ' + c.no + '）', true));
   }
 
   function closeQuickCall() { const o = document.getElementById('qc-overlay'); if (o) o.classList.remove('show'); }
@@ -4661,6 +4697,7 @@
   // 初期化:CSVを読み込んでダッシュボードを描画
   // ============================================================
   async function initDashboard() {
+    outboxFlush(); // 前回未送信の架電記録があれば起動時に再送
     showLoading();
     try {
       const url = CSV_URL + '&_=' + Date.now();
