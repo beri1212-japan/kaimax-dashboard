@@ -216,7 +216,7 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  .filter-group { display: flex; gap: 6px; align-items: center; }
+  .filter-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; row-gap: 6px; }
   .filter-label {
     font-size:12px;
     color: var(--ink-3);
@@ -238,7 +238,20 @@
     color: #f5f3ee;
     border-color: var(--ink);
   }
-  
+  /* 媒体・結果フェーズのチップ: 文字を小さく・均一幅で揃え、4文字以上は2行に割ってバランスを取る */
+  .media-chip-cases, .stage-chip-cases {
+    width: 54px;
+    min-height: 34px;
+    padding: 3px 3px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
   /* タスクプリセットボタン */
   .task-preset-group {
     padding-bottom: 8px;
@@ -1900,9 +1913,9 @@
       <span class="filter-label">媒体</span>
       <span class="chip media-chip-cases active" data-cmedia="all">全媒体</span>
       <span class="chip media-chip-cases" data-cmedia="mota">MOTA</span>
-      <span class="chip media-chip-cases" data-cmedia="carsensor">カーセンサー</span>
-      <span class="chip media-chip-cases" data-cmedia="navikuru">ナビクル</span>
-      <span class="chip media-chip-cases" data-cmedia="self">自社サイト</span>
+      <span class="chip media-chip-cases" data-cmedia="carsensor">カーセ<br>ンサー</span>
+      <span class="chip media-chip-cases" data-cmedia="navikuru">ナビ<br>クル</span>
+      <span class="chip media-chip-cases" data-cmedia="self">自社<br>サイト</span>
       <span class="chip media-chip-cases" data-cmedia="shop">店頭</span>
     </div>
     <div class="filter-group">
@@ -2976,6 +2989,17 @@
     return arr;
   }
 
+  // チップ表示ラベル: 4文字以上(日本語を含む)は中央で2行に割ってバランスを取る
+  function chipLabel2(s) {
+    const t = String(s);
+    const chars = Array.from(t);
+    if (chars.length >= 4 && /[^\x00-\x7F]/.test(t)) {
+      const mid = Math.ceil(chars.length / 2);
+      return chars.slice(0, mid).join('') + '<br>' + chars.slice(mid).join('');
+    }
+    return t;
+  }
+
   // 統合フィルタのボタンを（実データに合わせて）生成
   function renderStageFilter() {
     const wrap = document.getElementById('stage-chips');
@@ -2986,7 +3010,7 @@
     const cur = caseFilters.stage;
     const isActive = (k) => (Array.isArray(cur) ? cur.includes(k) : cur === k);
     wrap.innerHTML = chips.map(ch =>
-      `<span class="chip stage-chip-cases${isActive(ch.key) ? ' active' : ''}" data-stage="${String(ch.key).replace(/"/g, '&quot;')}">${ch.label}</span>`
+      `<span class="chip stage-chip-cases${isActive(ch.key) ? ' active' : ''}" data-stage="${String(ch.key).replace(/"/g, '&quot;')}">${chipLabel2(ch.label)}</span>`
     ).join('');
     wrap.querySelectorAll('.stage-chip-cases').forEach(chip => {
       chip.addEventListener('click', () => {
