@@ -3261,7 +3261,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810g'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0810h'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -3982,7 +3982,7 @@
   function buildCallRows(callsData) {
     const container = document.getElementById('ef-calls');
     container.innerHTML = '';
-    const callOptions = ['', '不在', '留守', '拒否', '検討中', 'アポ'];
+    const callOptions = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
     for (let i = 0; i < 5; i++) {
       const c = callsData && callsData[i] ? callsData[i] : { result: '', date: '' };
       const row = document.createElement('div');
