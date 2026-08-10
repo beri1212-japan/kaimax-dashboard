@@ -3370,28 +3370,41 @@
     let o = document.getElementById('qc-overlay');
     if (!o) { o = document.createElement('div'); o.id = 'qc-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
     o.innerHTML = `
-      <div class="qc-modal" onclick="event.stopPropagation();">
-        <div class="qc-head">📞 架電結果を記録 <button class="qc-x" onclick="closeQuickCall()">×</button></div>
+      <div class="qc-modal">
+        <div class="qc-head">📞 架電結果を記録 <button class="qc-x" data-qc="close">×</button></div>
         <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.tel || ''}<br>記録先：<b>${marks[targetIdx]}</b>${full ? '（⑤に上書き）' : ''}　※結果を選ぶと自動保存されます</div>
         <div class="qc-date">日付 <input type="date" id="qc-date" value="${iso}"></div>
-        <div class="qc-opts">${opts.map(r => `<button data-r="${r}"${r.indexOf('アポ') === 0 ? ' class="apo"' : ''}>${r}</button>`).join('')}</div>
+        <div class="qc-opts">${opts.map(r => `<button type="button" data-r="${r}"${r.indexOf('アポ') === 0 ? ' class="apo"' : ''}>${r}</button>`).join('')}</div>
         <div class="qc-note">電話をかけずに記録だけでもOK。詳しく編集したい場合は一覧の「✎入力」から。</div>
       </div>`;
     o.classList.add('show');
-    o.onclick = closeQuickCall; // 背景タップで閉じる
-    o.querySelectorAll('.qc-opts button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const result = btn.dataset.r;
-        const dv = document.getElementById('qc-date');
-        const md = isoToMd(dv ? dv.value : iso);
-        // 既存callsを配列(長さ5)に展開して該当枠へ
-        const arr = [];
-        for (let i = 0; i < 5; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
-        arr[targetIdx] = { result, date: (targetIdx === 0 ? '' : md) }; // ①は日付列なし
-        closeQuickCall();
-        saveCallsArray(c, arr);
-      });
-    });
+    // 結果ボタン選択→保存の実処理（二重発火防止フラグ付き）
+    let qcHandled = false;
+    function qcPick(btn) {
+      if (qcHandled) return; qcHandled = true;
+      const result = btn.dataset.r;
+      const dv = document.getElementById('qc-date');
+      const md = isoToMd(dv ? dv.value : iso);
+      const arr = [];
+      for (let i = 0; i < 5; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
+      arr[targetIdx] = { result, date: (targetIdx === 0 ? '' : md) }; // ①は日付列なし
+      closeQuickCall();
+      saveCallsArray(c, arr);
+    }
+    // オーバーレイ側で一括判定（イベント委譲）。スマホのタップ／通話復帰でも確実に拾う。
+    // click に加え pointerup/touchend でも拾い、端末差による取りこぼしを防ぐ。
+    function qcDelegate(ev) {
+      const t = ev.target;
+      if (!t || !t.closest) return;
+      const optBtn = t.closest('.qc-opts button');
+      if (optBtn) { ev.preventDefault(); qcPick(optBtn); return; }
+      if (t.closest('[data-qc="close"]')) { ev.preventDefault(); closeQuickCall(); return; }
+      // モーダル内（日付入力など）以外＝背景タップで閉じる
+      if (!t.closest('.qc-modal')) closeQuickCall();
+    }
+    // プロパティ代入なので開くたびに置き換わり、リスナーが多重登録されない（別案件へ誤記録を防ぐ）
+    o.onclick = qcDelegate;
+    o.onpointerup = qcDelegate; // タッチ端末での取りこぼし対策（clickの二重発火はqcHandledで抑止）
   };
 
   // ===== 一覧上での 担当者・結果/フェーズ 直接編集 =====
