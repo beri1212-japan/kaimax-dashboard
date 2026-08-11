@@ -745,7 +745,10 @@
   td.num { text-align: right; font-family: Arial, sans-serif; }
   td.center { text-align: center; }
   .case-id { font-family: Arial, sans-serif; font-size:12px; color: var(--ink-3); }
-  #case-table .m-tag { white-space: nowrap; }
+  /* 案件一覧は余白を詰めてスマホの横スワイプを最小化 */
+  #case-table thead th { padding: 8px 6px; letter-spacing: 0.02em; }
+  #case-table tbody td { padding: 9px 6px; line-height:1.4; }
+  #case-table .m-tag { white-space: nowrap; font-size:11px; padding:2px 5px; }
   .call-view { display:grid; grid-template-columns: repeat(3, max-content); gap:4px; justify-content:start; }
   .call-chip { display:inline-flex; align-items:baseline; gap:3px; font-size:10px; font-weight:700; white-space:nowrap; background:var(--bg-soft); border:1px solid var(--line); border-radius:4px; padding:2px 6px; color:var(--ink); }
   .call-chip .cc-n { color: var(--ink-3); font-family: Arial, sans-serif; font-weight:700; }
@@ -1668,8 +1671,8 @@
     .media-tab { padding: 10px 12px 8px; white-space: nowrap; flex: 0 0 auto; }
 
     /* 横余白を詰める */
-    .container { padding: 16px 12px; }
-    #priority-section { padding: 14px 12px 0 !important; }
+    .container { padding: 12px 8px; }
+    #priority-section { padding: 14px 10px 0 !important; }
     .filters { padding: 12px !important; gap: 10px; }
     .filter-group { flex-wrap: wrap; }
 
@@ -1679,10 +1682,14 @@
     .kpi-grid, .kpi-grid.cols-7 { grid-template-columns: repeat(2, 1fr) !important; }
     .today-banner { padding: 16px !important; }
 
-    /* 案件一覧テーブルは横スクロール（文字の縦積みを防止） */
-    #page-cases .container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    #case-table { min-width: 880px; }
-    #case-table .m-tag { white-space: nowrap; }
+    /* 案件一覧: 余白を最小化し横スワイプを極力減らす */
+    #page-cases .container { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 12px 6px; }
+    #case-table { min-width: 0; }
+    #case-table thead th { padding: 7px 4px; letter-spacing: 0; }
+    #case-table tbody td { padding: 7px 4px; }
+    #case-table .m-tag { white-space: nowrap; font-size:10px; padding:2px 4px; }
+    #case-table .call-chip { font-size:9px; padding:2px 4px; }
+    #case-table .call-quick-btn, #case-table .call-edit-btn { font-size:9px; padding:2px 4px; }
 
     /* 明細パネル・編集モーダルを全幅に */
     .detail-panel, .edit-modal { width: 100% !important; max-width: 100% !important; }
@@ -1937,15 +1944,15 @@
     <table id="case-table">
       <thead>
         <tr>
-          <th style="width:95px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('date')" title="入札日で並べ替え">入札日<span id="sort-arrow-date" style="color:var(--accent);margin-left:3px;"></span></th>
-          <th style="width:80px;">担当者</th>
-          <th style="width:83px;">媒体</th>
-          <th style="width:160px;">顧客名 / TEL</th>
-          <th style="width:240px;">車種</th>
-          <th style="width:108px;">結果フェーズ</th>
-          <th style="width:90px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:3px;"></span></th>
-          <th style="width:175px;">架電プロセス ①〜⑤</th>
-          <th class="center" style="width:38px;">査定</th>
+          <th style="width:64px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('date')" title="入札日で並べ替え">入札日<span id="sort-arrow-date" style="color:var(--accent);margin-left:2px;"></span></th>
+          <th style="width:52px;">担当</th>
+          <th style="width:44px;">媒体</th>
+          <th style="width:120px;">顧客名 / TEL</th>
+          <th style="width:150px;">車種</th>
+          <th style="width:74px;">結果</th>
+          <th style="width:52px;cursor:pointer;user-select:none;" onclick="toggleCaseSort('followup')" title="後追日で並べ替え">後追日<span id="sort-arrow-followup" style="color:var(--accent);margin-left:2px;"></span></th>
+          <th style="width:150px;">架電①〜⑤</th>
+          <th class="center" style="width:30px;">査定</th>
           <th></th>
         </tr>
       </thead>
@@ -3186,18 +3193,18 @@
       if (!callTrail) callTrail = '<span style="color:var(--ink-2);font-size:13px;">未架電</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-family:Arial,monospace;font-size:16px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
-        <td class="editable-cell" title="クリックで担当者を編集" style="font-size:13px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint">✎</span></td>
+        <td style="font-family:Arial,monospace;font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
+        <td class="editable-cell" title="クリックで担当者を編集" style="font-size:12px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint">✎</span></td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td style="white-space:nowrap;">
-          <div style="font-weight:700;font-size:15px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
+          <div style="font-weight:700;font-size:13.5px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
         </td>
-        <td style="font-size:14px;font-weight:500;">${c.car}${c.timing ? `<div style="margin-top:4px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
+        <td style="font-size:13px;font-weight:500;line-height:1.35;">${c.car}${c.timing ? `<div style="margin-top:3px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
         <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
         <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-quick-btn" title="架電結果をワンタップ記録（電話なしでOK）" onclick="event.stopPropagation(); openQuickCall(${c.no});">⚡ 記録</button><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
-        <td class="center" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
+        <td class="center" style="font-family:Arial,serif;font-size:16px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
       `;
       tr.addEventListener('click', () => openDetail(c));
@@ -3267,7 +3274,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810i'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0810j'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
