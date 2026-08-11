@@ -1682,14 +1682,29 @@
     .kpi-grid, .kpi-grid.cols-7 { grid-template-columns: repeat(2, 1fr) !important; }
     .today-banner { padding: 16px !important; }
 
-    /* 案件一覧: 余白を最小化し横スワイプを極力減らす */
-    #page-cases .container { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 12px 6px; }
-    #case-table { min-width: 0; }
-    #case-table thead th { padding: 7px 4px; letter-spacing: 0; }
-    #case-table tbody td { padding: 7px 4px; }
-    #case-table .m-tag { white-space: nowrap; font-size:10px; padding:2px 4px; }
-    #case-table .call-chip { font-size:9px; padding:2px 4px; }
-    #case-table .call-quick-btn, #case-table .call-edit-btn { font-size:9px; padding:2px 4px; }
+    /* 案件一覧: スマホでは表をカード表示にして横スワイプをゼロに（PCは従来の表のまま） */
+    #page-cases .container { overflow-x: visible; padding: 10px 8px; }
+    #case-table { min-width: 0; border: none; background: transparent; font-size: 13px; }
+    #case-table thead { display: none; }
+    #case-table tbody, #case-table tr, #case-table td { display: block; }
+    #case-table tr {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+      border: 1px solid var(--line); border-radius: 9px; background: var(--bg-panel);
+      margin-bottom: 8px; padding: 9px 11px;
+    }
+    #case-table tbody tr:hover { background: var(--bg-panel); }
+    #case-table td { border: none !important; padding: 0 !important; width: auto; }
+    /* 1行目=小さい項目（入札日・担当・媒体・結果・後追日・査定）をまとめる */
+    #case-table td:nth-child(1), #case-table td:nth-child(2), #case-table td:nth-child(3),
+    #case-table td:nth-child(6), #case-table td:nth-child(7), #case-table td:nth-child(9) { order: 1; }
+    /* 顧客名/TEL・車種・架電はそれぞれ横幅いっぱいで改行 */
+    #case-table td:nth-child(4) { order: 2; flex-basis: 100%; }
+    #case-table td:nth-child(5) { order: 3; flex-basis: 100%; padding-top: 2px !important; }
+    #case-table td:nth-child(8) { order: 4; flex-basis: 100%; padding-top: 2px !important; }
+    #case-table td:last-child { display: none; }
+    #case-table .m-tag { font-size: 10px; padding: 2px 5px; }
+    #case-table .call-quick-btn, #case-table .call-edit-btn { font-size: 10px; padding: 3px 8px; }
+    #case-table .followup-cell { font-size: 11px; }
 
     /* 明細パネル・編集モーダルを全幅に */
     .detail-panel, .edit-modal { width: 100% !important; max-width: 100% !important; }
@@ -3274,7 +3289,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810j'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0810k'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
