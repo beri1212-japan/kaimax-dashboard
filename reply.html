@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>お車の査定について</title>
+<style>
+  :root{
+    --accent:#b8312f; --accent-dark:#8f2422; --ink:#2b2622; --ink-2:#6a635c;
+    --ink-3:#9a938b; --line:#e5e0d8; --bg:#f5f3ee; --panel:#ffffff; --green:#3f7a4a;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.7; padding:0 14px 40px;
+  }
+  .wrap{ max-width:460px; margin:0 auto; }
+  header{ text-align:center; padding:22px 0 6px; }
+  .brand{ font-size:20px; font-weight:800; letter-spacing:0.06em; color:var(--accent); }
+  .brand-sub{ font-size:12px; color:var(--ink-3); margin-top:2px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 16px; margin-top:14px; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+  .car-box{ background:#faf8f3; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+  .car-box .lbl{ font-size:11px; color:var(--ink-3); letter-spacing:0.08em; }
+  .car-box .val{ font-size:17px; font-weight:700; margin-top:2px; word-break:break-word; }
+  .lead{ font-size:15px; margin:6px 0 16px; }
+  .q{ font-size:14px; font-weight:700; color:var(--ink-2); margin:2px 0 12px; }
+  .choice{ display:flex; flex-direction:column; gap:10px; }
+  .btn{
+    display:block; width:100%; text-align:left; border:1.5px solid var(--line); background:#fff;
+    border-radius:11px; padding:15px 16px; font-size:16px; font-weight:700; color:var(--ink);
+    cursor:pointer; font-family:inherit; transition:all .12s; line-height:1.4;
+  }
+  .btn small{ display:block; font-weight:400; font-size:12.5px; color:var(--ink-3); margin-top:3px; }
+  .btn:active{ transform:scale(.99); }
+  .btn.sel{ border-color:var(--accent); background:#fdf2f1; }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); text-align:center; font-size:17px; }
+  .btn.primary:disabled{ background:var(--ink-3); border-color:var(--ink-3); opacity:.6; cursor:default; }
+  .btn.ghost{ text-align:center; background:#fff; color:var(--ink-2); font-weight:600; font-size:14px; border-color:var(--line); padding:11px; }
+  .sec{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); }
+  .sec h3{ font-size:15px; margin:0 0 4px; }
+  .sec p.note{ font-size:13px; color:var(--ink-2); margin:0 0 12px; }
+  .field label{ display:block; font-size:13px; font-weight:700; color:var(--ink-2); margin-bottom:6px; }
+  input[type=date]{
+    width:100%; padding:13px 12px; border:1.5px solid var(--line); border-radius:10px;
+    font-size:16px; font-family:inherit; color:var(--ink); background:#fff;
+  }
+  .hint{ font-size:12px; color:var(--ink-3); margin-top:8px; }
+  .hidden{ display:none !important; }
+  .status{ font-size:13px; text-align:center; margin-top:12px; min-height:18px; }
+  .status.err{ color:var(--accent-dark); }
+  .done{ text-align:center; padding:26px 10px; }
+  .done .ico{ font-size:44px; }
+  .done h2{ font-size:20px; margin:8px 0 6px; }
+  .done p{ font-size:14px; color:var(--ink-2); margin:0; }
+  footer{ text-align:center; margin-top:22px; font-size:13px; color:var(--ink-3); }
+  .tel-link{
+    display:inline-flex; align-items:center; gap:7px; margin-top:8px; padding:11px 20px;
+    background:#fff; border:1.5px solid var(--accent); color:var(--accent-dark);
+    border-radius:24px; text-decoration:none; font-weight:700; font-size:15px;
+  }
+  .fine{ font-size:11px; color:var(--ink-3); margin-top:16px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand" id="brand">kaimax 買取査定</div>
+    <div class="brand-sub">お車の査定に関するご確認</div>
+  </header>
+
+  <!-- 質問カード -->
+  <div class="card" id="card-main">
+    <div class="car-box" id="car-box">
+      <div class="lbl">対象のお車</div>
+      <div class="val" id="car-name">お車</div>
+    </div>
+
+    <p class="lead">この度はお問い合わせいただきありがとうございました。<br>その後、ご売却のご検討状況はいかがでしょうか？</p>
+    <div class="q">下から選んでください（1タップ）</div>
+
+    <div class="choice" id="choices">
+      <button class="btn" data-answer="検討中">まだ検討中（査定を希望）
+        <small>無料の出張査定にお伺いします</small></button>
+      <button class="btn" data-answer="売却済">すでに売却した
+        <small>他社・下取りなどで手放した</small></button>
+      <button class="btn" data-answer="売却中止">売却はやめた
+        <small>今回は売らないことにした</small></button>
+    </div>
+
+    <!-- 検討中 → 出張査定の日程 -->
+    <div class="sec hidden" id="sec-visit">
+      <h3>無料の出張査定を承ります</h3>
+      <p class="note">ご指定の日にお伺いします。査定料・出張費は無料、その場で金額をご提示します。</p>
+      <div class="field">
+        <label>ご希望日（目安でOK）</label>
+        <input type="date" id="visit-date">
+        <div class="hint">日程が未定の場合は空欄のままでも送信できます。担当者から折り返しご相談します。</div>
+      </div>
+    </div>
+
+    <!-- 売却済 / 中止 の確認 -->
+    <div class="sec hidden" id="sec-confirm">
+      <p class="note" id="confirm-text"></p>
+    </div>
+
+    <div class="sec hidden" id="sec-submit" style="border-top:none;padding-top:6px;">
+      <button class="btn primary" id="btn-send">送信する</button>
+      <button class="btn ghost" id="btn-back" style="margin-top:8px;">選び直す</button>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <!-- 完了画面 -->
+  <div class="card hidden" id="card-done">
+    <div class="done">
+      <div class="ico">✅</div>
+      <h2 id="done-title">送信しました</h2>
+      <p id="done-text">ありがとうございました。</p>
+    </div>
+  </div>
+
+  <footer>
+    <div>ご不明な点はお電話でも承ります</div>
+    <a class="tel-link" id="tel-link" href="#">📞 <span id="tel-text">お電話する</span></a>
+    <div class="fine" id="fine">
+      ※このページはお客様専用のご確認ページです。<br>
+      出張査定（訪問買取）にはクーリング・オフ制度が適用されます。詳細は査定時にご案内します。
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+ * 設定（ここだけ書き換えてください）
+ * ============================================================ */
+var ENDPOINT = 'PASTE_GAS_WEBAPP_URL_HERE'; // STEP1でコピーしたGASウェブアプリのURL
+var TEL      = '0766000000';                // 代表電話（ハイフンなし）
+var KEY      = 'indio9700';                 // GASの SECRET_KEY と一致させる
+var BRAND    = 'kaimax 買取査定';            // ページ上部の表示名（任意）
+/* ============================================================ */
+
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function qp(name){
+    var m = new RegExp('[?&]' + name + '=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : '';
+  }
+
+  var ID   = qp('id');
+  var CAR  = qp('car');
+  var TELp = (qp('tel') || TEL).replace(/[^0-9+]/g,'');
+
+  // 画面初期化
+  $('brand').textContent = BRAND;
+  if (CAR) { $('car-name').textContent = CAR; } else { $('car-box').classList.add('hidden'); }
+  $('tel-link').href = 'tel:' + TELp;
+  $('tel-text').textContent = TELp.replace(/^(\d{2,4})(\d{3,4})(\d{3,4})$/, '$1-$2-$3');
+
+  var picked = '';
+
+  function selectAnswer(ans){
+    picked = ans;
+    // ボタンのハイライト
+    var btns = document.querySelectorAll('#choices .btn');
+    for (var i=0;i<btns.length;i++){ btns[i].classList.toggle('sel', btns[i].getAttribute('data-answer')===ans); }
+    // セクション表示切替
+    $('sec-visit').classList.toggle('hidden', ans!=='検討中');
+    $('sec-confirm').classList.toggle('hidden', ans==='検討中');
+    if (ans==='売却済') $('confirm-text').textContent = 'すでにご売却済みとして承ります。今後のご連絡は控えさせていただきます。';
+    if (ans==='売却中止') $('confirm-text').textContent = '今回はご売却を見送りとして承ります。またの機会にご相談ください。';
+    $('sec-submit').classList.remove('hidden');
+    $('status').textContent = '';
+    // 送信ボタンまでスクロール
+    $('sec-submit').scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  var choiceBtns = document.querySelectorAll('#choices .btn');
+  for (var i=0;i<choiceBtns.length;i++){
+    choiceBtns[i].addEventListener('click', function(){ selectAnswer(this.getAttribute('data-answer')); });
+  }
+
+  $('btn-back').addEventListener('click', function(){
+    picked='';
+    $('sec-visit').classList.add('hidden');
+    $('sec-confirm').classList.add('hidden');
+    $('sec-submit').classList.add('hidden');
+    var b=document.querySelectorAll('#choices .btn'); for (var k=0;k<b.length;k++) b[k].classList.remove('sel');
+    $('card-main').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  var sending = false;
+  $('btn-send').addEventListener('click', function(){
+    if (sending || !picked) return;
+    sending = true;
+    var sendBtn = $('btn-send');
+    sendBtn.disabled = true; sendBtn.textContent = '送信中…';
+    $('status').className = 'status'; $('status').textContent = '';
+
+    var payload = {
+      secret: KEY,
+      action: 'reply',
+      id: ID,
+      car: CAR,
+      answer: picked,
+      visit: (picked==='検討中'),
+      date: (picked==='検討中') ? ($('visit-date').value || '') : '',
+      ua: navigator.userAgent.slice(0,120)
+    };
+
+    postReply(payload, 0);
+  });
+
+  function postReply(payload, attempt){
+    fetch(ENDPOINT, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect:'follow'
+    }).then(function(res){ return res.text(); })
+      .then(function(txt){
+        var ok = true;
+        try { var j = JSON.parse(txt); ok = (j.status === 'success'); } catch(e){ ok = true; /* 応答が読めなくても保存はされている前提で完了扱い */ }
+        if (ok) { showDone(); }
+        else { fail('送信に失敗しました。お手数ですがお電話でご連絡ください。'); }
+      })
+      .catch(function(){
+        if (attempt < 2) { setTimeout(function(){ postReply(payload, attempt+1); }, 1200); }
+        else { fail('通信環境をご確認のうえ、もう一度お試しください。'); }
+      });
+  }
+
+  function fail(msg){
+    sending = false;
+    var sendBtn = $('btn-send');
+    sendBtn.disabled = false; sendBtn.textContent = '送信する';
+    $('status').className = 'status err'; $('status').textContent = msg;
+  }
+
+  function showDone(){
+    $('card-main').classList.add('hidden');
+    var done = $('card-done'); done.classList.remove('hidden');
+    if (picked==='検討中'){
+      $('done-title').textContent = '出張査定のお申し込みを受け付けました';
+      $('done-text').textContent = '担当者より日程のご連絡をいたします。少々お待ちください。';
+    } else {
+      $('done-title').textContent = 'ご回答ありがとうございました';
+      $('done-text').textContent = '今後ともよろしくお願いいたします。';
+    }
+    window.scrollTo(0,0);
+  }
+})();
+</script>
+</body>
+</html>
