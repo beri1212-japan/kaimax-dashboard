@@ -27,132 +27,132 @@
       linear-gradient(165deg, #14173C 0%, #20255F 55%, #2A3080 100%);
     background-attachment:fixed;
     color:var(--ink);
-    font-size:16px;
-    line-height:1.7;
+    font-size:18px;
+    line-height:1.75;
     -webkit-text-size-adjust:100%;
   }
-  .wrap{max-width:520px;margin:0 auto;background:var(--white);min-height:100vh;box-shadow:0 0 60px rgba(6,22,48,.35)}
+  .wrap{max-width:560px;margin:0 auto;background:var(--white);min-height:100vh;box-shadow:0 0 60px rgba(6,22,48,.35)}
   header{
     position:relative;overflow:hidden;
-    padding:22px 20px 20px;
+    padding:26px 24px 24px;
     background:linear-gradient(150deg,var(--brand1) 0%,var(--brand2) 100%);
     color:#fff;
   }
   /* ヘッダーの装飾（斜めの光の帯＋淡い円） */
   header::before{
-    content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;
+    content:"";position:absolute;right:-60px;top:-70px;width:230px;height:230px;
     background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);
   }
   header::after{
-    content:"";position:absolute;left:-40px;bottom:-90px;width:180px;height:180px;
+    content:"";position:absolute;left:-40px;bottom:-90px;width:190px;height:190px;
     border:26px solid rgba(255,255,255,.06);border-radius:50%;
   }
   .logo-wrap{
     position:relative;z-index:1;display:inline-flex;align-items:center;
-    margin:0 0 16px;background:#fff;padding:10px 16px;border-radius:12px;
+    margin:0 0 18px;background:#fff;padding:12px 18px;border-radius:13px;
     box-shadow:0 5px 16px rgba(6,10,40,.28);
   }
-  .logo-wrap img{height:42px;width:auto;display:block}
+  .logo-wrap img{height:50px;width:auto;display:block}
   .logo-fallback{
     display:inline-flex;align-items:baseline;gap:3px;
     background:#fff;color:var(--brand1);border-radius:9px;
-    padding:7px 13px;font-weight:900;letter-spacing:.06em;font-size:19px;line-height:1;
+    padding:8px 15px;font-weight:900;letter-spacing:.06em;font-size:22px;line-height:1;
     box-shadow:0 3px 10px rgba(0,0,0,.18);
   }
-  .logo-fallback span{font-size:12px;font-weight:800;letter-spacing:.02em}
-  h1.company{position:relative;z-index:1;font-size:26px;line-height:1.3;margin:0 0 10px;font-weight:800;letter-spacing:.02em;color:#fff}
-  h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
-  .lead{position:relative;z-index:1;margin:0;font-size:14px;color:rgba(255,255,255,.92)}
+  .logo-fallback span{font-size:14px;font-weight:800;letter-spacing:.02em}
+  h1.company{position:relative;z-index:1;font-size:32px;line-height:1.28;margin:0 0 12px;font-weight:800;letter-spacing:.02em;color:#fff}
+  h1{font-size:23px;line-height:1.45;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+  .lead{position:relative;z-index:1;margin:0;font-size:16.5px;line-height:1.7;color:rgba(255,255,255,.94)}
   .lead b{color:#BFE0FF!important}
   .car{
     position:relative;z-index:1;
-    margin:15px 0 0;padding:11px 14px;background:rgba(255,255,255,.14);
+    margin:17px 0 0;padding:13px 16px;background:rgba(255,255,255,.14);
     border:1px solid rgba(255,255,255,.22);
-    border-radius:10px;font-size:14px;font-weight:700;color:#fff;
+    border-radius:10px;font-size:16.5px;font-weight:700;color:#fff;
   }
-  .car span{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.08em;margin-bottom:2px}
+  .car span{display:block;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.08em;margin-bottom:3px}
   /* 選ばれる理由バンド */
-  .reasons{padding:16px 20px 4px;background:var(--accent-soft)}
-  .reasons-h{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.06em;margin:0 0 11px;text-align:center}
-  .reasons-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-  .reason{background:var(--white);border-radius:10px;padding:11px 12px;border:1px solid #CFE0F4}
-  .reason b{display:block;font-size:13px;font-weight:800;color:var(--ink);line-height:1.35}
-  .reason small{display:block;font-size:11px;color:var(--sub);line-height:1.45;margin-top:3px}
-  main{padding:8px 20px 40px}
+  .reasons{padding:20px 24px 8px;background:var(--accent-soft)}
+  .reasons-h{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:.06em;margin:0 0 13px;text-align:center}
+  .reasons-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .reason{background:var(--white);border-radius:11px;padding:14px 14px;border:1px solid #CFE0F4}
+  .reason b{display:block;font-size:16px;font-weight:800;color:var(--ink);line-height:1.35}
+  .reason small{display:block;font-size:13.5px;color:var(--sub);line-height:1.5;margin-top:4px}
+  main{padding:10px 24px 46px}
   .reassure{
-    margin:14px 0 0;padding:12px 14px;background:var(--accent-soft);
-    border-radius:10px;font-size:12.5px;color:#244A7A;line-height:1.6;font-weight:600;
+    margin:16px 0 0;padding:14px 16px;background:var(--accent-soft);
+    border-radius:11px;font-size:15px;color:#2A3080;line-height:1.65;font-weight:600;
   }
-  .block{padding:22px 0;border-bottom:1px solid var(--line)}
+  .block{padding:26px 0;border-bottom:1px solid var(--line)}
   .block:last-of-type{border-bottom:0}
-  .q{font-size:15px;font-weight:700;margin:0 0 4px}
-  .hint{font-size:13px;color:var(--sub);margin:0 0 14px}
+  .q{font-size:19px;font-weight:800;margin:0 0 5px}
+  .hint{font-size:15.5px;color:var(--sub);margin:0 0 16px}
   .req{
-    display:inline-block;margin-left:7px;font-size:10px;font-weight:700;
-    color:var(--accent);border:1px solid var(--accent);border-radius:3px;
-    padding:1px 5px;vertical-align:2px;letter-spacing:.04em;
+    display:inline-block;margin-left:8px;font-size:12px;font-weight:700;
+    color:var(--accent);border:1px solid var(--accent);border-radius:4px;
+    padding:2px 6px;vertical-align:2px;letter-spacing:.04em;
   }
-  .cards{display:grid;gap:9px}
+  .cards{display:grid;gap:11px}
   .card{
-    display:block;position:relative;padding:15px 46px 15px 16px;
+    display:block;position:relative;padding:18px 52px 18px 18px;
     border:1.5px solid var(--line);border-radius:var(--radius);
     background:var(--white);cursor:pointer;transition:border-color .12s,background .12s;
   }
   .card input{position:absolute;opacity:0;pointer-events:none}
-  .card .t{font-size:15px;font-weight:700;display:block}
-  .card .d{font-size:12.5px;color:var(--sub);display:block;margin-top:2px}
+  .card .t{font-size:18px;font-weight:800;display:block;line-height:1.4}
+  .card .d{font-size:15px;color:var(--sub);display:block;margin-top:3px;line-height:1.5}
   .card::after{
-    content:"";position:absolute;right:16px;top:50%;transform:translateY(-50%);
-    width:20px;height:20px;border:1.5px solid var(--line);border-radius:50%;
+    content:"";position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    width:24px;height:24px;border:1.5px solid var(--line);border-radius:50%;
   }
   .card:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
   .card:has(input:checked)::after{
     border-color:var(--accent);background:var(--accent);
-    box-shadow:inset 0 0 0 3.5px var(--accent-soft);
+    box-shadow:inset 0 0 0 4px var(--accent-soft);
   }
   .card:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{position:relative;flex:1 1 calc(50% - 4px)}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{position:relative;flex:1 1 calc(50% - 5px)}
   .chip input{position:absolute;opacity:0;pointer-events:none}
   .chip span{
-    display:block;text-align:center;padding:12px 6px;font-size:14px;font-weight:600;
-    border:1.5px solid var(--line);border-radius:10px;cursor:pointer;
+    display:block;text-align:center;padding:15px 6px;font-size:17px;font-weight:700;
+    border:1.5px solid var(--line);border-radius:11px;cursor:pointer;
   }
   .chip input:checked + span{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
   .chip input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
-  label.f{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}
-  input[type=date],input[type=text],textarea{
-    width:100%;padding:13px 14px;font-size:16px;font-family:inherit;color:var(--ink);
-    border:1.5px solid var(--line);border-radius:10px;background:var(--white);
+  label.f{display:block;font-size:15.5px;font-weight:700;margin:18px 0 8px}
+  input[type=date],input[type=text],input[type=email],textarea{
+    width:100%;padding:15px 15px;font-size:17px;font-family:inherit;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:11px;background:var(--white);
   }
   input:focus,textarea:focus{outline:none;border-color:var(--accent)}
-  textarea{min-height:88px;resize:vertical;line-height:1.6}
+  textarea{min-height:100px;resize:vertical;line-height:1.6}
   #schedule{display:none}
   #schedule.on{display:block}
   .submit{
-    width:100%;margin-top:26px;padding:17px;border:0;border-radius:12px;
-    background:var(--accent);color:#fff;font-size:16.5px;font-weight:700;
-    font-family:inherit;cursor:pointer;letter-spacing:.02em;
+    width:100%;margin-top:30px;padding:20px;border:0;border-radius:13px;
+    background:var(--accent);color:#fff;font-size:20px;font-weight:800;
+    font-family:inherit;cursor:pointer;letter-spacing:.03em;
   }
   .submit:disabled{background:#9AA3AC;cursor:default}
-  .note{font-size:12px;color:var(--sub);text-align:center;margin:14px 0 0;line-height:1.6}
+  .note{font-size:14px;color:var(--sub);text-align:center;margin:16px 0 0;line-height:1.65}
   .err{
-    display:none;margin-top:14px;padding:12px 14px;border-radius:10px;
-    background:#FDECEC;color:#9B2226;font-size:13.5px;font-weight:600;
+    display:none;margin-top:16px;padding:14px 16px;border-radius:11px;
+    background:#FDECEC;color:#9B2226;font-size:15.5px;font-weight:600;
   }
   .err.on{display:block}
-  footer{padding:20px;border-top:1px solid var(--line);font-size:12px;color:var(--sub)}
+  footer{padding:22px 24px;border-top:1px solid var(--line);font-size:14px;line-height:1.7;color:var(--sub)}
   footer a{color:var(--accent);font-weight:700;text-decoration:none}
   /* 完了画面 */
-  #done{display:none;padding:56px 24px;text-align:center}
+  #done{display:none;padding:64px 26px;text-align:center}
   #done.on{display:block}
   .mark{
-    width:56px;height:56px;margin:0 auto 20px;border-radius:50%;
+    width:64px;height:64px;margin:0 auto 22px;border-radius:50%;
     background:var(--accent-soft);color:var(--accent);
-    display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:31px;font-weight:700;
   }
-  #done h2{font-size:20px;margin:0 0 10px}
-  #done p{font-size:14.5px;color:var(--sub);margin:0 0 6px}
+  #done h2{font-size:24px;margin:0 0 12px}
+  #done p{font-size:16.5px;color:var(--sub);margin:0 0 7px;line-height:1.7}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -235,7 +235,7 @@
     <footer>
       株式会社インディオ富山<br>
       富山県富山市大町64-1<br>
-      お急ぎの場合は <a id="telLink" href="#" style="color:#c0272d;font-weight:800;font-size:15px;">076-495-9700</a>（ガイダンスが流れますので⑤をプッシュ）でも賜ります。
+      お急ぎの場合は <a id="telLink" href="#" style="color:#c0272d;font-weight:800;font-size:18px;">076-495-9700</a>（ガイダンスが流れますので⑤をプッシュ）でも賜ります。
     </footer>
   </div>
   <div id="done">
