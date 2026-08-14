@@ -758,6 +758,19 @@
   .msg-tpl-btn:hover { background:var(--bg-soft); border-color:var(--accent-soft); }
   .msg-tpl-btn .mt-label { display:block; font-size:14px; font-weight:700; color:var(--ink); }
   .msg-tpl-btn .mt-prev { display:block; font-size:11.5px; color:var(--ink-3); margin-top:3px; line-height:1.45; white-space:normal; }
+  /* 顧客回答一覧モーダル */
+  .qc-modal.rep-modal { max-width: 520px; }
+  .rep-list { display:flex; flex-direction:column; gap:10px; max-height:66vh; overflow-y:auto; padding-top:4px; }
+  .rep-item { border:1px solid var(--line); border-radius:10px; padding:11px 13px; background:#fff; }
+  .rep-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .rep-dt { font-size:11px; color:var(--ink-3); font-family:Arial,monospace; }
+  .rep-name { font-size:15px; font-weight:700; margin-top:6px; }
+  .rep-name .rep-car { font-size:12.5px; font-weight:500; color:var(--ink-2); margin-left:6px; }
+  .rep-line { font-size:12.5px; color:var(--ink-2); margin-top:4px; line-height:1.5; }
+  .rep-memo { background:var(--bg-soft); border-radius:6px; padding:6px 8px; }
+  .rep-actions { display:flex; gap:8px; margin-top:9px; flex-wrap:wrap; }
+  .rep-btn { font-size:12px; font-weight:700; padding:6px 12px; border:1px solid var(--accent-soft); background:#fff; color:var(--accent-dark); border-radius:7px; cursor:pointer; text-decoration:none; }
+  .rep-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
   .reply-badge { display:inline-block; font-size:10.5px; font-weight:700; background:#0B5D4E; color:#fff; border-radius:6px; padding:2px 7px; white-space:nowrap; }
   .reply-badge.off { background:#9AA3AC; }
   /* 顧客回答=売却済み/中止の行をグレーアウト */
@@ -1744,6 +1757,7 @@
     <span style="color:#5d5d5d;">最終更新 <span id="last-update">読み込み中...</span></span>
     <span id="outbox-badge" style="display:none;background:#c88a30;color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:10px;"></span>
     <span id="app-build" style="color:#8a8a8a;font-size:11px;">ver —</span>
+    <button onclick="openReplies()" style="padding:4px 12px;background:#0B5D4E;color:#fff;border:1px solid #0B5D4E;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;border-radius:4px;" title="お客様からの回答一覧">📩 顧客回答 <span id="replies-count" style="display:none;"></span></button>
     <button onclick="initDashboard()" style="padding:4px 12px;background:transparent;color:#d8d3c7;border:1px solid #555;cursor:pointer;font-family:inherit;font-size:13px;" title="データを再読込">↻ 更新</button>
   </div>
 </header>
@@ -3320,7 +3334,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0814e'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0814f'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -3525,6 +3539,51 @@
     }
     o.onclick = pick;
     o.onpointerup = pick;
+  };
+
+  // ===== 顧客回答一覧（お客様がreply.htmlから返した内容） =====
+  const REPLY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?gid=1266986413&single=true&output=csv';
+  function replyStatusClass(s) { return /売却済み|売却中止|売却をやめた|すでに売却/.test(s) ? 'off' : ''; }
+  window.openReplies = async function () {
+    let o = document.getElementById('replies-overlay');
+    if (!o) { o = document.createElement('div'); o.id = 'replies-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
+    o.innerHTML = `<div class="qc-modal rep-modal"><div class="qc-head">📩 顧客回答一覧 <button class="qc-x" data-rc="close">×</button></div><div class="rep-list"><div style="padding:20px;text-align:center;color:var(--ink-3);">読み込み中…</div></div></div>`;
+    o.classList.add('show');
+    o.onclick = function (ev) { const t = ev.target; if (t && t.closest && (t.closest('[data-rc="close"]') || !t.closest('.qc-modal'))) o.classList.remove('show'); };
+    let text = null;
+    for (let a = 0; a < 3 && text == null; a++) {
+      try { const r = await fetch(REPLY_CSV_URL + '&_=' + Date.now() + '_' + a); if (r.ok) { const t = await r.text(); if (t && !/^\s*</.test(t)) text = t; } } catch (e) {}
+      if (text == null) await new Promise(r => setTimeout(r, 500 * (a + 1)));
+    }
+    const listEl = o.querySelector('.rep-list');
+    if (text == null) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">読み込みに失敗しました。もう一度お試しください。</div>'; return; }
+    const rows = parseCSV(text);
+    if (rows.length < 2) { listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-3);">まだ回答はありません。</div>'; return; }
+    const H = rows[0].map(x => String(x || '').trim());
+    const col = (name) => H.indexOf(name);
+    const ci = { dt: col('受信日時'), id: col('案件ID'), name: col('顧客名'), car: col('車種'), status: col('状況'), method: col('査定方法'), date: col('希望日'), time: col('時間帯'), contact: col('連絡方法'), email: col('メール'), memo: col('ご要望'), tel: col('TEL') };
+    const items = rows.slice(1).filter(r => r && (r[ci.status] || r[ci.name])).reverse(); // 新しい順
+    const cnt = document.getElementById('replies-count'); if (cnt) { cnt.textContent = '(' + items.length + ')'; cnt.style.display = 'inline'; }
+    const g = (r, k) => ci[k] >= 0 ? String(r[ci[k]] || '').trim() : '';
+    listEl.innerHTML = items.map(r => {
+      const st = g(r, 'status');
+      const sched = [g(r, 'method'), g(r, 'date'), g(r, 'time')].filter(Boolean).join(' / ');
+      const contact = [g(r, 'contact'), g(r, 'email')].filter(Boolean).join('：');
+      const idv = g(r, 'id');
+      return `<div class="rep-item">
+        <div class="rep-top"><span class="reply-badge ${replyStatusClass(st)}">${st || '—'}</span><span class="rep-dt">${g(r, 'dt')}</span></div>
+        <div class="rep-name">${g(r, 'name') || '(顧客名未取得)'} <span class="rep-car">${g(r, 'car')}</span></div>
+        ${sched ? `<div class="rep-line">🗓 ${sched}</div>` : ''}
+        ${contact ? `<div class="rep-line">📞 希望: ${contact}</div>` : ''}
+        ${g(r, 'memo') ? `<div class="rep-line rep-memo">💬 ${g(r, 'memo').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>` : ''}
+        <div class="rep-actions">${g(r, 'tel') ? `<a class="rep-btn" href="tel:${g(r, 'tel').replace(/[^0-9+]/g, '')}">📞 ${g(r, 'tel')}</a>` : ''}${idv ? `<button class="rep-btn" onclick="openCaseById('${idv}')">案件を開く</button>` : ''}</div>
+      </div>`;
+    }).join('');
+  };
+  window.openCaseById = function (id) {
+    const c = (allCases || []).find(x => String(x.no) === String(id));
+    const ro = document.getElementById('replies-overlay'); if (ro) ro.classList.remove('show');
+    if (c) openDetail(c);
   };
 
   window.openQuickCall = function (no) {
