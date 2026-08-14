@@ -158,7 +158,12 @@ var BRAND    = 'kaimax 買取査定';            // ページ上部の表示名�
   $('brand').textContent = BRAND;
   if (CAR) { $('car-name').textContent = CAR; } else { $('car-box').classList.add('hidden'); }
   $('tel-link').href = 'tel:' + TELp;
-  $('tel-text').textContent = TELp.replace(/^(\d{2,4})(\d{3,4})(\d{3,4})$/, '$1-$2-$3');
+  $('tel-text').textContent = fmtTel(TELp);
+  function fmtTel(t){
+    if (t.length === 11) return t.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'); // 携帯 090-1234-5678
+    if (t.length === 10) return t.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'); // 固定 076-600-0000
+    return t;
+  }
 
   var picked = '';
 
