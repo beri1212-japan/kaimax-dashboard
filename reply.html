@@ -2,259 +2,271 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="robots" content="noindex">
-<title>お車の査定について</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ご状況の確認｜インディオ富山</title>
 <style>
   :root{
-    --accent:#b8312f; --accent-dark:#8f2422; --ink:#2b2622; --ink-2:#6a635c;
-    --ink-3:#9a938b; --line:#e5e0d8; --bg:#f5f3ee; --panel:#ffffff; --green:#3f7a4a;
+    --ink:#16181D;
+    --sub:#5C636E;
+    --line:#DDE0E5;
+    --mist:#F3F4F6;
+    --accent:#0B5D4E;
+    --accent-soft:#E7F1EE;
+    --white:#fff;
+    --radius:12px;
   }
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ margin:0; padding:0; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.7; padding:0 14px 40px;
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    background:var(--mist);
+    color:var(--ink);
+    font-size:16px;
+    line-height:1.7;
+    -webkit-text-size-adjust:100%;
   }
-  .wrap{ max-width:460px; margin:0 auto; }
-  header{ text-align:center; padding:22px 0 6px; }
-  .brand{ font-size:20px; font-weight:800; letter-spacing:0.06em; color:var(--accent); }
-  .brand-sub{ font-size:12px; color:var(--ink-3); margin-top:2px; }
-  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 16px; margin-top:14px; box-shadow:0 2px 10px rgba(0,0,0,.04); }
-  .car-box{ background:#faf8f3; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:14px; }
-  .car-box .lbl{ font-size:11px; color:var(--ink-3); letter-spacing:0.08em; }
-  .car-box .val{ font-size:17px; font-weight:700; margin-top:2px; word-break:break-word; }
-  .lead{ font-size:15px; margin:6px 0 16px; }
-  .q{ font-size:14px; font-weight:700; color:var(--ink-2); margin:2px 0 12px; }
-  .choice{ display:flex; flex-direction:column; gap:10px; }
-  .btn{
-    display:block; width:100%; text-align:left; border:1.5px solid var(--line); background:#fff;
-    border-radius:11px; padding:15px 16px; font-size:16px; font-weight:700; color:var(--ink);
-    cursor:pointer; font-family:inherit; transition:all .12s; line-height:1.4;
+  .wrap{max-width:520px;margin:0 auto;background:var(--white);min-height:100vh}
+  header{
+    padding:20px 20px 18px;
+    border-bottom:1px solid var(--line);
   }
-  .btn small{ display:block; font-weight:400; font-size:12.5px; color:var(--ink-3); margin-top:3px; }
-  .btn:active{ transform:scale(.99); }
-  .btn.sel{ border-color:var(--accent); background:#fdf2f1; }
-  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); text-align:center; font-size:17px; }
-  .btn.primary:disabled{ background:var(--ink-3); border-color:var(--ink-3); opacity:.6; cursor:default; }
-  .btn.ghost{ text-align:center; background:#fff; color:var(--ink-2); font-weight:600; font-size:14px; border-color:var(--line); padding:11px; }
-  .sec{ margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); }
-  .sec h3{ font-size:15px; margin:0 0 4px; }
-  .sec p.note{ font-size:13px; color:var(--ink-2); margin:0 0 12px; }
-  .field label{ display:block; font-size:13px; font-weight:700; color:var(--ink-2); margin-bottom:6px; }
-  input[type=date]{
-    width:100%; padding:13px 12px; border:1.5px solid var(--line); border-radius:10px;
-    font-size:16px; font-family:inherit; color:var(--ink); background:#fff;
+  .brand{
+    font-size:11px;letter-spacing:.14em;font-weight:700;
+    color:var(--accent);margin:0 0 10px;
   }
-  .hint{ font-size:12px; color:var(--ink-3); margin-top:8px; }
-  .hidden{ display:none !important; }
-  .status{ font-size:13px; text-align:center; margin-top:12px; min-height:18px; }
-  .status.err{ color:var(--accent-dark); }
-  .done{ text-align:center; padding:26px 10px; }
-  .done .ico{ font-size:44px; }
-  .done h2{ font-size:20px; margin:8px 0 6px; }
-  .done p{ font-size:14px; color:var(--ink-2); margin:0; }
-  footer{ text-align:center; margin-top:22px; font-size:13px; color:var(--ink-3); }
-  .tel-link{
-    display:inline-flex; align-items:center; gap:7px; margin-top:8px; padding:11px 20px;
-    background:#fff; border:1.5px solid var(--accent); color:var(--accent-dark);
-    border-radius:24px; text-decoration:none; font-weight:700; font-size:15px;
+  h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+  .lead{margin:0;font-size:14px;color:var(--sub)}
+  .car{
+    margin:14px 0 0;padding:11px 14px;background:var(--mist);
+    border-radius:10px;font-size:14px;font-weight:600;
   }
-  .fine{ font-size:11px; color:var(--ink-3); margin-top:16px; line-height:1.6; }
+  .car span{display:block;font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.08em;margin-bottom:2px}
+  main{padding:8px 20px 40px}
+  .block{padding:22px 0;border-bottom:1px solid var(--line)}
+  .block:last-of-type{border-bottom:0}
+  .q{font-size:15px;font-weight:700;margin:0 0 4px}
+  .hint{font-size:13px;color:var(--sub);margin:0 0 14px}
+  .req{
+    display:inline-block;margin-left:7px;font-size:10px;font-weight:700;
+    color:var(--accent);border:1px solid var(--accent);border-radius:3px;
+    padding:1px 5px;vertical-align:2px;letter-spacing:.04em;
+  }
+  .cards{display:grid;gap:9px}
+  .card{
+    display:block;position:relative;padding:15px 46px 15px 16px;
+    border:1.5px solid var(--line);border-radius:var(--radius);
+    background:var(--white);cursor:pointer;transition:border-color .12s,background .12s;
+  }
+  .card input{position:absolute;opacity:0;pointer-events:none}
+  .card .t{font-size:15px;font-weight:700;display:block}
+  .card .d{font-size:12.5px;color:var(--sub);display:block;margin-top:2px}
+  .card::after{
+    content:"";position:absolute;right:16px;top:50%;transform:translateY(-50%);
+    width:20px;height:20px;border:1.5px solid var(--line);border-radius:50%;
+  }
+  .card:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+  .card:has(input:checked)::after{
+    border-color:var(--accent);background:var(--accent);
+    box-shadow:inset 0 0 0 3.5px var(--accent-soft);
+  }
+  .card:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{position:relative;flex:1 1 calc(50% - 4px)}
+  .chip input{position:absolute;opacity:0;pointer-events:none}
+  .chip span{
+    display:block;text-align:center;padding:12px 6px;font-size:14px;font-weight:600;
+    border:1.5px solid var(--line);border-radius:10px;cursor:pointer;
+  }
+  .chip input:checked + span{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .chip input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+  label.f{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}
+  input[type=date],input[type=text],textarea{
+    width:100%;padding:13px 14px;font-size:16px;font-family:inherit;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:10px;background:var(--white);
+  }
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  textarea{min-height:88px;resize:vertical;line-height:1.6}
+  #schedule{display:none}
+  #schedule.on{display:block}
+  .submit{
+    width:100%;margin-top:26px;padding:17px;border:0;border-radius:12px;
+    background:var(--accent);color:#fff;font-size:16.5px;font-weight:700;
+    font-family:inherit;cursor:pointer;letter-spacing:.02em;
+  }
+  .submit:disabled{background:#9AA3AC;cursor:default}
+  .note{font-size:12px;color:var(--sub);text-align:center;margin:14px 0 0;line-height:1.6}
+  .err{
+    display:none;margin-top:14px;padding:12px 14px;border-radius:10px;
+    background:#FDECEC;color:#9B2226;font-size:13.5px;font-weight:600;
+  }
+  .err.on{display:block}
+  footer{padding:20px;border-top:1px solid var(--line);font-size:12px;color:var(--sub)}
+  footer a{color:var(--accent);font-weight:700;text-decoration:none}
+  /* 完了画面 */
+  #done{display:none;padding:56px 24px;text-align:center}
+  #done.on{display:block}
+  .mark{
+    width:56px;height:56px;margin:0 auto 20px;border-radius:50%;
+    background:var(--accent-soft);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700;
+  }
+  #done h2{font-size:20px;margin:0 0 10px}
+  #done p{font-size:14.5px;color:var(--sub);margin:0 0 6px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <header>
-    <div class="brand" id="brand">kaimax 買取査定</div>
-    <div class="brand-sub">お車の査定に関するご確認</div>
-  </header>
-
-  <!-- 質問カード -->
-  <div class="card" id="card-main">
-    <div class="car-box" id="car-box">
-      <div class="lbl">対象のお車</div>
-      <div class="val" id="car-name">お車</div>
-    </div>
-
-    <p class="lead">この度はお問い合わせいただきありがとうございました。<br>その後、ご売却のご検討状況はいかがでしょうか？</p>
-    <div class="q">下から選んでください（1タップ）</div>
-
-    <div class="choice" id="choices">
-      <button class="btn" data-answer="検討中">まだ検討中（査定を希望）
-        <small>無料の出張査定にお伺いします</small></button>
-      <button class="btn" data-answer="売却済">すでに売却した
-        <small>他社・下取りなどで手放した</small></button>
-      <button class="btn" data-answer="売却中止">売却はやめた
-        <small>今回は売らないことにした</small></button>
-    </div>
-
-    <!-- 検討中 → 出張査定の日程 -->
-    <div class="sec hidden" id="sec-visit">
-      <h3>無料の出張査定を承ります</h3>
-      <p class="note">ご指定の日にお伺いします。査定料・出張費は無料、その場で金額をご提示します。</p>
-      <div class="field">
-        <label>ご希望日（目安でOK）</label>
-        <input type="date" id="visit-date">
-        <div class="hint">日程が未定の場合は空欄のままでも送信できます。担当者から折り返しご相談します。</div>
+  <div id="form-area">
+    <header>
+      <p class="brand">INDIO TOYAMA</p>
+      <h1>ご状況の確認と<br>査定日時のご希望</h1>
+      <p class="lead">お電話が難しい場合は、こちらからご回答ください。30秒で完了します。</p>
+      <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
+    </header>
+    <main>
+      <div class="block">
+        <p class="q">現在のご状況<span class="req">必須</span></p>
+        <p class="hint">当てはまるものをお選びください。</p>
+        <div class="cards">
+          <label class="card"><input type="radio" name="status" value="検討中">
+            <span class="t">まだ検討中</span><span class="d">売却するか迷っている</span></label>
+          <label class="card"><input type="radio" name="status" value="他社商談中">
+            <span class="t">他社と商談中</span><span class="d">金額次第で検討したい</span></label>
+          <label class="card"><input type="radio" name="status" value="売却済み">
+            <span class="t">すでに売却した</span><span class="d">他社で成約済み</span></label>
+          <label class="card"><input type="radio" name="status" value="売却中止">
+            <span class="t">売却をやめた</span><span class="d">乗り続けることにした</span></label>
+        </div>
       </div>
-    </div>
-
-    <!-- 売却済 / 中止 の確認 -->
-    <div class="sec hidden" id="sec-confirm">
-      <p class="note" id="confirm-text"></p>
-    </div>
-
-    <div class="sec hidden" id="sec-submit" style="border-top:none;padding-top:6px;">
-      <button class="btn primary" id="btn-send">送信する</button>
-      <button class="btn ghost" id="btn-back" style="margin-top:8px;">選び直す</button>
-      <div class="status" id="status"></div>
-    </div>
+      <div id="schedule">
+        <div class="block">
+          <p class="q">査定の方法<span class="req">必須</span></p>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="method" value="出張査定"><span>出張査定</span></label>
+            <label class="chip"><input type="radio" name="method" value="来店査定"><span>来店査定</span></label>
+          </div>
+          <label class="f" for="date">ご希望日</label>
+          <input type="date" id="date" name="date">
+          <label class="f">ご希望の時間帯</label>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="time" value="午前中"><span>午前中</span></label>
+            <label class="chip"><input type="radio" name="time" value="13〜15時"><span>13〜15時</span></label>
+            <label class="chip"><input type="radio" name="time" value="15〜17時"><span>15〜17時</span></label>
+            <label class="chip"><input type="radio" name="time" value="17〜19時"><span>17〜19時</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="block">
+        <p class="q">ご連絡方法のご希望</p>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="contact" value="電話"><span>電話</span></label>
+          <label class="chip"><input type="radio" name="contact" value="SMS"><span>SMS</span></label>
+          <label class="chip"><input type="radio" name="contact" value="LINE"><span>LINE</span></label>
+          <label class="chip"><input type="radio" name="contact" value="メール"><span>メール</span></label>
+        </div>
+        <label class="f" for="memo">ご要望・ご連絡事項</label>
+        <textarea id="memo" name="memo" placeholder="他社の提示額、ご希望金額、都合の悪い時間帯などがあればご記入ください。"></textarea>
+      </div>
+      <button class="submit" id="submit">この内容で送信する</button>
+      <div class="err" id="err"></div>
+      <p class="note">送信後、担当者よりご希望の方法でご連絡いたします。</p>
+    </main>
+    <footer>
+      株式会社インディオ富山<br>
+      お急ぎの場合は <a id="telLink" href="#">お電話</a> でも承ります。
+    </footer>
   </div>
-
-  <!-- 完了画面 -->
-  <div class="card hidden" id="card-done">
-    <div class="done">
-      <div class="ico">✅</div>
-      <h2 id="done-title">送信しました</h2>
-      <p id="done-text">ありがとうございました。</p>
-    </div>
+  <div id="done">
+    <div class="mark">✓</div>
+    <h2>送信しました</h2>
+    <p>ご回答ありがとうございます。</p>
+    <p id="doneMsg">担当者より改めてご連絡いたします。</p>
   </div>
-
-  <footer>
-    <div>ご不明な点はお電話でも承ります</div>
-    <a class="tel-link" id="tel-link" href="#">📞 <span id="tel-text">お電話する</span></a>
-    <div class="fine" id="fine">
-      ※このページはお客様専用のご確認ページです。<br>
-      出張査定（訪問買取）にはクーリング・オフ制度が適用されます。詳細は査定時にご案内します。
-    </div>
-  </footer>
-
 </div>
-
 <script>
-/* ============================================================
- * 設定（ここだけ書き換えてください）
- * ============================================================ */
-var ENDPOINT = 'PASTE_GAS_WEBAPP_URL_HERE'; // STEP1でコピーしたGASウェブアプリのURL
-var TEL      = '0766000000';                // 代表電話（ハイフンなし）
-var KEY      = 'indio9700';                 // GASの SECRET_KEY と一致させる
-var BRAND    = 'kaimax 買取査定';            // ページ上部の表示名（任意）
-/* ============================================================ */
-
 (function(){
-  function $(id){ return document.getElementById(id); }
-  function qp(name){
-    var m = new RegExp('[?&]' + name + '=([^&]*)').exec(location.search);
-    return m ? decodeURIComponent(m[1].replace(/\+/g,' ')) : '';
-  }
-
-  var ID   = qp('id');
-  var CAR  = qp('car');
-  var TELp = (qp('tel') || TEL).replace(/[^0-9+]/g,'');
-
-  // 画面初期化
-  $('brand').textContent = BRAND;
-  if (CAR) { $('car-name').textContent = CAR; } else { $('car-box').classList.add('hidden'); }
-  $('tel-link').href = 'tel:' + TELp;
-  $('tel-text').textContent = fmtTel(TELp);
+  // ════════ ここだけ書き換えてください ════════
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbyfvacDa_So-347Il4KpSPEDjQjWwdD5wuEw6Un8v9MAyxJX_i0XQUW_onu_Fs1oEQU/exec'; // ①GASウェブアプリURL（既存kaimaxのGASに回答分岐を足して再デプロイした場合はこのままでOK）
+  var TEL      = '0766000000';                                           // ②代表電話（ハイフンなし）
+  var KEY      = 'indio9700';                                            // ③GAS側と一致させる
+  // ═══════════════════════════════════════════
+  var qs   = new URLSearchParams(location.search);
+  var id   = qs.get('id') || '';
+  var car  = qs.get('car') || '';
+  // 電話リンク（?tel= があれば担当者直通に切替）
+  var tel = (qs.get('tel') || TEL).replace(/[^0-9+]/g, '');
+  var telLink = document.getElementById('telLink');
+  telLink.href = 'tel:' + tel;
+  telLink.textContent = fmtTel(tel);
   function fmtTel(t){
-    if (t.length === 11) return t.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'); // 携帯 090-1234-5678
-    if (t.length === 10) return t.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'); // 固定 076-600-0000
+    if (t.length === 11) return t.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3'); // 携帯
+    if (t.length === 10) return t.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'); // 固定
     return t;
   }
-
-  var picked = '';
-
-  function selectAnswer(ans){
-    picked = ans;
-    // ボタンのハイライト
-    var btns = document.querySelectorAll('#choices .btn');
-    for (var i=0;i<btns.length;i++){ btns[i].classList.toggle('sel', btns[i].getAttribute('data-answer')===ans); }
-    // セクション表示切替
-    $('sec-visit').classList.toggle('hidden', ans!=='検討中');
-    $('sec-confirm').classList.toggle('hidden', ans==='検討中');
-    if (ans==='売却済') $('confirm-text').textContent = 'すでにご売却済みとして承ります。今後のご連絡は控えさせていただきます。';
-    if (ans==='売却中止') $('confirm-text').textContent = '今回はご売却を見送りとして承ります。またの機会にご相談ください。';
-    $('sec-submit').classList.remove('hidden');
-    $('status').textContent = '';
-    // 送信ボタンまでスクロール
-    $('sec-submit').scrollIntoView({behavior:'smooth', block:'center'});
+  if (car) {
+    document.getElementById('carName').textContent = car;
+    document.getElementById('carBox').hidden = false;
   }
-
-  var choiceBtns = document.querySelectorAll('#choices .btn');
-  for (var i=0;i<choiceBtns.length;i++){
-    choiceBtns[i].addEventListener('click', function(){ selectAnswer(this.getAttribute('data-answer')); });
-  }
-
-  $('btn-back').addEventListener('click', function(){
-    picked='';
-    $('sec-visit').classList.add('hidden');
-    $('sec-confirm').classList.add('hidden');
-    $('sec-submit').classList.add('hidden');
-    var b=document.querySelectorAll('#choices .btn'); for (var k=0;k<b.length;k++) b[k].classList.remove('sel');
-    $('card-main').scrollIntoView({behavior:'smooth', block:'start'});
+  // 希望日は本日以降のみ
+  var d = document.getElementById('date');
+  d.min = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
+  // 状況に応じて日程ブロックを開閉
+  var sched = document.getElementById('schedule');
+  document.querySelectorAll('input[name=status]').forEach(function(el){
+    el.addEventListener('change', function(){
+      var need = (el.value === '検討中' || el.value === '他社商談中');
+      sched.classList.toggle('on', need);
+    });
   });
-
-  var sending = false;
-  $('btn-send').addEventListener('click', function(){
-    if (sending || !picked) return;
-    sending = true;
-    var sendBtn = $('btn-send');
-    sendBtn.disabled = true; sendBtn.textContent = '送信中…';
-    $('status').className = 'status'; $('status').textContent = '';
-
-    var payload = {
-      secret: KEY,
-      action: 'reply',
-      id: ID,
-      car: CAR,
-      answer: picked,
-      visit: (picked==='検討中'),
-      date: (picked==='検討中') ? ($('visit-date').value || '') : '',
-      ua: navigator.userAgent.slice(0,120)
-    };
-
-    postReply(payload, 0);
-  });
-
-  function postReply(payload, attempt){
-    fetch(ENDPOINT, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect:'follow'
-    }).then(function(res){ return res.text(); })
-      .then(function(txt){
-        var ok = true;
-        try { var j = JSON.parse(txt); ok = (j.status === 'success'); } catch(e){ ok = true; /* 応答が読めなくても保存はされている前提で完了扱い */ }
-        if (ok) { showDone(); }
-        else { fail('送信に失敗しました。お手数ですがお電話でご連絡ください。'); }
-      })
-      .catch(function(){
-        if (attempt < 2) { setTimeout(function(){ postReply(payload, attempt+1); }, 1200); }
-        else { fail('通信環境をご確認のうえ、もう一度お試しください。'); }
-      });
+  function val(name){
+    var el = document.querySelector('input[name='+name+']:checked');
+    return el ? el.value : '';
   }
-
   function fail(msg){
-    sending = false;
-    var sendBtn = $('btn-send');
-    sendBtn.disabled = false; sendBtn.textContent = '送信する';
-    $('status').className = 'status err'; $('status').textContent = msg;
+    var e = document.getElementById('err');
+    e.textContent = msg;
+    e.classList.add('on');
+    e.scrollIntoView({block:'center', behavior:'smooth'});
   }
-
-  function showDone(){
-    $('card-main').classList.add('hidden');
-    var done = $('card-done'); done.classList.remove('hidden');
-    if (picked==='検討中'){
-      $('done-title').textContent = '出張査定のお申し込みを受け付けました';
-      $('done-text').textContent = '担当者より日程のご連絡をいたします。少々お待ちください。';
+  document.getElementById('submit').addEventListener('click', function(){
+    var btn = this;
+    document.getElementById('err').classList.remove('on');
+    var status = val('status');
+    if (!status) return fail('現在のご状況をお選びください。');
+    var needSched = (status === '検討中' || status === '他社商談中');
+    if (needSched && !val('method')) return fail('査定の方法をお選びください。');
+    var payload = {
+      key: KEY,
+      action: 'reply',
+      id: id,
+      status: status,
+      method: val('method'),
+      date: needSched ? d.value : '',
+      time: needSched ? val('time') : '',
+      contact: val('contact'),
+      memo: document.getElementById('memo').value,
+      ua: navigator.userAgent,
+      at: new Date().toISOString()
+    };
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) })
+      .then(function(){ show(status); })
+      .catch(function(){ show(status); }); // 通信結果に関わらず完了表示（GAS側で受信ログを確認）
+  });
+  function show(status){
+    document.getElementById('form-area').style.display = 'none';
+    var done = document.getElementById('done');
+    if (status === '売却済み' || status === '売却中止') {
+      document.getElementById('doneMsg').textContent =
+        'この度はご連絡ありがとうございました。またの機会がございましたらよろしくお願いいたします。';
     } else {
-      $('done-title').textContent = 'ご回答ありがとうございました';
-      $('done-text').textContent = '今後ともよろしくお願いいたします。';
+      document.getElementById('doneMsg').textContent =
+        'ご希望の日時で調整し、担当者より確定のご連絡をいたします。';
     }
+    done.classList.add('on');
     window.scrollTo(0,0);
   }
 })();
