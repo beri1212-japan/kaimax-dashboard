@@ -125,7 +125,24 @@
     width:100%;padding:15px 15px;font-size:17px;font-family:inherit;color:var(--ink);
     border:1.5px solid var(--line);border-radius:11px;background:var(--white);
   }
-  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  /* ご希望日程（第1〜第3希望） */
+  .pref{margin-top:14px}
+  .pref-h{display:block;font-size:15.5px;font-weight:800;color:var(--ink);margin:0 0 7px}
+  .pref-h .opt{
+    margin-left:8px;font-size:11.5px;font-weight:700;color:var(--sub);
+    border:1px solid var(--line);border-radius:4px;padding:1px 6px;vertical-align:1px;letter-spacing:.02em;
+  }
+  .pref-row{display:flex;gap:9px}
+  .pref-row .pdate{flex:1 1 58%;min-width:0}
+  .ptime{
+    flex:1 1 42%;min-width:0;padding:15px 12px;font-size:16px;font-family:inherit;color:var(--ink);
+    border:1.5px solid var(--line);border-radius:11px;background:var(--white);
+    -webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%235C636E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;
+  }
+  .ptime:invalid,.ptime option[value=""]{color:var(--sub)}
   textarea{min-height:100px;resize:vertical;line-height:1.6}
   #schedule{display:none}
   #schedule.on{display:block}
@@ -203,14 +220,34 @@
             <label class="chip"><input type="radio" name="method" value="出張査定"><span>出張査定</span></label>
             <label class="chip"><input type="radio" name="method" value="来店査定"><span>来店査定</span></label>
           </div>
-          <label class="f" for="date">ご希望日</label>
-          <input type="date" id="date" name="date">
-          <label class="f">ご希望の時間帯</label>
-          <div class="chips">
-            <label class="chip"><input type="radio" name="time" value="午前中"><span>午前中</span></label>
-            <label class="chip"><input type="radio" name="time" value="13〜15時"><span>13〜15時</span></label>
-            <label class="chip"><input type="radio" name="time" value="15〜17時"><span>15〜17時</span></label>
-            <label class="chip"><input type="radio" name="time" value="17〜19時"><span>17〜19時</span></label>
+          <p class="q" style="margin-top:24px">ご希望の日程<span class="req">必須</span></p>
+          <p class="hint">ご都合の良い日時を第3希望までお選びください。（第1希望のみでもOKです）</p>
+          <div class="pref">
+            <span class="pref-h">第1希望</span>
+            <div class="pref-row">
+              <input type="date" class="pdate" id="date1" name="date1">
+              <select class="ptime" id="time1" name="time1">
+                <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
+              </select>
+            </div>
+          </div>
+          <div class="pref">
+            <span class="pref-h">第2希望<span class="opt">任意</span></span>
+            <div class="pref-row">
+              <input type="date" class="pdate" id="date2" name="date2">
+              <select class="ptime" id="time2" name="time2">
+                <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
+              </select>
+            </div>
+          </div>
+          <div class="pref">
+            <span class="pref-h">第3希望<span class="opt">任意</span></span>
+            <div class="pref-row">
+              <input type="date" class="pdate" id="date3" name="date3">
+              <select class="ptime" id="time3" name="time3">
+                <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -269,9 +306,34 @@
     document.getElementById('carName').textContent = car;
     document.getElementById('carBox').hidden = false;
   }
-  // 希望日は本日以降のみ
-  var d = document.getElementById('date');
-  d.min = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
+  // 希望日は本日以降のみ（第1〜第3希望すべてに適用）
+  var minDate = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
+  ['date1','date2','date3'].forEach(function(idn){
+    var el = document.getElementById(idn); if (el) el.min = minDate;
+  });
+  // yyyy-mm-dd → M/D（曜日つき）
+  function fmtDateJP(v){
+    if (!v) return '';
+    var p = v.split('-'); if (p.length !== 3) return v;
+    var dt = new Date(+p[0], +p[1]-1, +p[2]);
+    var w = ['日','月','火','水','木','金','土'][dt.getDay()];
+    return (+p[1]) + '/' + (+p[2]) + '(' + w + ')';
+  }
+  // 第1〜第3希望を「第1希望: 8/16(土) 午前中 / …」の1行にまとめる
+  function buildSchedule(){
+    var labels = ['第1希望','第2希望','第3希望'];
+    var parts = [];
+    for (var i = 1; i <= 3; i++){
+      var dv = document.getElementById('date'+i).value;
+      var tv = document.getElementById('time'+i).value;
+      if (dv || tv){
+        var s = fmtDateJP(dv);
+        if (tv) s += (s ? ' ' : '') + tv;
+        if (s) parts.push(labels[i-1] + ': ' + s);
+      }
+    }
+    return parts.join(' / ');
+  }
   // 状況に応じて日程ブロックを開閉（査定を行いたい／まだ検討中 のとき表示）
   var sched = document.getElementById('schedule');
   document.querySelectorAll('input[name=status]').forEach(function(el){
@@ -303,6 +365,8 @@
     if (!status) return fail('現在のご状況をお選びください。');
     var needSched = (status === '査定を行いたい' || status === 'まだ検討中');
     if (needSched && !val('method')) return fail('査定の方法をお選びください。');
+    var schedule = needSched ? buildSchedule() : '';
+    if (needSched && !document.getElementById('date1').value) return fail('第1希望のご希望日をお選びください。');
     var contact = val('contact');
     var email = document.getElementById('email').value.trim();
     if (contact === 'メール' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('メールアドレスをご確認ください。');
@@ -312,8 +376,8 @@
       id: id,
       status: status,
       method: val('method'),
-      date: needSched ? d.value : '',
-      time: needSched ? val('time') : '',
+      date: schedule,
+      time: '',
       contact: contact,
       email: (contact === 'メール') ? email : '',
       memo: document.getElementById('memo').value,
