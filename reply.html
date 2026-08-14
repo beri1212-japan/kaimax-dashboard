@@ -43,7 +43,18 @@
     border-radius:10px;font-size:14px;font-weight:600;
   }
   .car span{display:block;font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.08em;margin-bottom:2px}
+  /* 選ばれる理由バンド */
+  .reasons{padding:16px 20px 4px;background:var(--accent-soft)}
+  .reasons-h{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.06em;margin:0 0 11px;text-align:center}
+  .reasons-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .reason{background:var(--white);border-radius:10px;padding:11px 12px;border:1px solid #D5E5E0}
+  .reason b{display:block;font-size:13px;font-weight:800;color:var(--ink);line-height:1.35}
+  .reason small{display:block;font-size:11px;color:var(--sub);line-height:1.45;margin-top:3px}
   main{padding:8px 20px 40px}
+  .reassure{
+    margin:14px 0 0;padding:12px 14px;background:var(--accent-soft);
+    border-radius:10px;font-size:12.5px;color:#2C4B43;line-height:1.6;font-weight:600;
+  }
   .block{padding:22px 0;border-bottom:1px solid var(--line)}
   .block:last-of-type{border-bottom:0}
   .q{font-size:15px;font-weight:700;margin:0 0 4px}
@@ -123,25 +134,35 @@
     <header>
       <p class="brand">インディオ富山より</p>
       <h1 class="company">インディオ富山</h1>
-      <p class="lead">お車の査定の件にてお電話を差し上げました。<br>下記より状況のご回答をお願いします。</p>
+      <p class="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b style="color:var(--accent)">無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
       <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
     </header>
+    <section class="reasons">
+      <p class="reasons-h">インディオ富山が選ばれる理由</p>
+      <div class="reasons-grid">
+        <div class="reason"><b>高価買取に自信</b><small>全国オークション（MOTA一括査定）で各社と競り、精一杯の高値をお出しします</small></div>
+        <div class="reason"><b>最短即日・その場で現金化</b><small>お手続きもスピーディー。お急ぎのご事情にも対応します</small></div>
+        <div class="reason"><b>査定・出張・手数料 すべて無料</b><small>名義変更などの費用も込み。追加料金は一切いただきません</small></div>
+        <div class="reason"><b>富山の実店舗・対面対応</b><small>顔の見える地元のお店だから、はじめてでも安心してお任せいただけます</small></div>
+      </div>
+    </section>
     <main>
       <div class="block">
         <p class="q">現在のご状況<span class="req">必須</span></p>
         <p class="hint">当てはまるものをお選びください。</p>
         <div class="cards">
           <label class="card"><input type="radio" name="status" value="査定を行いたい">
-            <span class="t">査定を行いたい</span><span class="d">出張・来店で査定してほしい</span></label>
+            <span class="t">査定をお願いしたい（無料）</span><span class="d">出張・来店どちらもOK。今の買取価格をお出しします</span></label>
           <label class="card"><input type="radio" name="status" value="まだ検討中">
-            <span class="t">まだ検討中</span><span class="d">売却するか迷っている</span></label>
+            <span class="t">まず金額を見てから決めたい</span><span class="d">査定額を確認してからのご判断で大丈夫です</span></label>
           <label class="card"><input type="radio" name="status" value="すでに売却した">
             <span class="t">すでに売却した</span><span class="d">他社などで手放した</span></label>
           <label class="card"><input type="radio" name="status" value="売却をやめた">
-            <span class="t">売却をやめた</span><span class="d">乗り続けることにした</span></label>
+            <span class="t">乗り続けることにした</span><span class="d">今回は売却を見送る</span></label>
           <label class="card"><input type="radio" name="status" value="その他">
             <span class="t">その他</span><span class="d">下の「ご要望」にご記入ください</span></label>
         </div>
+        <p class="reassure">査定は無料です。金額を見てからご判断いただけますので、まずはお気軽にどうぞ。無理な勧誘は一切いたしません。</p>
       </div>
       <div id="schedule">
         <div class="block">
@@ -177,7 +198,7 @@
       </div>
       <button class="submit" id="submit">この内容で送信する</button>
       <div class="err" id="err"></div>
-      <p class="note">送信後、担当者よりご希望の方法でご連絡いたします。</p>
+      <p class="note">送信後、担当者よりご希望の方法でご連絡いたします。<br>査定・出張費は無料。金額にご納得いただけない場合、お売りいただく必要はありません。</p>
     </main>
     <footer>
       株式会社インディオ富山<br>
@@ -281,7 +302,7 @@
         'この度はご連絡ありがとうございました。またの機会がございましたらよろしくお願いいたします。';
     } else {
       document.getElementById('doneMsg').textContent =
-        'ご希望の日時で調整し、担当者より確定のご連絡をいたします。';
+        'ご希望の日時で調整のうえ、担当者より買取価格のご案内を含めて確定のご連絡をいたします。どうぞよろしくお願いいたします。';
     }
     done.classList.add('on');
     window.scrollTo(0,0);
