@@ -57,7 +57,7 @@ function handleReply(p) {
   var sh  = replySheet_();
   var now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd HH:mm');
 
-  // 受信日時 / 案件ID / 顧客名 / 車種 / 状況 / 査定方法 / 希望日 / 時間帯 / 連絡方法 / ご要望 / TEL / 端末
+  // 受信日時 / 案件ID / 顧客名 / 車種 / 状況 / 査定方法 / 希望日 / 時間帯 / 連絡方法 / メール / ご要望 / TEL / 端末
   sh.appendRow([
     now, id, info.customer, info.car,
     status,
@@ -65,6 +65,7 @@ function handleReply(p) {
     String(p.date || ''),
     String(p.time || ''),
     String(p.contact || ''),
+    String(p.email || ''),
     String(p.memo || ''),
     info.tel,
     String(p.ua || '')
@@ -124,14 +125,21 @@ function findCaseRow_(id) {
   return out;
 }
 
-// ===== 顧客回答シート（無ければ作成）=====
+// ===== 顧客回答シート（無ければ作成／メール列が無ければ見出しを自己修復）=====
+var REPLY_HEADER = ['受信日時', '案件ID', '顧客名', '車種', '状況', '査定方法', '希望日', '時間帯', '連絡方法', 'メール', 'ご要望', 'TEL', '端末'];
 function replySheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SHEET_REPLY);
   if (!sh) {
     sh = ss.insertSheet(SHEET_REPLY);
-    sh.appendRow(['受信日時', '案件ID', '顧客名', '車種', '状況', '査定方法', '希望日', '時間帯', '連絡方法', 'ご要望', 'TEL', '端末']);
+    sh.appendRow(REPLY_HEADER);
     sh.setFrozenRows(1);
+    return sh;
+  }
+  var lastCol = Math.max(sh.getLastColumn(), REPLY_HEADER.length);
+  var head = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (head.indexOf('メール') < 0) {
+    sh.getRange(1, 1, 1, REPLY_HEADER.length).setValues([REPLY_HEADER]);
   }
   return sh;
 }
@@ -150,7 +158,7 @@ function notifyChatwork_(now, id, info, status, p) {
     if (info.car) L.push('車種: ' + info.car);
     L.push('状況: ' + status);
     if (p.method) L.push('査定方法: ' + p.method + (p.date ? ' / ' + p.date : '') + (p.time ? ' ' + p.time : ''));
-    if (p.contact) L.push('連絡希望: ' + p.contact);
+    if (p.contact) L.push('連絡希望: ' + p.contact + (p.email ? '（' + p.email + '）' : ''));
     if (p.memo) L.push('ご要望: ' + p.memo);
     if (info.tel) L.push('TEL: ' + info.tel);
     L.push('受信: ' + now);

@@ -3224,7 +3224,7 @@
         <td style="white-space:nowrap;">
           <div style="font-weight:700;font-size:13.5px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
-          ${c.reply ? `<div style="margin-top:4px;"><span class="reply-badge${/売却済み|売却中止/.test(c.reply) ? ' off' : ''}">🗨 ${c.reply}</span></div>` : ''}
+          ${c.reply ? `<div style="margin-top:4px;"><span class="reply-badge${/売却した|やめた|売却済み|売却中止/.test(c.reply) ? ' off' : ''}">🗨 ${c.reply}</span></div>` : ''}
         </td>
         <td style="font-size:13px;font-weight:500;line-height:1.35;">${c.car}${c.timing ? `<div style="margin-top:3px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
         <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
@@ -3233,7 +3233,7 @@
         <td class="center" style="font-family:Arial,serif;font-size:16px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
       `;
-      if (/売却済み|売却中止/.test(c.reply || '')) tr.classList.add('row-off'); // 顧客回答=売却済み/中止はグレーアウト
+      if (/売却した|やめた|売却済み|売却中止/.test(c.reply || '')) tr.classList.add('row-off'); // 顧客回答=売却済み/中止はグレーアウト
       tr.addEventListener('click', () => openDetail(c));
       const _editBtn = tr.querySelector('.call-edit-btn');
       if (_editBtn) _editBtn.addEventListener('click', (e) => { e.stopPropagation(); openCallEditor(tr.querySelector('.call-cell'), c); });
@@ -3301,7 +3301,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0814a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0814b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }

@@ -35,6 +35,7 @@
     font-size:11px;letter-spacing:.14em;font-weight:700;
     color:var(--accent);margin:0 0 10px;
   }
+  h1.company{font-size:28px;line-height:1.3;margin:0 0 12px;font-weight:800;letter-spacing:.01em;color:var(--ink)}
   h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
   .lead{margin:0;font-size:14px;color:var(--sub)}
   .car{
@@ -120,9 +121,8 @@
 <div class="wrap">
   <div id="form-area">
     <header>
-      <p class="brand">INDIO TOYAMA</p>
-      <h1>ご状況の確認と<br>査定日時のご希望</h1>
-      <p class="lead">お電話が難しい場合は、こちらからご回答ください。30秒で完了します。</p>
+      <h1 class="company">インディオ富山</h1>
+      <p class="lead">お車の査定の件にてお電話を差し上げました。<br>下記より状況のご回答をお願いします。</p>
       <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
     </header>
     <main>
@@ -130,14 +130,16 @@
         <p class="q">現在のご状況<span class="req">必須</span></p>
         <p class="hint">当てはまるものをお選びください。</p>
         <div class="cards">
-          <label class="card"><input type="radio" name="status" value="検討中">
+          <label class="card"><input type="radio" name="status" value="査定を行いたい">
+            <span class="t">査定を行いたい</span><span class="d">出張・来店で査定してほしい</span></label>
+          <label class="card"><input type="radio" name="status" value="まだ検討中">
             <span class="t">まだ検討中</span><span class="d">売却するか迷っている</span></label>
-          <label class="card"><input type="radio" name="status" value="他社商談中">
-            <span class="t">他社と商談中</span><span class="d">金額次第で検討したい</span></label>
-          <label class="card"><input type="radio" name="status" value="売却済み">
-            <span class="t">すでに売却した</span><span class="d">他社で成約済み</span></label>
-          <label class="card"><input type="radio" name="status" value="売却中止">
+          <label class="card"><input type="radio" name="status" value="すでに売却した">
+            <span class="t">すでに売却した</span><span class="d">他社などで手放した</span></label>
+          <label class="card"><input type="radio" name="status" value="売却をやめた">
             <span class="t">売却をやめた</span><span class="d">乗り続けることにした</span></label>
+          <label class="card"><input type="radio" name="status" value="その他">
+            <span class="t">その他</span><span class="d">下の「ご要望」にご記入ください</span></label>
         </div>
       </div>
       <div id="schedule">
@@ -163,8 +165,11 @@
         <div class="chips">
           <label class="chip"><input type="radio" name="contact" value="電話"><span>電話</span></label>
           <label class="chip"><input type="radio" name="contact" value="SMS"><span>SMS</span></label>
-          <label class="chip"><input type="radio" name="contact" value="LINE"><span>LINE</span></label>
           <label class="chip"><input type="radio" name="contact" value="メール"><span>メール</span></label>
+        </div>
+        <div id="emailWrap" style="display:none">
+          <label class="f" for="email">メールアドレス</label>
+          <input type="email" id="email" name="email" placeholder="example@example.com" inputmode="email" autocomplete="email">
         </div>
         <label class="f" for="memo">ご要望・ご連絡事項</label>
         <textarea id="memo" name="memo" placeholder="他社の提示額、ご希望金額、都合の悪い時間帯などがあればご記入ください。"></textarea>
@@ -212,12 +217,18 @@
   // 希望日は本日以降のみ
   var d = document.getElementById('date');
   d.min = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
-  // 状況に応じて日程ブロックを開閉
+  // 状況に応じて日程ブロックを開閉（査定を行いたい／まだ検討中 のとき表示）
   var sched = document.getElementById('schedule');
   document.querySelectorAll('input[name=status]').forEach(function(el){
     el.addEventListener('change', function(){
-      var need = (el.value === '検討中' || el.value === '他社商談中');
+      var need = (el.value === '査定を行いたい' || el.value === 'まだ検討中');
       sched.classList.toggle('on', need);
+    });
+  });
+  // 連絡方法が「メール」のときだけメールアドレス欄を表示
+  document.querySelectorAll('input[name=contact]').forEach(function(el){
+    el.addEventListener('change', function(){
+      document.getElementById('emailWrap').style.display = (el.value === 'メール') ? 'block' : 'none';
     });
   });
   function val(name){
@@ -235,8 +246,11 @@
     document.getElementById('err').classList.remove('on');
     var status = val('status');
     if (!status) return fail('現在のご状況をお選びください。');
-    var needSched = (status === '検討中' || status === '他社商談中');
+    var needSched = (status === '査定を行いたい' || status === 'まだ検討中');
     if (needSched && !val('method')) return fail('査定の方法をお選びください。');
+    var contact = val('contact');
+    var email = document.getElementById('email').value.trim();
+    if (contact === 'メール' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('メールアドレスをご確認ください。');
     var payload = {
       key: KEY,
       action: 'reply',
@@ -245,7 +259,8 @@
       method: val('method'),
       date: needSched ? d.value : '',
       time: needSched ? val('time') : '',
-      contact: val('contact'),
+      contact: contact,
+      email: (contact === 'メール') ? email : '',
       memo: document.getElementById('memo').value,
       ua: navigator.userAgent,
       at: new Date().toISOString()
@@ -259,7 +274,7 @@
   function show(status){
     document.getElementById('form-area').style.display = 'none';
     var done = document.getElementById('done');
-    if (status === '売却済み' || status === '売却中止') {
+    if (status === 'すでに売却した' || status === '売却をやめた') {
       document.getElementById('doneMsg').textContent =
         'この度はご連絡ありがとうございました。またの機会がございましたらよろしくお願いいたします。';
     } else {
