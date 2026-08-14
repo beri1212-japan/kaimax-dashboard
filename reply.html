@@ -11,10 +11,10 @@
     --sub:#5C636E;
     --line:#DDE0E5;
     --mist:#F3F4F6;
-    --accent:#1D4E89;
-    --accent-soft:#EAF1FA;
-    --brand1:#12336A;
-    --brand2:#2A62A8;
+    --accent:#2A3080;
+    --accent-soft:#ECEEF8;
+    --brand1:#181C4A;
+    --brand2:#2E3576;
     --white:#fff;
     --radius:12px;
   }
@@ -23,8 +23,8 @@
   body{
     font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
     background:
-      radial-gradient(1100px 460px at 50% -8%, rgba(87,151,224,.35), transparent 60%),
-      linear-gradient(165deg, #0E2A57 0%, #163F7C 45%, #1D4E89 100%);
+      radial-gradient(1100px 460px at 50% -8%, rgba(96,104,190,.35), transparent 60%),
+      linear-gradient(165deg, #14173C 0%, #20255F 55%, #2A3080 100%);
     background-attachment:fixed;
     color:var(--ink);
     font-size:16px;
@@ -47,8 +47,12 @@
     content:"";position:absolute;left:-40px;bottom:-90px;width:180px;height:180px;
     border:26px solid rgba(255,255,255,.06);border-radius:50%;
   }
-  .logo-wrap{position:relative;z-index:1;display:flex;align-items:center;gap:12px;margin:0 0 16px}
-  .logo-wrap img{height:44px;width:auto;display:block}
+  .logo-wrap{
+    position:relative;z-index:1;display:inline-flex;align-items:center;
+    margin:0 0 16px;background:#fff;padding:10px 16px;border-radius:12px;
+    box-shadow:0 5px 16px rgba(6,10,40,.28);
+  }
+  .logo-wrap img{height:42px;width:auto;display:block}
   .logo-fallback{
     display:inline-flex;align-items:baseline;gap:3px;
     background:#fff;color:var(--brand1);border-radius:9px;
