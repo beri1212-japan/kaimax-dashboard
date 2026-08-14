@@ -70,14 +70,40 @@ function handleReply(p) {
     String(p.ua || '')
   ]);
 
+  // ★マスタ案件の「回答」列に状況を書き込む（列が無ければ右端に自動作成）
+  if (info.row) writeCaseReply_(info.row, status);
+
   notifyChatwork_(now, id, info, status, p);
 
   return _replyJson({ status: 'success', message: 'ご回答ありがとうございました' });
 }
 
+// ===== マスタ案件の「回答」列に「状況（M/D）」を書き込む =====
+function writeCaseReply_(rowNum, status) {
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CASE);
+    if (!sh) return;
+    var col = caseReplyColumn_(sh);
+    var mark = status + '（' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'M/d') + '）';
+    sh.getRange(rowNum, col).setValue(mark);
+  } catch (e) { /* 書き込み失敗は記録に影響させない */ }
+}
+
+// 「回答」列の位置を返す（見出しが無ければ右端に作成）
+function caseReplyColumn_(sh) {
+  var lastCol = sh.getLastColumn();
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i]).trim() === '回答') return i + 1;
+  }
+  var col = lastCol + 1;
+  sh.getRange(1, col).setValue('回答');
+  return col;
+}
+
 // ===== 案件シートから id で行を探し、顧客名/TEL/車名 を返す =====
 function findCaseRow_(id) {
-  var out = { customer: '', tel: '', car: '' };
+  var out = { row: 0, customer: '', tel: '', car: '' };
   if (!id) return out;
   try {
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CASE);
@@ -87,6 +113,7 @@ function findCaseRow_(id) {
     var vals = sh.getRange(2, 1, last - 1, Math.max(CASE_COL.car + 1, 6)).getValues();
     for (var i = 0; i < vals.length; i++) {
       if (String(vals[i][CASE_COL.id]).trim() === id) {
+        out.row      = i + 2; // シート上の行番号
         out.customer = String(vals[i][CASE_COL.customer] || '');
         out.tel      = String(vals[i][CASE_COL.tel] || '');
         out.car      = String(vals[i][CASE_COL.car] || '');

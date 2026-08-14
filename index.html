@@ -749,6 +749,12 @@
   #case-table thead th { padding: 8px 6px; letter-spacing: 0.02em; }
   #case-table tbody td { padding: 9px 6px; line-height:1.4; }
   #case-table .m-tag { white-space: nowrap; font-size:11px; padding:2px 5px; }
+  /* 顧客回答バッジ */
+  .reply-badge { display:inline-block; font-size:10.5px; font-weight:700; background:#0B5D4E; color:#fff; border-radius:6px; padding:2px 7px; white-space:nowrap; }
+  .reply-badge.off { background:#9AA3AC; }
+  /* 顧客回答=売却済み/中止の行をグレーアウト */
+  #case-table tr.row-off { opacity:0.5; }
+  #case-table tr.row-off:hover { opacity:0.75; }
   .call-view { display:grid; grid-template-columns: repeat(3, max-content); gap:4px; justify-content:start; }
   .call-chip { display:inline-flex; align-items:baseline; gap:3px; font-size:10px; font-weight:700; white-space:nowrap; background:var(--bg-soft); border:1px solid var(--line); border-radius:4px; padding:2px 6px; color:var(--ink); }
   .call-chip .cc-n { color: var(--ink-3); font-family: Arial, sans-serif; font-weight:700; }
@@ -2235,6 +2241,8 @@
   function rowsToCases(rows) {
     if (rows.length < 2) return [];
     const cases = [];
+    // 「回答」列（顧客回答ページの状況が入る）を見出しから探す。位置がずれても壊れないように。
+    const replyColIdx = (rows[0] || []).findIndex(h => String(h || '').trim() === '回答');
     // ヘッダー行をスキップして2行目から処理
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
@@ -2287,6 +2295,8 @@
         offered: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
         deal: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
         memo: String(r[31] || '').trim(),  // AF列:通話メモ
+        reply: replyColIdx >= 0 ? String(r[replyColIdx] || '').trim() : '',  // 回答列:顧客回答ページの状況
+
         timing: (function(){
           // 売却予定時期:行内のどこかにある「売却希望:○○」を探し、時期表現のときだけ採用
           // （行によりMOTA明細が備考列とは別の列に入るため行全体を対象にし、走行距離等の誤検出を除外）
@@ -3214,6 +3224,7 @@
         <td style="white-space:nowrap;">
           <div style="font-weight:700;font-size:13.5px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
           ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
+          ${c.reply ? `<div style="margin-top:4px;"><span class="reply-badge${/売却済み|売却中止/.test(c.reply) ? ' off' : ''}">🗨 ${c.reply}</span></div>` : ''}
         </td>
         <td style="font-size:13px;font-weight:500;line-height:1.35;">${c.car}${c.timing ? `<div style="margin-top:3px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
         <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
@@ -3222,6 +3233,7 @@
         <td class="center" style="font-family:Arial,serif;font-size:16px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
       `;
+      if (/売却済み|売却中止/.test(c.reply || '')) tr.classList.add('row-off'); // 顧客回答=売却済み/中止はグレーアウト
       tr.addEventListener('click', () => openDetail(c));
       const _editBtn = tr.querySelector('.call-edit-btn');
       if (_editBtn) _editBtn.addEventListener('click', (e) => { e.stopPropagation(); openCallEditor(tr.querySelector('.call-cell'), c); });
@@ -3289,7 +3301,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0810k'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0814a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
