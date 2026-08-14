@@ -11,8 +11,10 @@
     --sub:#5C636E;
     --line:#DDE0E5;
     --mist:#F3F4F6;
-    --accent:#0B5D4E;
-    --accent-soft:#E7F1EE;
+    --accent:#1D4E89;
+    --accent-soft:#EAF1FA;
+    --brand1:#12336A;
+    --brand2:#2A62A8;
     --white:#fff;
     --radius:12px;
   }
@@ -20,40 +22,62 @@
   html,body{margin:0;padding:0}
   body{
     font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
-    background:var(--mist);
+    background:
+      radial-gradient(1100px 460px at 50% -8%, rgba(87,151,224,.35), transparent 60%),
+      linear-gradient(165deg, #0E2A57 0%, #163F7C 45%, #1D4E89 100%);
+    background-attachment:fixed;
     color:var(--ink);
     font-size:16px;
     line-height:1.7;
     -webkit-text-size-adjust:100%;
   }
-  .wrap{max-width:520px;margin:0 auto;background:var(--white);min-height:100vh}
+  .wrap{max-width:520px;margin:0 auto;background:var(--white);min-height:100vh;box-shadow:0 0 60px rgba(6,22,48,.35)}
   header{
-    padding:20px 20px 18px;
-    border-bottom:1px solid var(--line);
+    position:relative;overflow:hidden;
+    padding:22px 20px 20px;
+    background:linear-gradient(150deg,var(--brand1) 0%,var(--brand2) 100%);
+    color:#fff;
   }
-  .brand{
-    font-size:11px;letter-spacing:.14em;font-weight:700;
-    color:var(--accent);margin:0 0 10px;
+  /* ヘッダーの装飾（斜めの光の帯＋淡い円） */
+  header::before{
+    content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;
+    background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);
   }
-  h1.company{font-size:28px;line-height:1.3;margin:0 0 12px;font-weight:800;letter-spacing:.01em;color:var(--ink)}
+  header::after{
+    content:"";position:absolute;left:-40px;bottom:-90px;width:180px;height:180px;
+    border:26px solid rgba(255,255,255,.06);border-radius:50%;
+  }
+  .logo-wrap{position:relative;z-index:1;display:flex;align-items:center;gap:12px;margin:0 0 16px}
+  .logo-wrap img{height:44px;width:auto;display:block}
+  .logo-fallback{
+    display:inline-flex;align-items:baseline;gap:3px;
+    background:#fff;color:var(--brand1);border-radius:9px;
+    padding:7px 13px;font-weight:900;letter-spacing:.06em;font-size:19px;line-height:1;
+    box-shadow:0 3px 10px rgba(0,0,0,.18);
+  }
+  .logo-fallback span{font-size:12px;font-weight:800;letter-spacing:.02em}
+  h1.company{position:relative;z-index:1;font-size:26px;line-height:1.3;margin:0 0 10px;font-weight:800;letter-spacing:.02em;color:#fff}
   h1{font-size:21px;line-height:1.45;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
-  .lead{margin:0;font-size:14px;color:var(--sub)}
+  .lead{position:relative;z-index:1;margin:0;font-size:14px;color:rgba(255,255,255,.92)}
+  .lead b{color:#BFE0FF!important}
   .car{
-    margin:14px 0 0;padding:11px 14px;background:var(--mist);
-    border-radius:10px;font-size:14px;font-weight:600;
+    position:relative;z-index:1;
+    margin:15px 0 0;padding:11px 14px;background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.22);
+    border-radius:10px;font-size:14px;font-weight:700;color:#fff;
   }
-  .car span{display:block;font-size:11px;font-weight:600;color:var(--sub);letter-spacing:.08em;margin-bottom:2px}
+  .car span{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.08em;margin-bottom:2px}
   /* 選ばれる理由バンド */
   .reasons{padding:16px 20px 4px;background:var(--accent-soft)}
   .reasons-h{font-size:12px;font-weight:800;color:var(--accent);letter-spacing:.06em;margin:0 0 11px;text-align:center}
   .reasons-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-  .reason{background:var(--white);border-radius:10px;padding:11px 12px;border:1px solid #D5E5E0}
+  .reason{background:var(--white);border-radius:10px;padding:11px 12px;border:1px solid #CFE0F4}
   .reason b{display:block;font-size:13px;font-weight:800;color:var(--ink);line-height:1.35}
   .reason small{display:block;font-size:11px;color:var(--sub);line-height:1.45;margin-top:3px}
   main{padding:8px 20px 40px}
   .reassure{
     margin:14px 0 0;padding:12px 14px;background:var(--accent-soft);
-    border-radius:10px;font-size:12.5px;color:#2C4B43;line-height:1.6;font-weight:600;
+    border-radius:10px;font-size:12.5px;color:#244A7A;line-height:1.6;font-weight:600;
   }
   .block{padding:22px 0;border-bottom:1px solid var(--line)}
   .block:last-of-type{border-bottom:0}
@@ -132,9 +156,13 @@
 <div class="wrap">
   <div id="form-area">
     <header>
-      <p class="brand">インディオ富山より</p>
+      <div class="logo-wrap">
+        <img id="logo" src="logo.png" alt="インディオ富山"
+             onerror="this.style.display='none';document.getElementById('logoFallback').style.display='inline-flex';">
+        <span id="logoFallback" class="logo-fallback" style="display:none">INDIO<span>富山</span></span>
+      </div>
       <h1 class="company">インディオ富山</h1>
-      <p class="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b style="color:var(--accent)">無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
+      <p class="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b>無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
       <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
     </header>
     <section class="reasons">
