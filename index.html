@@ -2275,6 +2275,9 @@
     const cases = [];
     // 「回答」列（顧客回答ページの状況が入る）を見出しから探す。位置がずれても壊れないように。
     const replyColIdx = (rows[0] || []).findIndex(h => String(h || '').trim() === '回答');
+    // 架電⑥〜⑧（右端に見出し付きで追加される）を見出しから探す
+    const _hIdx = (name) => (rows[0] || []).findIndex(h => String(h || '').trim() === name);
+    const c6 = _hIdx('⑥結果'), c6d = _hIdx('⑥日付'), c7 = _hIdx('⑦結果'), c7d = _hIdx('⑦日付'), c8 = _hIdx('⑧結果'), c8d = _hIdx('⑧日付');
     // ヘッダー行をスキップして2行目から処理
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
@@ -2293,11 +2296,14 @@
       // X=23:顧客希望額, Y=24:査定提示額, Z=25:成約額, ... AF=31:通話メモ
 
       const calls = [];
-      const CALL_COLS = [[9, null], [10, 11], [12, 13], [14, 15], [16, 17]]; // [結果列, 日付列]。①は日付なし
-      for (let n = 0; n < 5; n++) {
-        const result = r[CALL_COLS[n][0]];
+      // [結果列, 日付列]。①は日付なし。⑥〜⑧は右端の見出し位置（無ければ-1でスキップ）
+      const CALL_COLS = [[9, null], [10, 11], [12, 13], [14, 15], [16, 17], [c6, c6d], [c7, c7d], [c8, c8d]];
+      for (let n = 0; n < CALL_COLS.length; n++) {
+        const rc = CALL_COLS[n][0];
+        if (rc == null || rc < 0) continue; // 結果列が無い/未作成ならスキップ
+        const result = r[rc];
         const dcol = CALL_COLS[n][1];
-        const date = dcol !== null ? r[dcol] : '';
+        const date = (dcol != null && dcol >= 0) ? r[dcol] : '';
         if (result && String(result).trim()) {
           calls.push({ result: String(result).trim(), date: String(date || '').trim() });
         }
@@ -3241,10 +3247,10 @@
       const phase = getPhase(c);
       const fu = getFollowupStatus(c.followup);
       let callTrail = '';
-      for (let n = 0; n < 5; n++) {
+      for (let n = 0; n < 8; n++) {
         if (c.calls[n]) {
           const cd = c.calls[n];
-          callTrail += `<span class="call-chip ${callDotClass(cd.result)}"><b class="cc-n">${['①','②','③','④','⑤'][n]}</b>${cd.result || ''}${cd.date ? `<span class="cc-d">${cd.date}</span>` : ''}</span>`;
+          callTrail += `<span class="call-chip ${callDotClass(cd.result)}"><b class="cc-n">${['①','②','③','④','⑤','⑥','⑦','⑧'][n]}</b>${cd.result || ''}${cd.date ? `<span class="cc-d">${cd.date}</span>` : ''}</span>`;
         }
       }
       if (!callTrail) callTrail = '<span style="color:var(--ink-2);font-size:13px;">未架電</span>';
@@ -3334,7 +3340,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0814f'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0814g'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -3398,11 +3404,11 @@
     // 実際に使われている架電結果の語彙に合わせた選択肢（すべて正常に保存できる値）
     const opts = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
     let rows = '';
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const cur = c.calls[i] || { result: '', date: '' };
       // 既存の値が定型リストに無い場合も消えないように、その値を選択肢に追加して保持
       const rowOpts = (cur.result && !opts.includes(cur.result)) ? opts.concat([cur.result]) : opts;
-      rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤'][i]}</span>`
+      rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤','⑥','⑦','⑧'][i]}</span>`
         + `<select class="ce-result" data-idx="${i}">${rowOpts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
         + `<input class="ce-date" type="date" data-idx="${i}" value="${mdToISO(cur.date)}"></div>`;
     }
@@ -3416,7 +3422,7 @@
   function saveCallEdit(td, c) {
     const payload = { no: c.no };
     const compact = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const sel = td.querySelector(`.ce-result[data-idx="${i}"]`);
       const dt = td.querySelector(`.ce-date[data-idx="${i}"]`);
       const result = sel ? sel.value : '';
@@ -3452,7 +3458,7 @@
   // callsArr(0=①..4=⑤) を保存（楽観更新＋webhook）
   function saveCallsArray(c, callsArr) {
     const payload = { no: c.no };
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const e = callsArr[i] || { result: '', date: '' };
       payload['call' + (i + 1)] = e.result || '';
       payload['call' + (i + 1) + 'Date'] = e.result ? (e.date || '') : '';
@@ -3589,12 +3595,12 @@
   window.openQuickCall = function (no) {
     const c = (allCases || []).find(x => x.no === no) || (cases || []).find(x => x.no === no);
     if (!c) return;
-    // 次に記録する枠（①〜⑤で最初の空き。全部埋まっていれば⑤に上書き）
+    // 次に記録する枠（①〜⑧で最初の空き。全部埋まっていれば⑧に上書き）
     let idx = -1;
-    for (let i = 0; i < 5; i++) { const cur = c.calls[i]; if (!cur || !cur.result) { idx = i; break; } }
+    for (let i = 0; i < 8; i++) { const cur = c.calls[i]; if (!cur || !cur.result) { idx = i; break; } }
     const full = idx === -1;
-    const targetIdx = full ? 4 : idx;
-    const marks = ['①', '②', '③', '④', '⑤'];
+    const targetIdx = full ? 7 : idx;
+    const marks = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
     const opts = ['不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
     const now = new Date(TODAY);
     const iso = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
@@ -3603,7 +3609,7 @@
     o.innerHTML = `
       <div class="qc-modal">
         <div class="qc-head">📞 架電結果を記録 <button class="qc-x" data-qc="close">×</button></div>
-        <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.tel || ''}<br>記録先：<b>${marks[targetIdx]}</b>${full ? '（⑤に上書き）' : ''}　※結果を選ぶと自動保存されます</div>
+        <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.tel || ''}<br>記録先：<b>${marks[targetIdx]}</b>${full ? '（⑧に上書き）' : ''}　※結果を選ぶと自動保存されます</div>
         <div class="qc-date">日付 <input type="date" id="qc-date" value="${iso}"></div>
         <div class="qc-opts">${opts.map(r => `<button type="button" data-r="${r}"${r.indexOf('アポ') === 0 ? ' class="apo"' : ''}>${r}</button>`).join('')}</div>
         <div class="qc-note">電話をかけずに記録だけでもOK。詳しく編集したい場合は一覧の「✎入力」から。</div>
@@ -3617,7 +3623,7 @@
       const dv = document.getElementById('qc-date');
       const md = isoToMd(dv ? dv.value : iso);
       const arr = [];
-      for (let i = 0; i < 5; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
+      for (let i = 0; i < 8; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
       arr[targetIdx] = { result, date: (targetIdx === 0 ? '' : md) }; // ①は日付列なし
       closeQuickCall();
       saveCallsArray(c, arr);
@@ -4074,7 +4080,7 @@
   function openDetail(c) {
     const callLogs = c.calls.map((call, idx) => `
       <div class="call-row ${callDotClass(call.result)}">
-        <div class="n">${['①','②','③','④','⑤'][idx]}</div>
+        <div class="n">${['①','②','③','④','⑤','⑥','⑦','⑧'][idx]}</div>
         <div class="date">${call.date}</div>
         <div class="result">${call.result}</div>
       </div>
@@ -4098,7 +4104,7 @@
         </div>
       </div>
       <div class="detail-section">
-        <h3>架電履歴(①〜⑤)</h3>
+        <h3>架電履歴(①〜⑧)</h3>
         <div class="call-log">${callLogs || '<div style="color:var(--ink-3);font-size:13px;">未架電</div>'}</div>
       </div>
       <div class="detail-section">
