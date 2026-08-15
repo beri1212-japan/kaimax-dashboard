@@ -776,6 +776,20 @@
   /* 顧客回答=売却済み/中止の行をグレーアウト */
   #case-table tr.row-off { opacity:0.5; }
   #case-table tr.row-off:hover { opacity:0.75; }
+  /* 滞留(未更新)の行に背景色。アポ獲得・対象外・完了行には付けない */
+  #case-table tr.row-stale24 > td { background:#FFF8DB; }   /* 24h以上=薄い黄色 */
+  #case-table tr.row-stale24:hover > td { background:#FBF1C6; }
+  #case-table tr.row-stale48 > td { background:#FBE0E0; }   /* 48h以上=薄い赤 */
+  #case-table tr.row-stale48:hover > td { background:#F6CFCF; }
+  /* 担当者フィルタ(プルダウン) */
+  select.assignee-select {
+    padding:6px 28px 6px 10px; border:1px solid var(--line); border-radius:7px;
+    font-size:13px; font-family:inherit; color:var(--ink); background:#fff; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%235C636E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 9px center;
+  }
+  select.assignee-select:focus { outline:none; border-color:var(--accent); }
   .call-view { display:grid; grid-template-columns: repeat(3, max-content); gap:4px; justify-content:start; }
   .call-chip { display:inline-flex; align-items:baseline; gap:3px; font-size:10px; font-weight:700; white-space:nowrap; background:var(--bg-soft); border:1px solid var(--line); border-radius:4px; padding:2px 6px; color:var(--ink); }
   .call-chip .cc-n { color: var(--ink-3); font-family: Arial, sans-serif; font-weight:700; }
@@ -1983,6 +1997,26 @@
       <span class="filter-label">結果 / フェーズ</span>
       <span id="stage-chips" style="display:contents;"></span>
     </div>
+    <div class="filter-group">
+      <span class="filter-label">担当者</span>
+      <select id="assignee-filter" class="assignee-select"><option value="all">全員</option></select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">架電状況</span>
+      <span class="chip callstatus-chip active" data-cstatus="unresolved">未完了</span>
+      <span class="chip callstatus-chip" data-cstatus="all">全て</span>
+      <span class="chip callstatus-chip" data-cstatus="not-started">未着手</span>
+      <span class="chip callstatus-chip" data-cstatus="absent">不在</span>
+      <span class="chip callstatus-chip" data-cstatus="talked">通話済</span>
+      <span class="chip callstatus-chip" data-cstatus="apo">アポ獲得</span>
+      <span class="chip callstatus-chip" data-cstatus="excluded">対象外</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">滞留</span>
+      <span class="chip stale-chip" data-stale="all">全て</span>
+      <span class="chip stale-chip active" data-stale="24">24時間以上</span>
+      <span class="chip stale-chip" data-stale="48">48時間以上</span>
+    </div>
   </div>
 
   <div class="container">
@@ -3030,7 +3064,44 @@
     // 結果/フェーズ統合フィルタ。'all' / 段階キー(not-called等) / 'r:<結果値>' / それらの配列(プリセット複数選択)
     stage: 'all',
     search: '',
+    // ===== 割り振り・滞留管理フィルタ =====
+    assignee: 'all',        // 'all' または担当者名
+    callStatus: 'unresolved', // 既定=未完了(アポ獲得・対象外・完了 以外)。他: all/not-started/absent/talked/apo/excluded
+    stale: '24',            // 既定=24時間以上未更新。他: all / 24 / 48
   };
+
+  // 割り振り管理で使う担当者（前田＋7名）。データ上の担当者があれば後段で合流する
+  const ASSIGNEE_ROSTER = ['前田', '川縁', '高木', '上野', '野村', '馬塚', '諸田', '石川'];
+
+  // 1案件の「架電状況」を判定して1カテゴリに正規化する
+  //   not-started(未着手) / absent(不在) / talked(通話済) / apo(アポ獲得) / excluded(対象外) / done(成約・入庫=完了)
+  //   ※done は放置対象外なので色付け・既定表示から除外する（対象外と同様の扱い）
+  function caseCallStatus(c) {
+    const ph = getPhase(c);
+    if (ph.code === 'won' || ph.code === 'deal') return 'done';            // 入庫済み・成約=完了
+    if (ph.code === 'lost') return 'excluded';                             // 他社売却・失注・着拒 等=対象外
+    if (/売却した|やめた|売却済み|売却中止/.test(c.reply || '')) return 'excluded'; // 顧客回答で売却済み/中止
+    if (c.assess === '×') return 'excluded';                              // 査定×=対象外
+    if (ph.code === 'apo' || /アポ/.test(c.result || '') || (c.calls || []).some(k => k.result === 'アポ')) return 'apo';
+    if (!c.calls || c.calls.length === 0) return 'not-started';           // 未着手（架電履歴なし）
+    if (c.calls.some(k => REACHED_RESULTS.includes(k.result))) return 'talked'; // 通話・検討中=通話済
+    return 'absent';                                                       // 不通・留守・着信拒 等のみ=不在
+  }
+
+  // 「最終更新」の推定：受信日と全コール日付のうち最も新しい日付を採用（専用の更新列がシートに無いため）
+  function caseLastUpdate(c) {
+    let latest = null;
+    const consider = (v) => { const d = parseDateFlexible(v); if (d && (!latest || d > latest)) latest = d; };
+    consider(c.date);
+    (c.calls || []).forEach(k => consider(k.date));
+    return latest; // Date または null
+  }
+  // 最終更新から現在までの経過時間（時間単位）。判定不能なら null
+  function caseStaleHours(c) {
+    const d = caseLastUpdate(c);
+    if (!d) return null;
+    return (Date.now() - d.getTime()) / 3600000;
+  }
 
   // 統合フィルタ:段階(結果が空の案件)の定義
   const STAGE_PHASES = [
@@ -3220,7 +3291,26 @@
         String(c.no).includes(q)
       );
     }
-    
+
+    // ===== 割り振り・滞留管理フィルタ =====
+    // 担当者
+    if (caseFilters.assignee && caseFilters.assignee !== 'all') {
+      list = list.filter(c => String(c.assignee || '').trim() === caseFilters.assignee);
+    }
+    // 架電状況
+    if (caseFilters.callStatus && caseFilters.callStatus !== 'all') {
+      list = list.filter(c => {
+        const st = caseCallStatus(c);
+        if (caseFilters.callStatus === 'unresolved') return !['apo', 'excluded', 'done'].includes(st); // 未完了=アポ獲得・対象外・完了 以外
+        return st === caseFilters.callStatus;
+      });
+    }
+    // 滞留時間（最終更新から24h/48h以上）
+    if (caseFilters.stale && caseFilters.stale !== 'all') {
+      const need = caseFilters.stale === '48' ? 48 : 24;
+      list = list.filter(c => { const h = caseStaleHours(c); return h != null && h >= need; });
+    }
+
     // 後追日が近い順（期限切れ→本日→近い順）に自動並べ替え。後追日が空の案件は末尾へ。
     // 並べ替え（入札日 date / 後追日 followup を昇順・降順で切替）。日付なしは末尾。
     const sortVal = (c) => {
@@ -3273,6 +3363,13 @@
         <td></td>
       `;
       if (/売却した|やめた|売却済み|売却中止/.test(c.reply || '')) tr.classList.add('row-off'); // 顧客回答=売却済み/中止はグレーアウト
+      // 滞留(未更新)の色分け。アポ獲得・対象外・完了(成約/入庫)の行には付けない
+      const _cst = caseCallStatus(c);
+      if (!['apo', 'excluded', 'done'].includes(_cst)) {
+        const _h = caseStaleHours(c);
+        if (_h != null && _h >= 48) tr.classList.add('row-stale48');
+        else if (_h != null && _h >= 24) tr.classList.add('row-stale24');
+      }
       tr.addEventListener('click', () => openDetail(c));
       const _editBtn = tr.querySelector('.call-edit-btn');
       if (_editBtn) _editBtn.addEventListener('click', (e) => { e.stopPropagation(); openCallEditor(tr.querySelector('.call-cell'), c); });
@@ -4065,6 +4162,7 @@
   
   // 全体描画
   function renderAll() {
+    if (typeof populateAssigneeFilter === 'function') populateAssigneeFilter(); // データ読込後に担当者候補を更新
     renderMediaView(currentMedia);
     renderCaseTable();
     renderActionBoard();
@@ -4435,6 +4533,8 @@
       if (c.classList.contains('period-chip-cases')) return;
       if (c.classList.contains('media-chip-cases')) return;
       if (c.classList.contains('stage-chip-cases')) return;
+      if (c.classList.contains('callstatus-chip')) return;
+      if (c.classList.contains('stale-chip')) return;
       c.addEventListener('click', () => {
         g.querySelectorAll('.chip').forEach(x => {
           if (!x.classList.contains('period-chip')) x.classList.remove('active');
@@ -4450,7 +4550,7 @@
       chip.addEventListener('click', () => {
         document.querySelectorAll(selector).forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        const dataKey = chip.dataset.period || chip.dataset.cmedia || chip.dataset.phase || chip.dataset.cresult;
+        const dataKey = chip.dataset.period || chip.dataset.cmedia || chip.dataset.phase || chip.dataset.cresult || chip.dataset.cstatus || chip.dataset.stale;
         caseFilters[key] = dataKey;
         renderCaseTable();
       });
@@ -4458,10 +4558,38 @@
   }
   setupCaseFilterChips('.period-chip-cases', 'period');
   setupCaseFilterChips('.media-chip-cases', 'media');
+  setupCaseFilterChips('.callstatus-chip', 'callStatus');  // 架電状況（割り振り管理）
+  setupCaseFilterChips('.stale-chip', 'stale');            // 滞留時間（割り振り管理）
+
+  // 担当者プルダウンの選択肢を（ロースター＋データ上の担当者で）構築。選択状態は保持
+  function populateAssigneeFilter() {
+    const sel = document.getElementById('assignee-filter');
+    if (!sel) return;
+    const cur = sel.value || caseFilters.assignee || 'all';
+    const names = [];
+    ASSIGNEE_ROSTER.forEach(n => { if (!names.includes(n)) names.push(n); });
+    (typeof distinctAssignees === 'function' ? distinctAssignees() : []).forEach(n => { if (n && !names.includes(n)) names.push(n); }); // データ上の別名も拾う
+    sel.innerHTML = '<option value="all">全員</option>' +
+      names.map(n => `<option value="${String(n).replace(/"/g, '&quot;')}">${n}</option>`).join('');
+    sel.value = names.includes(cur) || cur === 'all' ? cur : 'all';
+    caseFilters.assignee = sel.value;
+  }
+  {
+    const _asel = document.getElementById('assignee-filter');
+    if (_asel) _asel.addEventListener('change', () => { caseFilters.assignee = _asel.value; renderCaseTable(); });
+  }
+  populateAssigneeFilter();
   // 結果/フェーズは統合フィルタ（renderStageFilterで動的生成・イベント付与）
   
   // タスクプリセットボタン
   function applyTaskPreset(taskName) {
+    // プリセットは独自の意図で表示するため、割り振り管理フィルタ（担当者/架電状況/滞留）は一旦解除する
+    caseFilters.assignee = 'all';
+    caseFilters.callStatus = 'all';
+    caseFilters.stale = 'all';
+    { const _af = document.getElementById('assignee-filter'); if (_af) _af.value = 'all'; }
+    updateChipUI('.callstatus-chip', 'data-cstatus', 'all');
+    updateChipUI('.stale-chip', 'data-stale', 'all');
     if (taskName === 'call') {
       // コール案件:全期間、全媒体、コールして繋がっていない案件（未架電・架電中）、入札日の降順(新しい順)
       caseFilters.period = 'all';
