@@ -1820,6 +1820,10 @@
     /* 明細パネル・編集モーダルを全幅に */
     .detail-panel, .edit-modal { width: 100% !important; max-width: 100% !important; }
   }
+  /* 絞り込みの折りたたみ（スマホのみ。PCは常に展開） */
+  .filter-toggle { display: none; }
+  .filter-more { display: contents; }
+
   /* ================================================================
      スマホ整頓（最終調整）— 折り返しの事故を止め、色数を落とす
      ※このブロックは既存のモバイル指定より後に置き、意図的に優先させる
@@ -1914,6 +1918,31 @@
     .ab-seg { white-space: nowrap; }
     .ab-arrow { white-space: nowrap; color: var(--ink-3); }
     .page-section { padding-bottom: 76px; }   /* FABに最終行が隠れないように */
+
+    /* ---- 絞り込みを折りたたむ（既定は閉じる） ----
+       よく使う「タスク」「担当者」だけ常時表示し、残りはトグルの中へ。
+       一覧まで一気にたどり着けるようにする ---- */
+    .filter-toggle {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      padding: 10px 12px; margin-top: 2px;
+      border: 1px solid var(--line); border-radius: 8px;
+      background: var(--bg-panel); font-family: inherit; font-size: 13px;
+      color: var(--ink); cursor: pointer; text-align: left;
+    }
+    .filter-toggle .ft-label { font-weight: 700; white-space: nowrap; }
+    .filter-toggle .ft-summary {
+      flex: 1; min-width: 0; color: var(--ink-3); font-size: 11.5px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .filter-toggle .ft-caret { color: var(--ink-3); transition: transform 0.15s; }
+    .filter-toggle[aria-expanded="true"] .ft-caret { transform: rotate(180deg); }
+    .filter-more { display: none; width: 100%; }
+    .filter-more.open { display: block; }
+    .filter-more .filter-group { margin-top: 10px; }
+    .filters { align-items: flex-start; }
+
+    /* ---- PWAのセーフエリア（時刻・電池と重ならないように） ---- */
+    header { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
 
     /* ---- 赤の使いすぎを抑える ---- */
     /* SMS文面・URLコピーは二次アクションなのでニュートラルに */
@@ -2139,6 +2168,16 @@
       <span class="chip task-chip" data-task="reset" style="background:#888;color:#fff;border-color:#888;">↺ リセット</span>
     </div>
     <div class="filter-group">
+      <span class="filter-label">担当者</span>
+      <select id="assignee-filter" class="assignee-select"><option value="all">全員</option></select>
+    </div>
+    <button type="button" class="filter-toggle" id="filterToggle" aria-expanded="false">
+      <span class="ft-label">絞り込み</span>
+      <span class="ft-summary" id="filterSummary">—</span>
+      <span class="ft-caret">▾</span>
+    </button>
+    <div class="filter-more" id="filterMore">
+    <div class="filter-group">
       <span class="filter-label">期間</span>
       <span class="chip period-chip-cases" data-period="current">当月</span>
       <span class="chip period-chip-cases" data-period="last">先月</span>
@@ -2161,10 +2200,6 @@
       <span id="stage-chips" style="display:contents;"></span>
     </div>
     <div class="filter-group">
-      <span class="filter-label">担当者</span>
-      <select id="assignee-filter" class="assignee-select"><option value="all">全員</option></select>
-    </div>
-    <div class="filter-group">
       <span class="filter-label">架電状況</span>
       <span class="chip callstatus-chip active" data-cstatus="unresolved">未完了</span>
       <span class="chip callstatus-chip" data-cstatus="all">全て</span>
@@ -2180,6 +2215,7 @@
       <span class="chip stale-chip active" data-stale="24">24時間以上</span>
       <span class="chip stale-chip" data-stale="48">48時間以上</span>
     </div>
+    </div><!-- /filter-more -->
   </div>
 
   <div class="container">
@@ -3400,6 +3436,7 @@
     if (rowCountEl) rowCountEl.textContent = filteredCases.length;
     const rowCountAllEl = document.getElementById('row-count-all');
     if (rowCountAllEl) rowCountAllEl.textContent = baseList.filter(isCaseListTarget).length;
+    if (typeof updateFilterSummary === 'function') updateFilterSummary();
   }
 
   // ===== 一覧上でのコール結果 直接編集 =====
@@ -4479,6 +4516,28 @@
   // 新規案件登録もパネルで行う
   { const _fb = document.getElementById('fabNew'); if (_fb) _fb.addEventListener('click', openDetailNew); }
   { const _ni = document.getElementById('newCaseInline'); if (_ni) _ni.addEventListener('click', openDetailNew); }
+
+  // ===== 絞り込みの折りたたみ（スマホ）=====
+  (function () {
+    const btn = document.getElementById('filterToggle');
+    const box = document.getElementById('filterMore');
+    if (!btn || !box) return;
+    btn.addEventListener('click', () => {
+      const open = box.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  })();
+  // 折りたたみ中でも何で絞られているか分かるように、適用中の条件を要約表示する
+  function updateFilterSummary() {
+    const el = document.getElementById('filterSummary');
+    const box = document.getElementById('filterMore');
+    if (!el || !box) return;
+    const NEUTRAL = ['全期間', '全媒体', '全て'];
+    const on = [...box.querySelectorAll('.chip.active')]
+      .map(c => c.textContent.trim())
+      .filter(t => t && !NEUTRAL.includes(t));
+    el.textContent = on.length ? on.join(' / ') : '条件なし（すべて表示）';
+  }
 
   // ページタブ切替
   document.querySelectorAll('.page-tab').forEach(t => {
