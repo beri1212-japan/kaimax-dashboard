@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>放置案件モニター｜kaimax</title>
+<meta name="theme-color" content="#b8312f">
+<style>
+  :root{ --red:#b8312f; --red-d:#8f2320; --ink:#1a1614; --sub:#6b625c; --line:#e5ddd6;
+    --bg:#f5f3ee; --panel:#fff; --yellow:#FFF8DB; --yellow-b:#f0dd94; --pink:#FBE0E0; --pink-b:#e9b3b3; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:15px; line-height:1.6; -webkit-text-size-adjust:100%; }
+  .wrap{max-width:1000px; margin:0 auto; padding:0 0 60px}
+  header{ background:linear-gradient(135deg,var(--red),var(--red-d)); color:#fff; padding:18px 20px; position:sticky; top:0; z-index:10;
+    box-shadow:0 2px 10px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  header h1{ font-size:19px; margin:0; font-weight:800; letter-spacing:.02em }
+  header .sub{ font-size:12px; opacity:.9; margin-top:2px }
+  .hbtns{ display:flex; gap:8px; align-items:center }
+  .btn{ background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.35); border-radius:8px;
+    padding:8px 12px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-block }
+  .btn:active{ transform:scale(.97) }
+  main{ padding:16px 16px 0 }
+  .updated{ font-size:12px; color:var(--sub); margin:2px 0 12px }
+  /* KPI */
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px }
+  .kpi{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 12px; text-align:center }
+  .kpi .n{ font-size:30px; font-weight:800; line-height:1; font-family:"DM Mono",Arial,monospace }
+  .kpi .l{ font-size:12px; color:var(--sub); margin-top:6px; font-weight:600 }
+  .kpi.warn .n{ color:#b8860b } .kpi.bad .n{ color:var(--red) } .kpi.none .n{ color:var(--ink) }
+  .sec-title{ font-size:15px; font-weight:800; margin:20px 4px 10px; display:flex; align-items:center; gap:8px }
+  .sec-title small{ font-weight:600; color:var(--sub); font-size:12px }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px }
+  th,td{ padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap }
+  th{ background:#faf8f3; font-size:12px; color:var(--sub); font-weight:700; position:sticky; top:0 }
+  td.num,th.num{ text-align:right; font-family:"DM Mono",Arial,monospace }
+  tr:last-child td{ border-bottom:0 }
+  .who{ font-weight:700 } .unassigned{ color:var(--red); font-weight:800 }
+  .chip{ display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:20px; border:1px solid var(--line); color:var(--sub) }
+  .chip.y{ background:var(--yellow); border-color:var(--yellow-b); color:#8a6d0b }
+  .chip.r{ background:var(--pink); border-color:var(--pink-b); color:var(--red-d) }
+  .filters{ display:flex; gap:8px; margin:0 4px 10px; flex-wrap:wrap }
+  .f{ font-size:13px; font-weight:700; padding:7px 12px; border-radius:20px; border:1.5px solid var(--line); background:#fff; color:var(--sub); cursor:pointer }
+  .f.on{ background:var(--red); border-color:var(--red); color:#fff }
+  .list-wrap{ overflow-x:auto }
+  tr.r-y td{ background:var(--yellow) } tr.r-r td{ background:var(--pink) }
+  tr.rowlink{ cursor:pointer } tr.rowlink:active td{ filter:brightness(.97) }
+  .elapsed{ font-weight:800; font-family:"DM Mono",Arial,monospace }
+  .empty{ padding:26px; text-align:center; color:var(--sub); font-size:14px }
+  .loading{ padding:40px; text-align:center; color:var(--sub) }
+  .err{ margin:12px 4px; padding:12px 14px; background:#FDECEC; color:#9B2226; border-radius:10px; font-size:13.5px; font-weight:600 }
+  @media (max-width:560px){
+    .kpis{ grid-template-columns:repeat(2,1fr) }
+    header h1{ font-size:17px }
+    .hide-sp{ display:none }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🚨 放置案件モニター</h1>
+      <div class="sub">kaimax / インディオ富山 — 管理者用</div>
+    </div>
+    <div class="hbtns">
+      <a class="btn" href="./" title="案件管理ダッシュボードを開く">📋 一覧へ</a>
+      <button class="btn" id="reload">↻ 更新</button>
+    </div>
+  </header>
+  <main>
+    <div class="updated" id="updated">読み込み中…</div>
+    <div id="err" class="err" style="display:none"></div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="sec-title">担当者別 <small>稼働案件の担当数・未完了・滞留</small></div>
+    <div class="panel">
+      <table id="byassignee">
+        <thead><tr>
+          <th>担当者</th><th class="num">担当(稼働)</th><th class="num">未完了</th>
+          <th class="num">滞留24h+</th><th class="num">滞留48h+</th>
+        </tr></thead>
+        <tbody><tr><td colspan="5" class="loading">読み込み中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="sec-title">放置リスト <small>未完了かつ滞留（古い順）</small></div>
+    <div class="filters">
+      <span class="f on" data-min="24" id="f24">滞留24h以上</span>
+      <span class="f" data-min="48" id="f48">48h以上のみ</span>
+      <span class="f" id="funassigned">未割当のみ</span>
+    </div>
+    <div class="panel list-wrap">
+      <table id="stale">
+        <thead><tr>
+          <th>経過</th><th>案件NO</th><th>顧客名</th><th class="hide-sp">車種</th><th>担当</th><th class="hide-sp">最終更新</th>
+        </tr></thead>
+        <tbody><tr><td colspan="6" class="loading">読み込み中…</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  // kaimaxダッシュボードと同じ公開CSV
+  var CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?output=csv';
+  var ROSTER=['前田','川縁','高木','上野','野村','馬塚','諸田','石川'];
+  var REACHED=['通話','検討中','アポ'];
+  var state={min:24, unassignedOnly:false, cases:[]};
+
+  function parseCSV(text){
+    var rows=[],row=[],cell='',q=false;
+    for(var i=0;i<text.length;i++){var ch=text[i],nx=text[i+1];
+      if(q){ if(ch==='"'&&nx==='"'){cell+='"';i++;} else if(ch==='"'){q=false;} else cell+=ch; }
+      else{ if(ch==='"')q=true; else if(ch===','){row.push(cell);cell='';} else if(ch==='\r'){} else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell='';} else cell+=ch; }
+    }
+    if(cell.length>0||row.length>0){row.push(cell);rows.push(row);}
+    return rows;
+  }
+  function parseDate(s){ if(!s)return null; s=String(s).trim();
+    var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})$/); if(m){var y=new Date().getFullYear();return new Date(y,+m[1]-1,+m[2]);}
+    m=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/); if(m)return new Date(+m[1],+m[2]-1,+m[3]); return null;
+  }
+  function rowsToCases(rows){
+    if(rows.length<2)return [];
+    var head=rows[0]||[];
+    var hi=function(name){return head.findIndex(function(h){return String(h||'').trim()===name;});};
+    var replyIdx=hi('回答');
+    var c6=hi('⑥結果'),c6d=hi('⑥日付'),c7=hi('⑦結果'),c7d=hi('⑦日付'),c8=hi('⑧結果'),c8d=hi('⑧日付');
+    var CALLS=[[9,null],[10,11],[12,13],[14,15],[16,17],[c6,c6d],[c7,c7d],[c8,c8d]];
+    var out=[];
+    for(var i=1;i<rows.length;i++){
+      var r=rows[i]; if(!r||r.length<5)continue; if(!r[0]||!String(r[0]).trim())continue;
+      var calls=[];
+      for(var n=0;n<CALLS.length;n++){var rc=CALLS[n][0]; if(rc==null||rc<0)continue; var res=r[rc]; var dc=CALLS[n][1]; var dt=(dc!=null&&dc>=0)?r[dc]:''; if(res&&String(res).trim())calls.push({result:String(res).trim(),date:String(dt||'').trim()});}
+      var assessRaw=String(r[18]||'').trim();
+      out.push({
+        no:String(r[0]||'').trim(), media:String(r[1]||'').trim(), date:String(r[2]||'').trim(),
+        customer:String(r[3]||'').trim(), car:String(r[5]||'').trim(),
+        bid:String(r[6]||'').trim(), bidResult:String(r[7]||'').trim(),
+        assess:assessRaw==='〇'?'〇':assessRaw==='×'?'×':null,
+        result:String(r[19]||'').trim().replace(/（/g,'(').replace(/）/g,')'),
+        assignee:String(r[21]||'').trim(),
+        reply:replyIdx>=0?String(r[replyIdx]||'').trim():'',
+        calls:calls
+      });
+    }
+    return out;
+  }
+  // 稼働対象（完了/対象外/MOTA未落札を除外）
+  function isActive(c){
+    if(/(成約|入庫|他社売却|自社代替|売らない|売却しない|しない|着拒|着信拒否|失注|対象外|重複|媒体重複|キャンセル|見送)/.test(c.result))return false;
+    if(c.media==='MOTA'){ var bidOK=(c.bid==='〇'||c.bid==='入札'); var wonOK=['〇','落札','権利獲得'].indexOf(c.bidResult)>=0; if(!(bidOK&&wonOK))return false; }
+    return true;
+  }
+  // 架電状況 → done/excluded/apo/talked/absent/not-started
+  function callStatus(c){
+    var r=c.result;
+    if(/入庫|成約/.test(r))return 'done';
+    if(/(他社売却|自社代替|売らない|売却しない|しない|着拒|着信拒否|失注|対象外|媒体重複|重複|キャンセル|見送)/.test(r))return 'excluded';
+    if(/売却した|やめた|売却済み|売却中止/.test(c.reply||''))return 'excluded';
+    if(c.assess==='×')return 'excluded';
+    if(/アポ/.test(r)||c.calls.some(function(k){return k.result==='アポ';}))return 'apo';
+    if(!c.calls.length)return 'not-started';
+    if(c.calls.some(function(k){return REACHED.indexOf(k.result)>=0;}))return 'talked';
+    return 'absent';
+  }
+  function unresolved(c){ var s=callStatus(c); return s!=='apo'&&s!=='excluded'&&s!=='done'; }
+  function lastUpdate(c){ var latest=null; var consider=function(v){var d=parseDate(v); if(d&&(!latest||d>latest))latest=d;}; consider(c.date); c.calls.forEach(function(k){consider(k.date);}); return latest; }
+  function staleHours(c){ var d=lastUpdate(c); if(!d)return null; return (Date.now()-d.getTime())/3600000; }
+  function fmtElapsed(h){ if(h==null)return '—'; if(h<48)return Math.floor(h)+'h'; return Math.floor(h/24)+'日'; }
+  function fmtDate(d){ if(!d)return '—'; return (d.getMonth()+1)+'/'+d.getDate(); }
+  function esc(s){ return String(s||'').replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];}); }
+
+  function render(){
+    var cases=state.cases;
+    var active=cases.filter(isActive);
+    var unassignedActive=active.filter(function(c){return !c.assignee;});
+    var stale24=active.filter(function(c){return unresolved(c)&&(staleHours(c)||0)>=24;});
+    var stale48=active.filter(function(c){return unresolved(c)&&(staleHours(c)||0)>=48;});
+    // KPI
+    document.getElementById('kpis').innerHTML=[
+      ['none',active.length,'稼働案件'],
+      ['bad',unassignedActive.length,'未割当'],
+      ['warn',stale24.length,'滞留24h+'],
+      ['bad',stale48.length,'滞留48h+']
+    ].map(function(k){return '<div class="kpi '+k[0]+'"><div class="n">'+k[1]+'</div><div class="l">'+k[2]+'</div></div>';}).join('');
+    // 担当者別
+    var rosterSet={}; ROSTER.forEach(function(n){rosterSet[n]={who:n,total:0,unres:0,s24:0,s48:0};});
+    var extra={};
+    active.forEach(function(c){
+      var key=c.assignee||'（未割当）';
+      var t=rosterSet[c.assignee]|| extra[key] || (extra[key]={who:key,total:0,unres:0,s24:0,s48:0});
+      t.total++;
+      if(unresolved(c)){ t.unres++; var h=staleHours(c)||0; if(h>=24)t.s24++; if(h>=48)t.s48++; }
+    });
+    var rows=ROSTER.map(function(n){return rosterSet[n];});
+    Object.keys(extra).forEach(function(k){rows.push(extra[k]);});
+    document.querySelector('#byassignee tbody').innerHTML=rows.map(function(t){
+      var wcls=(t.who==='（未割当）')?'unassigned':'who';
+      return '<tr><td class="'+wcls+'">'+esc(t.who)+'</td><td class="num">'+t.total+'</td><td class="num">'+t.unres+'</td>'+
+        '<td class="num">'+(t.s24?('<span class="chip y">'+t.s24+'</span>'):'0')+'</td>'+
+        '<td class="num">'+(t.s48?('<span class="chip r">'+t.s48+'</span>'):'0')+'</td></tr>';
+    }).join('');
+    // 放置リスト
+    var list=active.filter(function(c){
+      if(!unresolved(c))return false;
+      var h=staleHours(c); if(h==null||h<state.min)return false;
+      if(state.unassignedOnly&&c.assignee)return false;
+      return true;
+    }).map(function(c){return {c:c,h:staleHours(c)};}).sort(function(a,b){return b.h-a.h;});
+    var tb=document.querySelector('#stale tbody');
+    if(!list.length){ tb.innerHTML='<tr><td colspan="6" class="empty">該当なし 🎉（放置案件はありません）</td></tr>'; }
+    else{
+      tb.innerHTML=list.map(function(o){
+        var c=o.c,h=o.h; var rcls=h>=48?'r-r':'r-y';
+        var who=c.assignee?('<span class="who">'+esc(c.assignee)+'</span>'):'<span class="unassigned">未割当</span>';
+        return '<tr class="'+rcls+' rowlink" data-no="'+esc(c.no)+'">'+
+          '<td class="elapsed">'+fmtElapsed(h)+'</td>'+
+          '<td class="num">'+esc(c.no)+'</td>'+
+          '<td>'+esc(c.customer||'(未入力)')+'</td>'+
+          '<td class="hide-sp">'+esc(c.car)+'</td>'+
+          '<td>'+who+'</td>'+
+          '<td class="hide-sp">'+fmtDate(lastUpdate(c))+'</td></tr>';
+      }).join('');
+      Array.prototype.forEach.call(tb.querySelectorAll('.rowlink'),function(tr){
+        tr.addEventListener('click',function(){ location.href='./?open='+encodeURIComponent(tr.dataset.no); });
+      });
+    }
+    var now=new Date();
+    document.getElementById('updated').textContent='最終更新: '+now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate()+' '+
+      String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+'（稼働 '+active.length+'件）';
+  }
+
+  async function load(){
+    document.getElementById('err').style.display='none';
+    document.getElementById('updated').textContent='読み込み中…';
+    var text=null;
+    for(var a=0;a<4&&!text;a++){
+      try{ var r=await fetch(CSV_URL+'&_='+Date.now()+'_'+a,{cache:'no-store'}); if(r.ok){var t=await r.text(); if(t&&!/^\s*</.test(t))text=t;} }catch(e){}
+      if(!text)await new Promise(function(res){setTimeout(res,500*(a+1));});
+    }
+    if(!text){ document.getElementById('err').style.display='block'; document.getElementById('err').textContent='データの読み込みに失敗しました。時間をおいて「↻ 更新」を押してください。'; document.getElementById('updated').textContent=''; return; }
+    state.cases=rowsToCases(parseCSV(text));
+    render();
+  }
+
+  document.getElementById('reload').addEventListener('click',load);
+  document.getElementById('f24').addEventListener('click',function(){state.min=24;document.getElementById('f24').classList.add('on');document.getElementById('f48').classList.remove('on');render();});
+  document.getElementById('f48').addEventListener('click',function(){state.min=48;document.getElementById('f48').classList.add('on');document.getElementById('f24').classList.remove('on');render();});
+  document.getElementById('funassigned').addEventListener('click',function(){state.unassignedOnly=!state.unassignedOnly;this.classList.toggle('on',state.unassignedOnly);render();});
+  load();
+})();
+</script>
+</body>
+</html>
