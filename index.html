@@ -1294,10 +1294,12 @@
     overflow-y: auto;
   }
   .priority-row {
-    padding: 10px 18px;
+    box-sizing: border-box;
+    min-height: 52px;
+    padding: 8px 16px;
     border-bottom: 1px dashed var(--line);
     display: grid;
-    grid-template-columns: 70px 1fr auto;
+    grid-template-columns: 78px minmax(0,1fr) auto;
     gap: 10px;
     align-items: center;
     font-size:13px;
@@ -1308,8 +1310,30 @@
   .priority-row:last-child { border-bottom: none; }
   .priority-row .pr-meta {
     font-family: Arial, sans-serif;
-    font-size:12px;
+    font-size:11px;
+    line-height: 1.3;
     color: var(--ink-3);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    min-width: 0;
+  }
+  .priority-row .pr-meta .pr-date {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+  .priority-row .pr-meta .pr-date.empty { opacity: 0.45; }
+  /* 媒体タグは折り返さず1行に収める（「カーセンサー」が2行に割れるのを防ぐ） */
+  .priority-row .pr-meta .m-tag {
+    font-size: 10px;
+    padding: 1px 5px;
+    letter-spacing: 0;
+    line-height: 1.5;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .priority-row .pr-name {
     font-weight: 600;
@@ -1320,14 +1344,17 @@
   .priority-row .pr-name .car {
     font-size:12px;
     color: var(--ink-3);
-    margin-left: 6px;
+    margin-left: 8px;
     font-weight: 400;
   }
   .priority-row .pr-status {
     font-size:12px;
-    padding: 2px 6px;
+    padding: 3px 6px;
     border: 1px solid;
     white-space: nowrap;
+    min-width: 66px;
+    text-align: center;
+    border-radius: 3px;
   }
   .priority-row .pr-status.uncalled {
     color: var(--green);
@@ -1522,6 +1549,40 @@
     font-size:13px;
     padding: 5px 8px;
   }
+  /* 詳細パネル内の編集フォーム */
+  .detail-section .edit-grid { gap: 10px 12px; }
+  .detail-section .edit-field input[type="text"],
+  .detail-section .edit-field input[type="date"],
+  .detail-section .edit-field input[type="number"],
+  .detail-section .edit-field select {
+    width: 100%; box-sizing: border-box;
+    padding: 8px 10px; font-size: 14px; font-family: inherit; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  }
+  .detail-section .edit-field input:focus,
+  .detail-section .edit-field select:focus,
+  #detail-body textarea:focus { outline: none; border-color: var(--accent); }
+  .dp-calls { display: flex; flex-direction: column; gap: 6px; }
+  .dp-call {
+    display: grid; grid-template-columns: 28px minmax(0,1fr) 96px;
+    gap: 8px; align-items: center; padding: 5px 8px; background: var(--bg-soft); border-radius: 6px;
+  }
+  .dp-call-n {
+    font-family: Arial, sans-serif; font-size: 15px; font-weight: 700;
+    color: var(--accent); text-align: center;
+  }
+  .dp-call select, .dp-call input {
+    width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 13px;
+    font-family: inherit; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);
+  }
+  .dp-call input:disabled { background: var(--bg-soft); color: var(--ink-3); }
+  #dp-actions { position: sticky; bottom: 0; background: var(--bg-panel); border-top: 1px solid var(--line); }
+  #dp-actions .btn-primary, #dp-actions .btn-secondary, #dp-actions .btn-danger { min-width: 96px; }
+  @media (max-width: 680px) {
+    .detail-section .edit-grid { grid-template-columns: 1fr; }
+    .detail-section { padding: 14px 16px; }
+  }
+
   .edit-status {
     margin: 14px 0;
     padding: 10px 14px;
@@ -2092,167 +2153,6 @@
   <div id="detail-body"></div>
 </div>
 
-<!-- ============================================================
-     編集モーダル
-============================================================ -->
-<div class="edit-overlay" id="editOverlay"></div>
-<div class="edit-modal" id="editModal">
-  <div class="edit-header">
-    <div>
-      <div class="edit-id" id="editTitle">新規案件登録</div>
-      <div class="edit-subtitle" id="editSubtitle">マスタ案件シートに追加されます</div>
-    </div>
-    <button class="edit-close" id="editClose">×</button>
-  </div>
-  
-  <div class="edit-body">
-    <input type="hidden" id="ef-no">
-    <input type="hidden" id="ef-mode">
-    
-    <div class="edit-section">
-      <h4>案件情報</h4>
-      <div class="edit-grid">
-        <label class="edit-field">
-          <span class="ef-label">媒体 <em>必須</em></span>
-          <select id="ef-media">
-            <option value="">選択してください</option>
-            <option value="MOTA">MOTA</option>
-            <option value="カーセンサー">カーセンサー</option>
-            <option value="ナビクル">ナビクル</option>
-            <option value="自社サイト">自社サイト</option>
-            <option value="店頭">店頭査定</option>
-            <option value="その他">その他</option>
-          </select>
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">受信日</span>
-          <input type="date" id="ef-date">
-        </label>
-        <label class="edit-field full">
-          <span class="ef-label">顧客名 <em>必須</em></span>
-          <input type="text" id="ef-customer" placeholder="例:佐藤 美咲">
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">TEL番号</span>
-          <input type="text" id="ef-tel" placeholder="090-1234-5678">
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">担当者</span>
-          <input type="text" id="ef-assignee" placeholder="例:高木">
-        </label>
-        <label class="edit-field full">
-          <span class="ef-label">車名</span>
-          <input type="text" id="ef-car" placeholder="例:トヨタ ハリアー Z">
-        </label>
-      </div>
-    </div>
-
-    <div class="edit-section" id="ef-bidsection">
-      <h4>入札(MOTAのみ)</h4>
-      <div class="edit-grid">
-        <label class="edit-field">
-          <span class="ef-label">入札</span>
-          <select id="ef-bid">
-            <option value=""></option>
-            <option value="入札">入札</option>
-            <option value="見送り">見送り</option>
-            <option value="〇">〇</option>
-            <option value="×">×</option>
-          </select>
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">入札結果</span>
-          <select id="ef-bidResult">
-            <option value=""></option>
-            <option value="権利獲得">権利獲得</option>
-            <option value="落札">落札</option>
-            <option value="失注">失注</option>
-            <option value="〇">〇</option>
-            <option value="×">×</option>
-          </select>
-        </label>
-        <label class="edit-field full">
-          <span class="ef-label">ライバル社</span>
-          <input type="text" id="ef-rival" placeholder="例:ガリバー、ウィーカーズ、ネクステ">
-        </label>
-      </div>
-    </div>
-
-    <div class="edit-section">
-      <h4>架電履歴(①〜⑤)</h4>
-      <div class="call-row-group" id="ef-calls"></div>
-    </div>
-
-    <div class="edit-section">
-      <h4>査定・結果</h4>
-      <div class="edit-grid">
-        <label class="edit-field">
-          <span class="ef-label">査定</span>
-          <select id="ef-assess">
-            <option value=""></option>
-            <option value="〇">〇</option>
-            <option value="×">×</option>
-          </select>
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">結果</span>
-          <select id="ef-result">
-            <option value=""></option>
-            <option value="入庫済み">入庫済み</option>
-            <option value="成約">成約</option>
-            <option value="検討(1ヶ月以内)">検討(1ヶ月以内)</option>
-            <option value="検討(直近)">検討(直近)</option>
-            <option value="検討(長期)">検討(長期)</option>
-            <option value="他社結果待ち">他社結果待ち</option>
-            <option value="★近日返事">★近日返事</option>
-            <option value="他社売却">他社売却</option>
-            <option value="自社代替">自社代替</option>
-            <option value="売らない">売らない</option>
-            <option value="売却しない">売却しない</option>
-            <option value="着拒">着拒</option>
-            <option value="媒体重複">媒体重複</option>
-          </select>
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">次回後追日</span>
-          <input type="date" id="ef-followup">
-        </label>
-      </div>
-    </div>
-
-    <div class="edit-section">
-      <h4>金額</h4>
-      <div class="edit-grid">
-        <label class="edit-field">
-          <span class="ef-label">顧客希望額</span>
-          <input type="number" id="ef-desired" placeholder="例:4000000">
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">査定提示額</span>
-          <input type="number" id="ef-offered" placeholder="例:3850000">
-        </label>
-        <label class="edit-field">
-          <span class="ef-label">成約額</span>
-          <input type="number" id="ef-deal" placeholder="例:3700000">
-        </label>
-      </div>
-    </div>
-
-    <div class="edit-section">
-      <h4>備考</h4>
-      <textarea id="ef-note" rows="3" placeholder="査定額メモ、後追いフォロー内容など..."></textarea>
-    </div>
-
-    <div class="edit-status" id="editStatus"></div>
-
-    <div class="edit-actions">
-      <button class="btn-danger" id="ef-delete" style="display:none;">削除</button>
-      <button class="btn-secondary" id="ef-cancel">キャンセル</button>
-      <button class="btn-primary" id="ef-save">保存</button>
-    </div>
-  </div>
-</div>
-
 <footer>
   kaimax — 買取案件管理システム / プロトタイプ v0.5 / Source: 買取事業集計.xlsx > MOTA・カーセンサー・ナビクル
 </footer>
@@ -2366,6 +2266,23 @@
         desired: parseInt(String(r[23] || '').replace(/[^\d]/g, '')) || null,
         offered: parseInt(String(r[24] || '').replace(/[^\d]/g, '')) || null,
         deal: parseInt(String(r[25] || '').replace(/[^\d]/g, '')) || null,
+        // ★X〜Z列は「1,800,000円」やMOTAの査定明細テキストがそのまま入っている行がある。
+        //   数値化した値を書き戻すと明細が消えるので、生の文字列も保持して編集・保存はこちらを使う。
+        desiredRaw: String(r[23] || '').trim(),
+        offeredRaw: String(r[24] || '').trim(),
+        dealRaw: String(r[25] || '').trim(),
+        // ★住所/メール/年式/走行距離は、見出しどおりAA〜AD(26〜29)の行と、
+        //   1列ズレてAB〜AE(27〜30)に入っている行が混在する。中身を見てどちらか判定する。
+        ...(function () {
+          const grp = (o) => [r[o], r[o+1], r[o+2], r[o+3]].map(x => String(x || '').trim());
+          const score = (g) => (g[0] ? 1 : 0)
+            + (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(g[1]) ? 2 : 0)
+            + (/年式/.test(g[2]) ? 2 : 0)
+            + (/キロ|km/i.test(g[3]) ? 2 : 0);
+          const a = grp(26), b = grp(27);
+          const u = score(b) > score(a) ? b : a;
+          return { address: u[0], email: u[1], year: u[2], mileage: u[3] };
+        })(),
         memo: String(r[31] || '').trim(),  // AF列:通話メモ
         reply: replyColIdx >= 0 ? String(r[replyColIdx] || '').trim() : '',  // 回答列:顧客回答ページの状況
 
@@ -4061,7 +3978,7 @@
         row.className = 'priority-row';
         const dateStr = c.date ? c.date.replace(/^\d{4}\//, '') : '—';
         row.innerHTML = `
-          <div class="pr-meta">${dateStr} <span class="m-tag ${c.media}" style="font-size:10px;padding:1px 4px;margin-left:2px;">${mediaLabels[c.media]}</span></div>
+          <div class="pr-meta"><span class="pr-date${c.date ? '' : ' empty'}">${dateStr}</span><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></div>
           <div class="pr-name">${c.customer || "(未入力)"} 様<span class="car">${c.car}</span></div>
           <div class="pr-status uncalled">未コール</div>
         `;
@@ -4096,7 +4013,7 @@
         const statusLabel = isAssessmentApo ? '査定アポ' : '返事待ち';
         const followStr = c.followup ? c.followup.replace(/^\d{4}\//, '') : '—';
         row.innerHTML = `
-          <div class="pr-meta">${followStr}<br><span class="m-tag ${c.media}" style="font-size:10px;padding:1px 4px;">${mediaLabels[c.media]}</span></div>
+          <div class="pr-meta"><span class="pr-date${c.followup ? '' : ' empty'}">${followStr}</span><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></div>
           <div class="pr-name">${c.customer || "(未入力)"} 様<span class="car">${c.car}</span></div>
           <div class="pr-status ${statusClass}">${statusLabel}</div>
         `;
@@ -4174,86 +4091,277 @@
   // 詳細パネル
   const overlay = document.getElementById('overlay');
   const panel = document.getElementById('detail');
+  let detailState = { no: null, mode: 'update', memoOrig: '' };
 
-  function openDetail(c) {
-    const callLogs = c.calls.map((call, idx) => `
-      <div class="call-row ${callDotClass(call.result)}">
-        <div class="n">${['①','②','③','④','⑤','⑥','⑦','⑧'][idx]}</div>
-        <div class="date">${call.date}</div>
-        <div class="result">${call.result}</div>
-      </div>
-    `).join('');
+  function openDetail(c) { renderDetail(c, 'update'); }
 
-    document.getElementById('detail-id').innerHTML = `<span class="m-tag ${c.media}">${mediaLabels[c.media]}</span> <span>M-2605-${String(c.no).padStart(3,'0')} / 入札 ${c.date}</span>`;
-    document.getElementById('detail-name').textContent = c.customer + ' 様';
+  // 新規案件も同じパネルで登録する
+  function openDetailNew() {
+    renderDetail({
+      no: '', media: 'mota', date: new Date().toISOString().slice(0,10).replace(/-/g,'/'),
+      customer: '', tel: '', car: '', bid: '', bidResult: '', rival: '',
+      calls: [], assess: null, result: '', followup: '', assignee: '',
+      note: '', desired: null, offered: null, deal: null,
+      address: '', email: '', year: '', mileage: '', memo: '', reply: '', timing: ''
+    }, 'create');
+  }
+  window.openDetailNew = openDetailNew;
 
-    const escMemo = String(c.memo || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // ---- 入力候補 ----
+  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
+  const OPT_MEDIA = ['MOTA', 'カーセンサー', 'ナビクル', '自社サイト', '店頭', 'その他'];
+  const OPT_BID = ['', '入札', '見送り', '〇', '×'];
+  const OPT_BIDRESULT = ['', '権利獲得', '落札', '失注', '〇', '×'];
+  const OPT_CALL = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
+  const OPT_ASSESS = ['', '〇', '×'];
+  const OPT_RESULT = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
+  const OPT_ASSIGNEE = ['前田', '川縁', '高木', '上野', '野村', '馬塚', '諸田', '石川'];
+  const CALL_MARKS = ['①','②','③','④','⑤','⑥','⑦','⑧'];
+
+  // 日付フォーマット変換 YYYY/MM/DD ⇔ YYYY-MM-DD
+  function toDateInput(s) {
+    if (!s) return '';
+    const m = String(s).match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if (!m) return '';
+    return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  }
+  function fromDateInput(s) { return s ? s.replace(/-/g, '/') : ''; }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function optHtml(list, cur) {
+    return list.map(o => `<option value="${esc(o)}"${String(o) === String(cur == null ? '' : cur) ? ' selected' : ''}>${o === '' ? '(未設定)' : esc(o)}</option>`).join('');
+  }
+
+  // 詳細パネル本体（全項目をここで編集する）
+  function renderDetail(c, mode) {
+    const isNew = mode === 'create';
+    detailState = { no: c.no, mode: mode, memoOrig: c.memo || '' };
+
+    document.getElementById('detail-id').innerHTML = isNew
+      ? '<span style="font-weight:700;">新規案件登録</span>'
+      : `<span class="m-tag ${c.media}">${mediaLabels[c.media]}</span> <span>M-2605-${String(c.no).padStart(3,'0')} / 入札 ${esc(c.date)}</span>`;
+    document.getElementById('detail-name').textContent = isNew ? 'マスタ案件シートに新規行を追加します' : (c.customer || '(未入力)') + ' 様';
+
+    // 架電①〜⑧の入力行
+    let callRows = '';
+    for (let i = 0; i < 8; i++) {
+      const cc = (c.calls && c.calls[i]) ? c.calls[i] : { result: '', date: '' };
+      callRows += `
+        <div class="dp-call">
+          <div class="dp-call-n">${CALL_MARKS[i]}</div>
+          <select class="dp-call-result" data-idx="${i}">${optHtml(OPT_CALL, cc.result)}</select>
+          <input type="text" class="dp-call-date" data-idx="${i}" placeholder="MM/DD" value="${esc(cc.date)}"${i === 0 ? ' disabled title="①は日付列がありません"' : ''}>
+        </div>`;
+    }
+
+    const telDigits = String(c.tel || '').replace(/[^0-9+]/g, '');
+    const replyUrlBlock = isNew ? '' : `
+      <div class="detail-section">
+        <h3>回答URL</h3>
+        <div style="font-size:12px;line-height:1.5;">
+          <span style="word-break:break-all;-webkit-user-select:all;user-select:all;color:var(--ink-2);">${esc(buildReplyUrl(c))}</span><br>
+          <button class="url-copy-btn" style="margin-top:6px;" onclick="copyReplyUrl(${c.no});">🔗 URLをコピー</button>
+          <span style="color:var(--ink-3);font-size:11px;">（長押しでも選べます）</span>
+        </div>
+        ${c.reply ? `<div style="margin-top:10px;font-size:13px;">お客様回答: <b>${esc(c.reply)}</b></div>` : ''}
+        ${c.timing ? `<div style="margin-top:6px;font-size:13px;">売却予定時期: <span class="sell-timing ${timingClass(c.timing)}">🕐 ${esc(c.timing)}</span></div>` : ''}
+      </div>`;
+
     document.getElementById('detail-body').innerHTML = `
       <div class="detail-section">
         <h3>案件情報</h3>
-        <div class="field-grid">
-          <span class="field-label">媒体</span><span class="field-value"><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></span>
-          <span class="field-label">顧客名</span><span class="field-value">${c.customer || "(未入力)"} 様</span>
-          <span class="field-label">電話</span><span class="field-value mono">${c.tel ? `<a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;" onclick="openQuickCall(${c.no});">${c.tel} 📞</a>` : '—'}</span>
-          <span class="field-label">車種</span><span class="field-value">${c.car}</span>
-          <span class="field-label">入札日</span><span class="field-value mono">${c.date}</span>
-          <span class="field-label">売却予定時期</span><span class="field-value">${c.timing ? `<span class="sell-timing ${timingClass(c.timing)}">🕐 ${c.timing}</span>` : '—'}</span>
-          <span class="field-label">回答URL</span><span class="field-value" style="font-size:12px;line-height:1.5;"><span style="word-break:break-all;-webkit-user-select:all;user-select:all;color:var(--ink-2);">${buildReplyUrl(c)}</span><br><button class="url-copy-btn" style="margin-top:6px;" onclick="copyReplyUrl(${c.no});">🔗 URLをコピー</button> <span style="color:var(--ink-3);font-size:11px;">（長押しでも選べます）</span></span>
+        <div class="edit-grid">
+          <label class="edit-field"><span class="ef-label">媒体 <em>必須</em></span>
+            <select id="dp-media">${optHtml(OPT_MEDIA, MEDIA_REVERSE[c.media] || '')}</select></label>
+          <label class="edit-field"><span class="ef-label">受信日</span>
+            <input type="date" id="dp-date" value="${toDateInput(c.date)}"></label>
+          <label class="edit-field full"><span class="ef-label">顧客名</span>
+            <input type="text" id="dp-customer" value="${esc(c.customer)}" placeholder="例:佐藤 美咲"></label>
+          <label class="edit-field"><span class="ef-label">TEL番号</span>
+            <span style="display:flex;gap:6px;align-items:center;">
+              <input type="text" id="dp-tel" value="${esc(c.tel)}" placeholder="090-1234-5678" style="flex:1;min-width:0;">
+              ${telDigits && !isNew ? `<a href="tel:${telDigits}" class="url-copy-btn" style="text-decoration:none;white-space:nowrap;" onclick="openQuickCall(${c.no});">📞 発信</a>` : ''}
+            </span></label>
+          <label class="edit-field"><span class="ef-label">担当者</span>
+            <input type="text" id="dp-assignee" list="dp-assignee-list" value="${esc(c.assignee)}" placeholder="例:高木">
+            <datalist id="dp-assignee-list">${OPT_ASSIGNEE.map(n => `<option value="${n}">`).join('')}</datalist></label>
+          <label class="edit-field full"><span class="ef-label">車名</span>
+            <input type="text" id="dp-car" value="${esc(c.car)}" placeholder="例:トヨタ ハリアー Z"></label>
         </div>
       </div>
+
+      <div class="detail-section">
+        <h3>入札(MOTAのみ)</h3>
+        <div class="edit-grid">
+          <label class="edit-field"><span class="ef-label">入札</span>
+            <select id="dp-bid">${optHtml(OPT_BID, c.bid)}</select></label>
+          <label class="edit-field"><span class="ef-label">入札結果</span>
+            <select id="dp-bidResult">${optHtml(OPT_BIDRESULT, c.bidResult)}</select></label>
+          <label class="edit-field full"><span class="ef-label">ライバル社</span>
+            <input type="text" id="dp-rival" value="${esc(c.rival)}" placeholder="例:ガリバー、ウィーカーズ、ネクステ"></label>
+        </div>
+      </div>
+
       <div class="detail-section">
         <h3>架電履歴(①〜⑧)</h3>
-        <div class="call-log">${callLogs || '<div style="color:var(--ink-3);font-size:13px;">未架電</div>'}</div>
+        <div class="dp-calls">${callRows}</div>
       </div>
+
       <div class="detail-section">
         <h3>査定・結果</h3>
-        <div class="field-grid">
-          <span class="field-label">査定</span><span class="field-value" style="font-family:Arial,serif;font-size:20px;font-weight:700;">${c.assess || '—'}</span>
-          <span class="field-label">結果</span><span class="field-value">${c.result || '—'}</span>
-          <span class="field-label">次回後追日</span><span class="field-value mono">${c.followup || '—'}</span>
+        <div class="edit-grid">
+          <label class="edit-field"><span class="ef-label">査定</span>
+            <select id="dp-assess">${optHtml(OPT_ASSESS, c.assess)}</select></label>
+          <label class="edit-field"><span class="ef-label">結果</span>
+            <select id="dp-result">${optHtml(OPT_RESULT, c.result)}</select></label>
+          <label class="edit-field"><span class="ef-label">次回後追日</span>
+            <input type="date" id="dp-followup" value="${toDateInput(c.followup)}"></label>
         </div>
       </div>
+
+      <div class="detail-section">
+        <h3>金額</h3>
+        <div class="edit-grid">
+          <label class="edit-field"><span class="ef-label">査定提示額</span>
+            <input type="text" id="dp-offered" value="${esc(c.offeredRaw != null ? c.offeredRaw : (c.offered || ''))}" placeholder="例:3,850,000円"></label>
+          <label class="edit-field"><span class="ef-label">成約額</span>
+            <input type="text" id="dp-deal" value="${esc(c.dealRaw != null ? c.dealRaw : (c.deal || ''))}" placeholder="例:3,700,000円"></label>
+          <label class="edit-field full"><span class="ef-label">顧客希望額 <em style="border:none;color:var(--ink-3);">MOTA連携時は査定明細が入ります(X列)</em></span>
+            <textarea id="dp-desired" rows="2" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.6;font-family:inherit;resize:vertical;color:var(--ink);">${esc(c.desiredRaw != null ? c.desiredRaw : (c.desired || ''))}</textarea></label>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>お客様情報</h3>
+        <div class="edit-grid">
+          <label class="edit-field full"><span class="ef-label">住所</span>
+            <input type="text" id="dp-address" value="${esc(c.address)}" placeholder="例:富山県富山市大町"></label>
+          <label class="edit-field full"><span class="ef-label">メール</span>
+            <input type="text" id="dp-email" value="${esc(c.email)}" placeholder="例:example@example.com"></label>
+          <label class="edit-field"><span class="ef-label">年式</span>
+            <input type="text" id="dp-year" value="${esc(c.year)}" placeholder="例:2015(平成27)年式"></label>
+          <label class="edit-field"><span class="ef-label">走行距離</span>
+            <input type="text" id="dp-mileage" value="${esc(c.mileage)}" placeholder="例:～9万キロ"></label>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>備考(査定額・後追メモ)</h3>
+        <textarea id="dp-note" rows="3" style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;color:var(--ink);">${esc(c.note)}</textarea>
+      </div>
+
       <div class="detail-section">
         <h3>通話メモ</h3>
-        <textarea id="detail-memo" placeholder="通話内容・次回の要点などを記録..." style="width:100%;box-sizing:border-box;min-height:96px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;color:var(--ink);">${escMemo}</textarea>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
-          <button class="detail-edit-btn" style="margin:0;" onclick="saveMemo(${c.no})">💾 通話メモを保存</button>
-          <span id="detail-memo-msg" style="font-size:13px;font-weight:700;"></span>
+        <textarea id="dp-memo" placeholder="通話内容・次回の要点などを記録..." style="width:100%;box-sizing:border-box;min-height:96px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;color:var(--ink);">${esc(c.memo)}</textarea>
+      </div>
+
+      ${replyUrlBlock}
+
+      <div class="detail-section" id="dp-actions">
+        <div class="edit-status" id="detail-status"></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+          <button class="btn-primary" id="dp-save">${isNew ? '登録する' : '保存する'}</button>
+          <button class="btn-secondary" id="dp-cancel">閉じる</button>
+          ${isNew ? '' : '<button class="btn-danger" id="dp-delete" style="margin-left:auto;">削除</button>'}
         </div>
       </div>
-      <div class="detail-section" style="background:var(--bg-soft);">
-        <h3>備考(査定額・後追メモ)</h3>
-        <div style="font-size:14px;line-height:1.7;color:var(--ink-2);">${c.note || '—'}</div>
-        <button class="detail-edit-btn" onclick="editCase(${c.no})">この案件を編集</button>
-      </div>
     `;
+
+    document.getElementById('dp-save').addEventListener('click', saveDetail);
+    document.getElementById('dp-cancel').addEventListener('click', closeDetail);
+    const delBtn = document.getElementById('dp-delete');
+    if (delBtn) delBtn.addEventListener('click', deleteFromDetail);
+
+    document.getElementById('detail-body').scrollTop = 0;
     overlay.classList.add('show');
     panel.classList.add('show');
   }
 
-  // 通話メモの保存（AF列だけ更新する安全な方式）
-  async function saveMemo(no) {
-    const ta = document.getElementById('detail-memo');
-    const msg = document.getElementById('detail-memo-msg');
-    const memo = ta ? ta.value : '';
-    if (msg) { msg.textContent = '保存中...'; msg.style.color = 'var(--ink-3)'; }
+  function detailStatus(type, msg) {
+    const el = document.getElementById('detail-status');
+    if (!el) return;
+    el.className = `edit-status show ${type}`;
+    el.textContent = msg;
+  }
+
+  // パネルから保存（A〜AD列 + 架電⑥〜⑧ + 通話メモ）
+  async function saveDetail() {
+    const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const media = v('dp-media');
+    if (!media) { detailStatus('error', '媒体を選択してください'); return; }
+
+    // 架電①〜⑧
+    const calls = {};
+    for (let i = 0; i < 8; i++) {
+      const rEl = document.querySelector(`.dp-call-result[data-idx="${i}"]`);
+      const dEl = document.querySelector(`.dp-call-date[data-idx="${i}"]`);
+      calls[`call${i+1}`] = rEl ? rEl.value : '';
+      calls[`call${i+1}Date`] = dEl ? dEl.value : '';
+    }
+
+    const payload = {
+      no: detailState.no ? parseInt(detailState.no) : null,
+      media, date: fromDateInput(v('dp-date')),
+      customer: v('dp-customer'), tel: v('dp-tel'), car: v('dp-car'),
+      bid: v('dp-bid'), bidResult: v('dp-bidResult'), rival: v('dp-rival'),
+      ...calls,
+      assess: v('dp-assess'), result: v('dp-result'), followup: fromDateInput(v('dp-followup')),
+      assignee: v('dp-assignee'), note: v('dp-note'),
+      desired: v('dp-desired'), offered: v('dp-offered'), deal: v('dp-deal'),
+      // ★画面に出ていなかった列。送らないとGAS側で空欄に上書きされるため必ず往復させる
+      address: v('dp-address'), email: v('dp-email'), year: v('dp-year'), mileage: v('dp-mileage'),
+    };
+
+    const saveBtn = document.getElementById('dp-save');
+    if (saveBtn) saveBtn.disabled = true;
+    detailStatus('loading', '保存中...');
     try {
-      const r = await postWebhook('update_memo', { no, memo });
+      const r = await postWebhook(detailState.mode, payload);
       const data = r.ok ? r.data : null;
-      if (data && data.status === 'success') {
-        const ca = (allCases || []).find(x => x.no === no); if (ca) ca.memo = memo;
-        const cb = (cases || []).find(x => x.no === no); if (cb) cb.memo = memo;
-        if (msg) { msg.textContent = '✓ 保存しました'; msg.style.color = 'var(--green)'; }
-      } else if (data) {
-        if (msg) { msg.textContent = '✗ ' + (data.message || '保存失敗'); msg.style.color = 'var(--red)'; }
-      } else {
-        if (msg) { msg.textContent = '✗ 通信エラー（再試行しました）もう一度お試しください'; msg.style.color = 'var(--red)'; }
+      if (!data || data.status !== 'success') {
+        detailStatus('error', data ? `エラー: ${data.message}` : '通信エラー（再試行しました）もう一度お試しください');
+        if (saveBtn) saveBtn.disabled = false;
+        return;
       }
-    } catch (e) {
-      if (msg) { msg.textContent = '✗ 通信エラー'; msg.style.color = 'var(--red)'; }
+      const savedNo = data.no || payload.no;
+      // ⑥〜⑧はA〜AD列の外（右端）なので update_calls で別途書き込む
+      const has678 = ['call6','call7','call8'].some(k => calls[k]);
+      if (savedNo && has678) {
+        await postWebhook('update_calls', { no: parseInt(savedNo), ...calls });
+      }
+      // 通話メモはAF列。変更があったときだけ更新
+      const memo = v('dp-memo');
+      if (savedNo && memo !== detailState.memoOrig) {
+        await postWebhook('update_memo', { no: parseInt(savedNo), memo });
+      }
+      detailStatus('success', `✓ ${data.message}`);
+      setTimeout(() => { closeDetail(); initDashboard(); }, 1200);
+    } catch (err) {
+      detailStatus('error', `通信エラー: ${err.message}`);
+      if (saveBtn) saveBtn.disabled = false;
     }
   }
-  window.saveMemo = saveMemo;
+
+  async function deleteFromDetail() {
+    const no = detailState.no;
+    if (!no) return;
+    if (!confirm(`案件NO ${no} を削除します。この操作は取り消せません。本当に削除しますか?`)) return;
+    detailStatus('loading', '削除中...');
+    try {
+      const r = await postWebhook('delete', { no: parseInt(no) });
+      const data = r.ok ? r.data : null;
+      if (data && data.status === 'success') {
+        detailStatus('success', `✓ ${data.message}`);
+        setTimeout(() => { closeDetail(); initDashboard(); }, 1200);
+      } else {
+        detailStatus('error', data ? `エラー: ${data.message}` : '通信エラー（再試行しました）もう一度お試しください');
+      }
+    } catch (err) {
+      detailStatus('error', `通信エラー: ${err.message}`);
+    }
+  }
 
   function closeDetail() {
     overlay.classList.remove('show');
@@ -4263,229 +4371,9 @@
   { const _db = document.getElementById('detailBack'); if (_db) _db.addEventListener('click', closeDetail); }
   overlay.addEventListener('click', closeDetail);
 
-  // ============================================================
-  // 編集モーダル制御
-  // ============================================================
-  
-  // 媒体名:英字→日本語変換
-  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
-  
-  // 架電履歴入力行を生成
-  function buildCallRows(callsData) {
-    const container = document.getElementById('ef-calls');
-    container.innerHTML = '';
-    const callOptions = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
-    for (let i = 0; i < 5; i++) {
-      const c = callsData && callsData[i] ? callsData[i] : { result: '', date: '' };
-      const row = document.createElement('div');
-      row.className = 'call-row-input';
-      row.innerHTML = `
-        <div class="num">${['①','②','③','④','⑤'][i]}</div>
-        <select class="ef-call-result" data-idx="${i}">
-          ${callOptions.map(o => `<option value="${o}" ${o === c.result ? 'selected' : ''}>${o || '(未設定)'}</option>`).join('')}
-        </select>
-        <input type="text" class="ef-call-date" data-idx="${i}" placeholder="MM/DD" value="${c.date || ''}">
-      `;
-      container.appendChild(row);
-    }
-  }
-  
-  // 日付フォーマット変換 YYYY/MM/DD → YYYY-MM-DD (input[date]用)
-  function toDateInput(s) {
-    if (!s) return '';
-    const m = s.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
-    if (!m) return '';
-    return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
-  }
-  function fromDateInput(s) {
-    if (!s) return '';
-    return s.replace(/-/g, '/');
-  }
-  
-  // 新規モードでモーダルを開く
-  function openEditNew() {
-    document.getElementById('editTitle').textContent = '新規案件登録';
-    document.getElementById('editSubtitle').textContent = 'マスタ案件シートに新規行を追加します';
-    document.getElementById('ef-mode').value = 'create';
-    document.getElementById('ef-no').value = '';
-    document.getElementById('ef-media').value = '';
-    document.getElementById('ef-date').value = toDateInput(new Date().toISOString().slice(0,10));
-    document.getElementById('ef-customer').value = '';
-    document.getElementById('ef-tel').value = '';
-    document.getElementById('ef-car').value = '';
-    document.getElementById('ef-bid').value = '';
-    document.getElementById('ef-bidResult').value = '';
-    const rivalEl = document.getElementById('ef-rival');
-    if (rivalEl) rivalEl.value = '';
-    document.getElementById('ef-assess').value = '';
-    document.getElementById('ef-result').value = '';
-    document.getElementById('ef-followup').value = '';
-    document.getElementById('ef-assignee').value = '';
-    document.getElementById('ef-note').value = '';
-    document.getElementById('ef-desired').value = '';
-    document.getElementById('ef-offered').value = '';
-    document.getElementById('ef-deal').value = '';
-    buildCallRows([]);
-    document.getElementById('ef-delete').style.display = 'none';
-    document.getElementById('editStatus').className = 'edit-status';
-    document.getElementById('editStatus').textContent = '';
-    showEditModal();
-  }
-  
-  // 既存案件の編集モードでモーダルを開く
-  window.editCase = function(no) {
-    const c = cases.find(x => x.no == no);
-    if (!c) return;
-    
-    document.getElementById('editTitle').textContent = `案件編集 #${no}`;
-    document.getElementById('editSubtitle').textContent = `${c.customer || '(顧客名未入力)'} 様 / ${c.car}`;
-    document.getElementById('ef-mode').value = 'update';
-    document.getElementById('ef-no').value = no;
-    document.getElementById('ef-media').value = MEDIA_REVERSE[c.media] || '';
-    document.getElementById('ef-date').value = toDateInput(c.date);
-    document.getElementById('ef-customer').value = c.customer || '';
-    document.getElementById('ef-tel').value = c.tel || '';
-    document.getElementById('ef-car').value = c.car || '';
-    document.getElementById('ef-bid').value = c.bid || '';
-    document.getElementById('ef-bidResult').value = c.bidResult || '';
-    const rivalEl = document.getElementById('ef-rival');
-    if (rivalEl) rivalEl.value = c.rival || '';
-    document.getElementById('ef-assess').value = c.assess || '';
-    document.getElementById('ef-result').value = c.result || '';
-    document.getElementById('ef-followup').value = toDateInput(c.followup);
-    document.getElementById('ef-assignee').value = c.assignee || '';
-    document.getElementById('ef-note').value = c.note || '';
-    document.getElementById('ef-desired').value = c.desired || '';
-    document.getElementById('ef-offered').value = c.offered || '';
-    document.getElementById('ef-deal').value = c.deal || '';
-    buildCallRows(c.calls || []);
-    document.getElementById('ef-delete').style.display = 'inline-block';
-    document.getElementById('editStatus').className = 'edit-status';
-    document.getElementById('editStatus').textContent = '';
-    showEditModal();
-  };
-  
-  function showEditModal() {
-    closeDetail(); // 詳細パネルが開いてる場合は閉じる
-    document.getElementById('editOverlay').classList.add('show');
-    document.getElementById('editModal').classList.add('show');
-  }
-  function closeEditModal() {
-    document.getElementById('editOverlay').classList.remove('show');
-    document.getElementById('editModal').classList.remove('show');
-  }
-  
-  // 保存ボタン
-  async function saveEdit() {
-    const mode = document.getElementById('ef-mode').value;
-    const no = document.getElementById('ef-no').value;
-    
-    // バリデーション(媒体のみ必須)
-    const media = document.getElementById('ef-media').value;
-    const customer = document.getElementById('ef-customer').value;
-    if (!media) {
-      showStatus('error', '媒体を選択してください');
-      return;
-    }
-    
-    // 架電履歴を収集
-    const calls = {};
-    for (let i = 0; i < 5; i++) {
-      const resultEl = document.querySelector(`.ef-call-result[data-idx="${i}"]`);
-      const dateEl = document.querySelector(`.ef-call-date[data-idx="${i}"]`);
-      calls[`call${i+1}`] = resultEl ? resultEl.value : '';
-      calls[`call${i+1}Date`] = dateEl ? dateEl.value : '';
-    }
-    
-    // payloadを作成
-    const payload = {
-      no: no ? parseInt(no) : null,
-      media: media,
-      date: fromDateInput(document.getElementById('ef-date').value),
-      customer: customer,
-      tel: document.getElementById('ef-tel').value,
-      car: document.getElementById('ef-car').value,
-      bid: document.getElementById('ef-bid').value,
-      bidResult: document.getElementById('ef-bidResult').value,
-      rival: (document.getElementById('ef-rival') || {}).value || '',
-      ...calls,
-      assess: document.getElementById('ef-assess').value,
-      result: document.getElementById('ef-result').value,
-      followup: fromDateInput(document.getElementById('ef-followup').value),
-      assignee: document.getElementById('ef-assignee').value,
-      note: document.getElementById('ef-note').value,
-      desired: document.getElementById('ef-desired').value,
-      offered: document.getElementById('ef-offered').value,
-      deal: document.getElementById('ef-deal').value,
-    };
-    
-    showStatus('loading', '保存中...');
-    
-    try {
-      const r = await postWebhook(mode, payload);
-      const data = r.ok ? r.data : null;
-      if (data && data.status === 'success') {
-        showStatus('success', `✓ ${data.message}`);
-        // 2秒後にモーダルを閉じてダッシュボードを再読み込み
-        setTimeout(() => {
-          closeEditModal();
-          initDashboard();
-        }, 1500);
-      } else if (data) {
-        showStatus('error', `エラー: ${data.message}`);
-      } else {
-        showStatus('error', '通信エラー（再試行しました）もう一度お試しください');
-      }
-    } catch (err) {
-      showStatus('error', `通信エラー: ${err.message}`);
-      console.error(err);
-    }
-  }
-  
-  // 削除ボタン
-  async function deleteCase() {
-    const no = document.getElementById('ef-no').value;
-    if (!no) return;
-    
-    if (!confirm(`案件NO ${no} を削除します。この操作は取り消せません。本当に削除しますか?`)) {
-      return;
-    }
-    
-    showStatus('loading', '削除中...');
-    
-    try {
-      const r = await postWebhook('delete', { no: parseInt(no) });
-      const data = r.ok ? r.data : null;
-      if (data && data.status === 'success') {
-        showStatus('success', `✓ ${data.message}`);
-        setTimeout(() => {
-          closeEditModal();
-          initDashboard();
-        }, 1500);
-      } else if (data) {
-        showStatus('error', `エラー: ${data.message}`);
-      } else {
-        showStatus('error', '通信エラー（再試行しました）もう一度お試しください');
-      }
-    } catch (err) {
-      showStatus('error', `通信エラー: ${err.message}`);
-    }
-  }
-  
-  function showStatus(type, msg) {
-    const el = document.getElementById('editStatus');
-    el.className = `edit-status show ${type}`;
-    el.textContent = msg;
-  }
-  
-  // イベント設定
-  document.getElementById('fabNew').addEventListener('click', openEditNew);
-  { const _ni = document.getElementById('newCaseInline'); if (_ni) _ni.addEventListener('click', openEditNew); }
-  document.getElementById('editClose').addEventListener('click', closeEditModal);
-  document.getElementById('editOverlay').addEventListener('click', closeEditModal);
-  document.getElementById('ef-cancel').addEventListener('click', closeEditModal);
-  document.getElementById('ef-save').addEventListener('click', saveEdit);
-  document.getElementById('ef-delete').addEventListener('click', deleteCase);
+  // 新規案件登録もパネルで行う
+  { const _fb = document.getElementById('fabNew'); if (_fb) _fb.addEventListener('click', openDetailNew); }
+  { const _ni = document.getElementById('newCaseInline'); if (_ni) _ni.addEventListener('click', openDetailNew); }
 
   // ページタブ切替
   document.querySelectorAll('.page-tab').forEach(t => {
