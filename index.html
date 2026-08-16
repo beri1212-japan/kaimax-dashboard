@@ -238,14 +238,14 @@
     color: #f5f3ee;
     border-color: var(--ink);
   }
-  /* 媒体・結果フェーズのチップ: 文字を小さく・均一幅で揃え、4文字以上は2行に割ってバランスを取る */
+  /* 媒体・結果フェーズのチップ: 常に1行。幅は内容に合わせる */
   .media-chip-cases, .stage-chip-cases {
-    width: 54px;
-    min-height: 34px;
-    padding: 3px 3px;
-    font-size: 11px;
-    line-height: 1.2;
+    min-height: 30px;
+    padding: 4px 10px;
+    font-size: 12px;
+    line-height: 1.3;
     text-align: center;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1820,9 +1820,111 @@
     /* 明細パネル・編集モーダルを全幅に */
     .detail-panel, .edit-modal { width: 100% !important; max-width: 100% !important; }
   }
+  /* ================================================================
+     スマホ整頓（最終調整）— 折り返しの事故を止め、色数を落とす
+     ※このブロックは既存のモバイル指定より後に置き、意図的に優先させる
+  ================================================================ */
+  @media (max-width: 680px) {
+    /* ---- ヘッダー: 情報を1〜2行に圧縮 ---- */
+    header { padding: 10px 14px; gap: 4px 10px; }
+    .logo { font-size: 19px; }
+    .breadcrumb { font-size: 11px; letter-spacing: 0.02em; white-space: nowrap; }
+    .source-badge { display: none; }
+    .header-meta { width: 100%; gap: 6px; font-size: 11px; align-items: center; justify-content: flex-end; }
+    .header-meta > span { white-space: nowrap; }
+    .header-meta button { padding: 5px 10px !important; font-size: 12px !important; white-space: nowrap; }
+
+    /* ---- 本日の優先対応: 「11 件」が縦に割れるのを防ぐ ---- */
+    .today-banner { padding: 14px 14px !important; gap: 12px !important; align-items: center; }
+    .today-banner .icon { font-size: 22px; }
+    .today-banner h3 { font-size: 17px; letter-spacing: 0.01em; margin-bottom: 2px; }
+    .today-banner .meta { font-size: 11.5px; letter-spacing: 0; line-height: 1.55; }
+    .today-banner .count { font-size: 28px; white-space: nowrap; line-height: 1.1; }
+    .today-banner .count span, .today-banner .count small, .today-banner .count em { font-size: 12px; font-style: normal; margin-left: 2px; }
+
+    /* ---- 見出し: 「案件一 / 覧」のような2文字落ちを防ぐ ---- */
+    .section-title { font-size: 17px; margin: 18px 0 10px; letter-spacing: 0.02em; align-items: baseline; }
+    .section-title .ja { font-size: 11px; letter-spacing: 0.02em; margin-left: 6px; }
+
+    /* ---- 優先対応パネルの見出し ---- */
+    .priority-header .label { font-size: 15px; letter-spacing: 0.02em; }
+    .priority-header .label span { font-size: 11px !important; letter-spacing: 0.02em !important; margin-left: 4px !important; }
+    .priority-header .desc, .priority-card .desc { font-size: 11px; line-height: 1.5; }
+    .priority-count { font-size: 26px; white-space: nowrap; }
+
+    /* ---- 媒体タグは絶対に折り返さない ---- */
+    .m-tag { letter-spacing: 0; padding: 2px 6px; white-space: nowrap; }
+
+    /* ---- フィルタ: チップは常に1行。行だけ折り返す ---- */
+    .filters { padding: 10px !important; gap: 8px; }
+    .filter-label { font-size: 11px; letter-spacing: 0.04em; white-space: nowrap; }
+    .filter-group { gap: 5px; row-gap: 5px; }
+    .chip { font-size: 12px; padding: 6px 10px; white-space: nowrap; border-radius: 4px; line-height: 1.35; }
+    .media-chip-cases, .stage-chip-cases {
+      width: auto; min-height: 0; padding: 6px 10px; font-size: 12px;
+      white-space: nowrap; line-height: 1.35; display: inline-block;
+    }
+    .assignee-select { font-size: 12px; padding: 5px 8px; }
+
+    /* ---- タスクボタン: 2列グリッドで高さを揃える ---- */
+    .task-preset-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: stretch; }
+    .task-preset-group .filter-label { grid-column: 1 / -1; margin-bottom: 2px; }
+    .task-chip { text-align: center; white-space: nowrap; font-size: 12.5px; padding: 9px 6px; box-shadow: none; }
+    .task-chip:active { transform: none; }
+
+    /* ---- 案件カード: 色の面積を落として落ち着かせる ---- */
+    #case-table tr.row-stale24 > td,
+    #case-table tr.row-stale48 > td,
+    #case-table tr.row-stale24:hover > td,
+    #case-table tr.row-stale48:hover > td { background: transparent !important; }
+    #case-table tr.row-stale24 { border-left: 4px solid #E0C169; }
+    #case-table tr.row-stale48 { border-left: 4px solid #D08A8A; }
+    #case-table td:empty { display: none; }
+    #case-table .call-quick-btn { border-color: var(--line); color: var(--ink-2); font-weight: 600; }
+    #case-table .m-tag { font-size: 10px; padding: 2px 6px; }
+    #case-table .sell-timing { font-size: 10.5px; }
+
+    /* ---- 案件一覧ヘッダー行 ---- */
+    .table-controls { gap: 8px; }
+    .table-controls input[type="text"], .table-controls input[type="search"] { font-size: 13px; }
+
+    /* ---- FAB: 「新規案件登録」と役割が重なるので小さく ---- */
+    .fab-new { bottom: 14px; right: 14px; padding: 9px 15px; font-size: 13px; border-radius: 20px; box-shadow: 0 2px 10px rgba(184,49,47,0.3); }
+    .fab-new::before { font-size: 15px; margin-right: 2px; }
+
+    /* ---- 実績テーブル ----
+       列が多く1画面に収まらないので、横スクロール＋1列目（期間/担当者）を固定して
+       どの行を見ているか分かるようにする ---- */
+    #page-report .container { padding-left: 12px; padding-right: 12px; }
+    .rep-table, .panel table { font-size: 11.5px; }
+    .rep-table th, .rep-table td,
+    .panel table th, .panel table td {
+      padding: 7px 6px !important; letter-spacing: 0 !important; white-space: nowrap;
+    }
+    .rep-table-wrap, .panel[style*="overflow-x"] { -webkit-overflow-scrolling: touch; }
+    .rep-table th:first-child, .rep-table td:first-child,
+    .panel table th:first-child, .panel table td:first-child {
+      position: sticky; left: 0; z-index: 1;
+      background: var(--bg-panel);
+      box-shadow: 1px 0 0 var(--line);
+    }
+    .rep-table thead th:first-child, .panel table thead th:first-child { background: var(--bg-soft); }
+
+    /* ---- ファネル文字列・下部の余白 ---- */
+    .ab-seg { white-space: nowrap; }
+    .ab-arrow { white-space: nowrap; color: var(--ink-3); }
+    .page-section { padding-bottom: 76px; }   /* FABに最終行が隠れないように */
+
+    /* ---- 赤の使いすぎを抑える ---- */
+    /* SMS文面・URLコピーは二次アクションなのでニュートラルに */
+    .url-copy-btn { border-color: var(--line); color: var(--ink-2); font-weight: 600; }
+    /* 案件一覧には「+ 新規案件登録」があるのでFABは出さない（赤いボタンの重複を解消） */
+    body[data-page="cases"] .fab-new { display: none; }
+  }
+
 </style>
 </head>
-<body>
+<body data-page="dashboard">
 
 <header>
   <div class="logo">kaimax</div>
@@ -2049,9 +2151,9 @@
       <span class="filter-label">媒体</span>
       <span class="chip media-chip-cases active" data-cmedia="all">全媒体</span>
       <span class="chip media-chip-cases" data-cmedia="mota">MOTA</span>
-      <span class="chip media-chip-cases" data-cmedia="carsensor">カーセ<br>ンサー</span>
-      <span class="chip media-chip-cases" data-cmedia="navikuru">ナビ<br>クル</span>
-      <span class="chip media-chip-cases" data-cmedia="self">自社<br>サイト</span>
+      <span class="chip media-chip-cases" data-cmedia="carsensor">カーセンサー</span>
+      <span class="chip media-chip-cases" data-cmedia="navikuru">ナビクル</span>
+      <span class="chip media-chip-cases" data-cmedia="self">自社サイト</span>
       <span class="chip media-chip-cases" data-cmedia="shop">店頭</span>
     </div>
     <div class="filter-group">
@@ -3056,14 +3158,10 @@
   }
 
   // チップ表示ラベル: 4文字以上(日本語を含む)は中央で2行に割ってバランスを取る
+  // チップは1行表示に統一（以前は4文字以上を<br>で2行に割っていたが、
+  // スマホで「カーセ/ンサー」のように読みづらくなるため廃止）
   function chipLabel2(s) {
-    const t = String(s);
-    const chars = Array.from(t);
-    if (chars.length >= 4 && /[^\x00-\x7F]/.test(t)) {
-      const mid = Math.ceil(chars.length / 2);
-      return chars.slice(0, mid).join('') + '<br>' + chars.slice(mid).join('');
-    }
-    return t;
+    return String(s);
   }
 
   // 統合フィルタのボタンを（実データに合わせて）生成
@@ -3938,7 +4036,14 @@
     else if (target === 0) weekly.push(item('当月目標が未設定（目標設定タブで入力）', null));
     const weeklyHtml = weekly.join('');
 
-    const diag = `受信 <b>${total}</b> → 到達 <b>${reached}</b>（${r1.toFixed(0)}%） → 査定 <b>${assessed}</b>（${r2.toFixed(0)}%） → 成約 <b>${deals}</b>（${r3.toFixed(0)}%）`;
+    // 各段はひとかたまりで折り返す（スマホで「成/約」のように割れるのを防ぐ）
+    const seg = (label, n, pct) => `<span class="ab-seg">${label} <b>${n}</b>${pct != null ? `（${pct}%）` : ''}</span>`;
+    const diag = [
+      seg('受信', total, null),
+      seg('到達', reached, r1.toFixed(0)),
+      seg('査定', assessed, r2.toFixed(0)),
+      seg('成約', deals, r3.toFixed(0)),
+    ].join('<span class="ab-arrow"> → </span>');
 
     el.innerHTML = `
       <div class="action-board">
@@ -4382,6 +4487,7 @@
       t.classList.add('active');
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       document.getElementById('page-' + t.dataset.page).classList.add('active');
+      document.body.dataset.page = t.dataset.page;   // CSSでページ別に出し分けるため
       
       // 新着・HOTセクションの表示制御:ダッシュボードタブの時だけ表示
       const prioritySection = document.getElementById('priority-section');
