@@ -208,7 +208,7 @@ AH=⑥結果     AI=⑥日付
 
 ### 実データの値（432行時点）
 
-**B列 媒体** — `ナビクル` は実データに存在しない。`LINE` と `Yahoo!` の色定義が未整備
+**B列 媒体** — `ナビクル` は実データに0件だが、**現在も契約中で再開の可能性あり**（本人確認済み）のため残してある
 
 | 値 | 件数 |
 |---|---|
@@ -346,8 +346,16 @@ Google Analytics 風。奇抜な色は使わない。
 
 - 媒体タグだけは色分け可（淡い背景＋濃い文字、コントラスト4.5:1以上、色覚多様性検証済み）
   MOTA `#f7e9e1`/`#9c4a21` ・ カーセンサー `#e5ebf5`/`#2f5c93` ・ ナビクル `#e9f3eb`/`#2c7a3f`
+  LINE `#e2f0ed`/`#0d6b5f` ・ Yahoo! `#fbe9eb`/`#a52a3d`
   自社サイト `#eee7f3`/`#63408a` ・ 店頭 `#faf6eb`/`#8c6a00` ・ その他 `#eaecee`/`#4e555c`
-  - **`ナビクル` は実データに存在しない。`LINE` と `Yahoo!` の色が未定義で「その他」表示になる → 要対応**
+  - CSS変数は `--media-line` / `--media-yahoo`。**`--line` は罫線色 `#dadce0` として103箇所で使われているので絶対に流用しないこと**（2026/08/18 に一度衝突させた）
+  - **8媒体は色だけでは識別しきれない。** `dataviz` で検証した結果、この明度帯で
+    無彩色の「その他」を含む8色をCVD安全にするのは不可能。**タグは必ず媒体名の文字を伴う**
+    ことで識別を担保している。色だけで区別させる表示（凡例なしのグラフ等）を作らないこと
+  - 媒体を追加するときの修正箇所は **13箇所**（CSS変数 / `.media-tab[data-media=]` の indicator /
+    `.m-tag.*` 2種 / `.media-compare .dot-*` / `bar-fill` 3種 / タブHTML / チップHTML /
+    `MEDIA_MAP` / `mediaLabels` / `renderMediaView` の分岐 / `allMedias` / `dotClass`+`fillClass` /
+    `updateMediaTabCounts` / `MEDIA_REVERSE` / `OPT_MEDIA`）
 - グラフ系列: 案件数 `#c4cbd3`(棒) / アポ `#2a78d6` / 査定 `#1baf7a` / 成約 `#eb6834`
 - 色を追加・変更するときは `dataviz` スキルの `validate_palette.js` で必ず検証する
 - **表は左詰め・列幅は内容に合わせる**。密度は在庫HUBに合わせて
@@ -372,7 +380,7 @@ node verify.js cases      # 案件一覧
 - `sample-master.csv`（合成データ60行）を読み込む。読み込み件数とJSエラーをコンソールに出す
 - Chromium のパスを指定する場合は `CHROME_PATH=... node verify.js`
 
-初回は `npm init -y && npm i -D playwright && npx playwright install chromium` が必要。
+初回は `npm i && npx playwright install chromium` が必要（`package.json` はリポジトリに含めてある）。
 
 **スマホの作り込みは特に厳しくチェックされる。** 現場のコール活動がスマホで行われるため。
 
@@ -405,8 +413,7 @@ Pages 設定: Deploy from a branch / `main` / `(root)`。Custom domain 未設定
 7. スプレッドシート／GASの所有権を `@indio.co.jp` へ移管 ← `/exec` URL が変わらないか要検証
 8. 過去158行の列ズレを一括補正
 9. GitHub Support へ `f5ed52b` の purge を依頼
-10. 媒体タグに `LINE` / `Yahoo!` の色を追加（`dataviz` で検証）、`ナビクル` を削除
-11. `assign-engine.gs` / `status.html` の名簿に `金木` を追加するか判断
+10. `assign-engine.gs` / `status.html` の名簿に `金木` を追加するか判断
 12. 独自ドメイン `satei.indio.co.jp`（業者のDNS CNAME待ち）→ Pages設定 + `REPLY_URL_BASE` 変更
 13. 1時間ごとの自動割り振りトリガー（`enableAssignTrigger()`）— 保留中
 14. Chatwork通知（`CHATWORK_TOKEN` / `CHATWORK_ROOM` が空）— 保留中

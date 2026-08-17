@@ -1,0 +1,16 @@
+# 検証環境（各自ローカルで用意する）
+node_modules/
+package-lock.json
+
+# スクリーンショット出力
+shots/
+*.png
+!logo.png
+!apple-touch-icon.png
+!favicon-64.png
+!icon-192.png
+!icon-512.png
+!icon-512-maskable.png
+
+# OS
+.DS_Store

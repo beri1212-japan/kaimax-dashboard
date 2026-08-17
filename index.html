@@ -59,6 +59,10 @@
     --carsensor-soft: #e5ebf5;
     --navikuru: #2c7a3f;
     --navikuru-soft: #e9f3eb;
+    --media-line: #0d6b5f;
+    --media-line-soft: #e2f0ed;
+    --media-yahoo: #a52a3d;
+    --media-yahoo-soft: #fbe9eb;
     --self: #63408a;
     --self-soft: #eee7f3;
     --shop: #8c6a00;
@@ -165,10 +169,16 @@
     display: flex;
     gap: 4px;
     border-bottom: 1px solid var(--line);
+    /* 媒体が9タブになったため、入り切らない場合は横スクロール（縦積みで潰さない） */
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
   }
   .media-tab {
-    padding: 12px 24px 10px;
+    padding: 12px 16px 10px;
     font-size:15px;
+    white-space: nowrap;
+    flex: 0 0 auto;
     font-weight: 600;
     color: var(--ink-3);
     cursor: pointer;
@@ -199,6 +209,8 @@
   .media-tab[data-media="mota"] .indicator { color: var(--mota); border-color: var(--mota); }
   .media-tab[data-media="carsensor"] .indicator { color: var(--carsensor); border-color: var(--carsensor); }
   .media-tab[data-media="navikuru"] .indicator { color: var(--navikuru); border-color: var(--navikuru); }
+  .media-tab[data-media="line"] .indicator { color: var(--media-line); border-color: var(--media-line); }
+  .media-tab[data-media="yahoo"] .indicator { color: var(--media-yahoo); border-color: var(--media-yahoo); }
   .media-tab[data-media="self"] .indicator { color: var(--self); border-color: var(--self); }
   .media-tab[data-media="shop"] .indicator { color: var(--shop); border-color: var(--shop); }
   .media-tab .count {
@@ -618,6 +630,8 @@
   .media-compare .bar-fill.mota { background: rgba(217,119,66,0.6); }
   .media-compare .bar-fill.cs { background: rgba(44,82,130,0.55); }
   .media-compare .bar-fill.nav { background: rgba(74,124,74,0.55); }
+  .media-compare .bar-fill.line { background: rgba(13,107,95,0.55); }
+  .media-compare .bar-fill.yahoo { background: rgba(165,42,61,0.55); }
   .media-compare .bar-fill.self { background: rgba(107,74,124,0.55); }
   .media-compare .bar-fill.shop { background: rgba(184,149,74,0.6); }
   .media-compare .pct, .media-compare .num {
@@ -656,6 +670,8 @@
   .bar-fill.mota-c { background: rgba(217,119,66,0.6); }
   .bar-fill.cs-c { background: rgba(44,82,130,0.55); }
   .bar-fill.nav-c { background: rgba(74,124,74,0.55); }
+  .bar-fill.line-c { background: rgba(13,107,95,0.55); }
+  .bar-fill.yahoo-c { background: rgba(165,42,61,0.55); }
   .bar-fill.self-c { background: rgba(107,74,124,0.55); }
   .bar-fill.shop-c { background: rgba(184,149,74,0.6); }
   .bar-val {
@@ -848,6 +864,8 @@
   .m-tag.mota { background: rgba(217,119,66,0.85); }
   .m-tag.carsensor { background: rgba(44,82,130,0.8); }
   .m-tag.navikuru { background: rgba(74,124,74,0.8); }
+  .m-tag.line { background: rgba(13,107,95,0.85); }
+  .m-tag.yahoo { background: rgba(165,42,61,0.85); }
   .m-tag.self { background: rgba(107,74,124,0.8); }
   .m-tag.shop { background: rgba(184,149,74,0.85); }
   .m-tag.other { background: rgba(120,120,120,0.8); }
@@ -2068,6 +2086,8 @@
   .m-tag.mota      { background: #f7e9e1 !important; color: #9c4a21 !important; }
   .m-tag.carsensor { background: #e5ebf5 !important; color: #2f5c93 !important; }
   .m-tag.navikuru  { background: #e9f3eb !important; color: #2c7a3f !important; }
+  .m-tag.line      { background: #e2f0ed !important; color: #0d6b5f !important; }
+  .m-tag.yahoo     { background: #fbe9eb !important; color: #a52a3d !important; }
   .m-tag.self      { background: #eee7f3 !important; color: #63408a !important; }
   .m-tag.shop      { background: #faf6eb !important; color: #8c6a00 !important; }
   .m-tag.other     { background: #eaecee !important; color: #4e555c !important; }
@@ -2187,11 +2207,15 @@
   .media-compare .bar-fill.mota, .bar-fill.mota-c { background: #c98a63 !important; }
   .media-compare .bar-fill.cs,   .bar-fill.cs-c   { background: #7b9ec8 !important; }
   .media-compare .bar-fill.nav,  .bar-fill.nav-c  { background: #7fb392 !important; }
+  .media-compare .bar-fill.line, .bar-fill.line-c { background: #6ba79c !important; }
+  .media-compare .bar-fill.yahoo,.bar-fill.yahoo-c{ background: #cf8d99 !important; }
   .media-compare .bar-fill.self, .bar-fill.self-c { background: #a891c0 !important; }
   .media-compare .bar-fill.shop, .bar-fill.shop-c { background: #cbb476 !important; }
   .media-compare .dot-mota { background: #9c4a21 !important; }
   .media-compare .dot-cs   { background: #2f5c93 !important; }
   .media-compare .dot-nav  { background: #2c7a3f !important; }
+  .media-compare .dot-line { background: #0d6b5f !important; }
+  .media-compare .dot-yahoo{ background: #a52a3d !important; }
   .media-compare .dot-self { background: #63408a !important; }
   .media-compare .dot-shop { background: #8c6a00 !important; }
   .media-compare .dot-m { border-radius: 50%; }
@@ -2485,6 +2509,16 @@
       <span>ナビクル</span>
       <span class="count">47</span>
     </div>
+    <div class="media-tab" data-media="line">
+      <span class="indicator"></span>
+      <span>LINE</span>
+      <span class="count">0</span>
+    </div>
+    <div class="media-tab" data-media="yahoo">
+      <span class="indicator"></span>
+      <span>Yahoo!</span>
+      <span class="count">0</span>
+    </div>
     <div class="media-tab" data-media="self">
       <span class="indicator"></span>
       <span>自社サイト</span>
@@ -2620,6 +2654,8 @@
       <span class="chip media-chip-cases" data-cmedia="mota">MOTA</span>
       <span class="chip media-chip-cases" data-cmedia="carsensor">カーセンサー</span>
       <span class="chip media-chip-cases" data-cmedia="navikuru">ナビクル</span>
+      <span class="chip media-chip-cases" data-cmedia="line">LINE</span>
+      <span class="chip media-chip-cases" data-cmedia="yahoo">Yahoo!</span>
       <span class="chip media-chip-cases" data-cmedia="self">自社サイト</span>
       <span class="chip media-chip-cases" data-cmedia="shop">店頭</span>
     </div>
@@ -2775,6 +2811,13 @@
     'mota': 'mota',
     'カーセンサー': 'carsensor',
     'ナビクル': 'navikuru',
+    'LINE': 'line',
+    'line': 'line',
+    'ライン': 'line',
+    'Yahoo!': 'yahoo',
+    'Yahoo': 'yahoo',
+    'YAHOO!': 'yahoo',
+    'ヤフー': 'yahoo',
     '自社サイト': 'self',
     '店頭': 'shop',
     '店頭査定': 'shop',
@@ -2934,7 +2977,7 @@
     { no: 17, media: 'self', date: '2026/05/01', customer: '前田 千恵', tel: '080-7575-9090', car: 'ホンダ フィット', calls: [{ result: 'アポ', date: '05/01' }], assess: null, result: '', followup: '2026/05/03', note: '査定アポ確定 5/3 11:00' },
   ];
 
-  const mediaLabels = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
+  const mediaLabels = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', line: 'LINE', yahoo: 'Yahoo!', self: '自社サイト', shop: '店頭', other: 'その他' };
   // 「今日」を実行時の日付で取得(時刻部分は切り捨て)
   const today = (() => {
     const t = new Date();
@@ -3448,7 +3491,7 @@
   // 全媒体ビュー
   function renderAllView() {
     const k = computeKPI('all');
-    const allMedias = ['mota', 'carsensor', 'navikuru', 'self', 'shop'];
+    const allMedias = ['mota', 'carsensor', 'navikuru', 'line', 'yahoo', 'self', 'shop'];
     const mediaKPIs = {};
     allMedias.forEach(m => mediaKPIs[m] = computeKPI(m));
     
@@ -3457,8 +3500,8 @@
     const sortByApo = allMedias.slice().sort((a, b) => mediaKPIs[b].reachRate - mediaKPIs[a].reachRate);
     const sortByCount = allMedias.slice().sort((a, b) => mediaKPIs[b].total - mediaKPIs[a].total);
     
-    const dotClass = { mota: 'dot-mota', carsensor: 'dot-cs', navikuru: 'dot-nav', self: 'dot-self', shop: 'dot-shop' };
-    const fillClass = { mota: 'mota', carsensor: 'cs', navikuru: 'nav', self: 'self', shop: 'shop' };
+    const dotClass = { mota: 'dot-mota', carsensor: 'dot-cs', navikuru: 'dot-nav', line: 'dot-line', yahoo: 'dot-yahoo', self: 'dot-self', shop: 'dot-shop' };
+    const fillClass = { mota: 'mota', carsensor: 'cs', navikuru: 'nav', line: 'line', yahoo: 'yahoo', self: 'self', shop: 'shop' };
     
     // 最大値で正規化
     const maxDealRate = Math.max(...allMedias.map(m => mediaKPIs[m].dealRate), 1);
@@ -3613,6 +3656,10 @@
       container.innerHTML = renderGeneralView('carsensor', 'カーセンサー', '全件配信型');
     } else if (media === 'navikuru') {
       container.innerHTML = renderGeneralView('navikuru', 'ナビクル', '一括査定型');
+    } else if (media === 'line') {
+      container.innerHTML = renderGeneralView('line', 'LINE', '直接問い合わせ');
+    } else if (media === 'yahoo') {
+      container.innerHTML = renderGeneralView('yahoo', 'Yahoo!', '一括査定型');
     } else if (media === 'self') {
       container.innerHTML = renderGeneralView('self', '自社サイト', '直接問い合わせ');
     } else if (media === 'shop') {
@@ -3634,6 +3681,8 @@
       mota: cases.filter(c => c.media === 'mota').length,
       carsensor: cases.filter(c => c.media === 'carsensor').length,
       navikuru: cases.filter(c => c.media === 'navikuru').length,
+      line: cases.filter(c => c.media === 'line').length,
+      yahoo: cases.filter(c => c.media === 'yahoo').length,
       self: cases.filter(c => c.media === 'self').length,
       shop: cases.filter(c => c.media === 'shop').length,
     };
@@ -4021,7 +4070,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0817b'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0818a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4797,8 +4846,8 @@
   window.openDetailNew = openDetailNew;
 
   // ---- 入力候補 ----
-  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', self: '自社サイト', shop: '店頭', other: 'その他' };
-  const OPT_MEDIA = ['MOTA', 'カーセンサー', 'ナビクル', '自社サイト', '店頭', 'その他'];
+  const MEDIA_REVERSE = { mota: 'MOTA', carsensor: 'カーセンサー', navikuru: 'ナビクル', line: 'LINE', yahoo: 'Yahoo!', self: '自社サイト', shop: '店頭', other: 'その他' };
+  const OPT_MEDIA = ['MOTA', 'カーセンサー', 'ナビクル', 'LINE', 'Yahoo!', '自社サイト', '店頭', 'その他'];
   const OPT_BID = ['', '入札', '見送り', '〇', '×'];
   const OPT_BIDRESULT = ['', '権利獲得', '落札', '失注', '〇', '×'];
   const OPT_CALL = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];

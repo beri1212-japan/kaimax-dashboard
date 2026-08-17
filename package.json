@@ -1,0 +1,13 @@
+{
+  "name": "kaimax-dashboard",
+  "private": true,
+  "description": "見た目確認用。アプリ本体は index.html 単体で動くため実行時の依存はありません",
+  "scripts": {
+    "verify": "node verify.js",
+    "verify:report": "node verify.js report",
+    "verify:cases": "node verify.js cases"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}
