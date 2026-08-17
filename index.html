@@ -2243,7 +2243,14 @@
   }
   .sidebar .page-tab.active .badge { background: #d2e3fc; color: var(--accent); }
 
-  .sb-foot { margin-top: auto; padding: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  /* 外部リンク欄。ナビの下・フッターの上に置く */
+  .sb-links { margin-top: auto; padding: 8px 10px 4px; display: flex; flex-direction: column; gap: 2px; }
+  .sb-links-ttl { font-size: 10.5px; font-weight: 700; color: var(--ink-3); letter-spacing: .06em; padding: 4px 12px 4px; }
+  a.sb-link { text-decoration: none; }
+  a.sb-link .ic-ext { width: 13px; height: 13px; margin-left: auto; color: var(--ink-3); opacity: .7; }
+  a.sb-link:hover .ic-ext { opacity: 1; color: var(--accent); }
+
+  .sb-foot { padding: 8px 10px 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
   .sb-action {
     display: flex; align-items: center; gap: 11px; width: 100%;
     padding: 9px 12px; border: 0; border-radius: 8px; background: none;
@@ -2350,6 +2357,11 @@
     <symbol id="ic-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/></symbol>
     <symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></symbol>
+    <symbol id="ic-sheet" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></symbol>
+    <symbol id="ic-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></symbol>
+    <symbol id="ic-car" viewBox="0 0 24 24"><path d="M5 17h14"/><path d="M6 17v2"/><path d="M18 17v2"/><path d="M3 13l2-5a2 2 0 012-1.4h10A2 2 0 0119 8l2 5v4H3z"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="16.5" cy="14.5" r="1"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="ic-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
   </defs>
 </svg>
 
@@ -2390,6 +2402,14 @@
     <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
     <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標設定</span></div>
   </nav>
+  <!-- 外部リンク。URLを変えたいときは下の href だけ書き換えればOK -->
+  <div class="sb-links">
+    <div class="sb-links-ttl">リンク</div>
+    <a class="sb-action sb-link" href="https://docs.google.com/spreadsheets/d/1V1xWTjdin_zbEjyjOJh-3TymkOreFzaN18_iCZnCinI/edit" target="_blank" rel="noopener" title="買取案件管理表（元データ）を開く"><svg class="ic"><use href="#ic-sheet"/></svg><span>スプレッドシート</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
+    <a class="sb-action sb-link" href="https://www.u-car.co.jp/" target="_blank" rel="noopener" title="ユーズドカーハイパー"><svg class="ic"><use href="#ic-car"/></svg><span>ユーズドカーハイパー</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
+    <a class="sb-action sb-link" href="https://www.iauc.co.jp/" target="_blank" rel="noopener" title="アイオーク"><svg class="ic"><use href="#ic-search"/></svg><span>アイオーク</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
+    <a class="sb-action sb-link" href="https://dlpro.proto-dataline.com/" target="_blank" rel="noopener" title="データラインPRO（相場検索）"><svg class="ic"><use href="#ic-db"/></svg><span>データラインPRO</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
+  </div>
   <div class="sb-foot">
     <button onclick="openReplies()" class="sb-action" title="お客様からの回答一覧"><svg class="ic"><use href="#ic-mail"/></svg><span>顧客回答</span><span id="replies-count" style="display:none;"></span></button>
     <button onclick="initDashboard()" class="sb-action" title="データを再読込"><svg class="ic"><use href="#ic-refresh"/></svg><span>更新</span></button>
@@ -4001,7 +4021,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0817a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0817b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
