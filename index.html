@@ -16,9 +16,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <script>
   // サービスワーカー登録（インストール可能化。キャッシュはしない=常に最新）
+  // ★sw.jsは毎回update()を呼んで、古い版を掴んだままにならないようにする。
+  //   旧版(0814g以前)はfetchを横取りしていて通信が止まる事故があったため。
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        try { reg.update(); } catch (e) {}
+      }).catch(function () {});
     });
   }
 </script>
@@ -2709,6 +2713,18 @@
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?output=csv';
   const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyfvacDa_So-347Il4KpSPEDjQjWwdD5wuEw6Un8v9MAyxJX_i0XQUW_onu_Fs1oEQU/exec';
   const SECRET_KEY = 'indio9700';
+
+  // ネットワークが無応答のまま止まるのを防ぐ。指定ミリ秒で必ず打ち切る。
+  // （公開CSVが応答を返さず「読み込み中...」で固まる事故があったため）
+  async function fetchWithTimeout(url, ms, opt) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), ms || 12000);
+    try {
+      return await fetch(url, Object.assign({ signal: ac.signal }, opt || {}));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   
   // CSVパース(クォートを正しく扱うシンプル実装)
   function parseCSV(text) {
@@ -3985,7 +4001,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0814g'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 0817a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5627,16 +5643,16 @@
     try {
       // 公開CSVはGoogle側が一時的に500/302を返すことがあるため、数回リトライして確実に読む
       let text = null, lastErr = '';
-      for (let a = 0; a < 4; a++) {
+      for (let a = 0; a < 3; a++) {
         try {
-          const res = await fetch(CSV_URL + '&_=' + Date.now() + '_' + a, { redirect: 'follow' });
+          const res = await fetchWithTimeout(CSV_URL + '&_=' + Date.now() + '_' + a, 8000, { redirect: 'follow', cache: 'no-store' });
           if (res.ok) {
             const t = await res.text();
             if (t && t.length > 20 && !/^\s*</.test(t)) { text = t; break; }
             lastErr = 'データが空/不正';
           } else { lastErr = 'HTTP ' + res.status; }
-        } catch (e) { lastErr = e.message; }
-        if (a < 3) await new Promise(r => setTimeout(r, 600 * (a + 1)));
+        } catch (e) { lastErr = (e && e.name === 'AbortError') ? '応答がありません(8秒でタイムアウト)' : e.message; }
+        if (a < 2) await new Promise(r => setTimeout(r, 600 * (a + 1)));
       }
       if (text == null) throw new Error(lastErr || '読み込み失敗');
       const rows = parseCSV(text);
@@ -5685,10 +5701,29 @@
       hideLoading();
       renderAll();
       renderDonuts();
+      // ★失敗が一目で分かるようにする。以前はヘッダーが「読み込み中...」のまま残り、
+      //   サンプルデータを本物の数字だと誤解する事故につながっていた。
+      const updEl = document.getElementById('last-update');
+      if (updEl) { updEl.textContent = '読み込み失敗'; updEl.style.color = 'var(--red)'; updEl.style.fontWeight = '700'; }
       const banner = document.createElement('div');
-      banner.style.cssText = 'background:rgba(198,56,56,0.1);border-left:3px solid var(--red);padding:10px 32px;font-size:13px;color:var(--ink-2);';
-      banner.innerHTML = `スプレッドシートからのデータ読み込みに失敗しました。サンプルデータを表示中です。 <span style="color:var(--ink-3);">エラー: ${err.message}</span>`;
+      banner.id = 'load-error-banner';
+      banner.style.cssText = 'position:sticky;top:0;z-index:9999;background:#fce8e6;border-bottom:1px solid #d93025;padding:10px 20px;font-size:13px;color:#a50e0e;display:flex;gap:12px;align-items:center;flex-wrap:wrap;';
+      banner.innerHTML = `<b>スプレッドシートを読み込めませんでした。いま表示中の数字はサンプルデータです。</b>`
+        + `<span style="color:#5f6368;">エラー: ${err.message}</span>`
+        + `<button id="load-retry-btn" style="margin-left:auto;background:#d93025;color:#fff;border:0;border-radius:4px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;">再読み込み</button>`;
       document.body.insertBefore(banner, document.body.children[1]);
+      const rb = document.getElementById('load-retry-btn');
+      if (rb) rb.onclick = async function () {
+        rb.disabled = true; rb.textContent = '再読み込み中…';
+        // 古いサービスワーカーが通信を止めている場合の保険として解除してから再読み込み
+        try {
+          if (navigator.serviceWorker) {
+            const rs = await navigator.serviceWorker.getRegistrations();
+            for (const x of rs) await x.unregister();
+          }
+        } catch (e) {}
+        location.reload();
+      };
     }
   }
   
