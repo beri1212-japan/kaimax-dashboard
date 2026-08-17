@@ -27,42 +27,42 @@
 
 <style>
   :root {
-    --bg: #f5f3ee;
+    --bg: #f8f9fa;
     --bg-panel: #ffffff;
-    --bg-soft: #ebe8e0;
-    --ink: #1a1a1a;
-    --ink-2: #4a4a4a;
-    --ink-3: #5d5d5d;
-    --line: #d8d3c7;
-    --accent: #b8312f;
-    --accent-dark: #8a1f1d;
-    --accent-soft: #d68f8e;
-    --gold: #b8954a;
-    --gold-soft: #d4b884;
-    --green: #4a7c4a;
-    --green-soft: #8eb38e;
-    --amber: #c89030;
-    --amber-soft: #dfb878;
-    --red: #c63838;
-    --red-soft: #dc8a8a;
-    --blue: #2c5282;
-    --blue-soft: #7c9cc0;
-    --purple: #6b4a7c;
-    --purple-soft: #a691b3;
-    --mota: #d97742;
-    --mota-soft: #e8aa86;
-    --carsensor: #2c5282;
-    --carsensor-soft: #7c9cc0;
-    --navikuru: #4a7c4a;
-    --navikuru-soft: #8eb38e;
-    --self: #6b4a7c;
-    --self-soft: #a691b3;
-    --shop: #b8954a;
-    --shop-soft: #d4b884;
-    --hot-bg: rgba(184, 49, 47, 0.04);
-    --hot-border: rgba(184, 49, 47, 0.3);
-    --new-bg: rgba(74, 124, 74, 0.04);
-    --new-border: rgba(74, 124, 74, 0.3);
+    --bg-soft: #f1f3f4;
+    --ink: #202124;
+    --ink-2: #3c4043;
+    --ink-3: #5f6368;
+    --line: #dadce0;
+    --accent: #1a73e8;
+    --accent-dark: #1557b0;
+    --accent-soft: #a8c7fa;
+    --gold: #b06000;
+    --gold-soft: #fde293;
+    --green: #137333;
+    --green-soft: #a8dab5;
+    --amber: #b06000;
+    --amber-soft: #fde293;
+    --red: #c5221f;
+    --red-soft: #f6aea9;
+    --blue: #1a73e8;
+    --blue-soft: #a8c7fa;
+    --purple: #63408a;
+    --purple-soft: #d7c7e8;
+    --mota: #9c4a21;
+    --mota-soft: #f7e9e1;
+    --carsensor: #2f5c93;
+    --carsensor-soft: #e5ebf5;
+    --navikuru: #2c7a3f;
+    --navikuru-soft: #e9f3eb;
+    --self: #63408a;
+    --self-soft: #eee7f3;
+    --shop: #8c6a00;
+    --shop-soft: #faf6eb;
+    --hot-bg: #ffffff;
+    --hot-border: #dadce0;
+    --new-bg: #ffffff;
+    --new-border: #dadce0;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1881,8 +1881,10 @@
     #case-table tr.row-stale48 > td,
     #case-table tr.row-stale24:hover > td,
     #case-table tr.row-stale48:hover > td { background: transparent !important; }
-    #case-table tr.row-stale24 { border-left: 4px solid #E0C169; }
-    #case-table tr.row-stale48 { border-left: 4px solid #D08A8A; }
+    #case-table tr.row-stale24 { border-left: 4px solid #f9ab00 !important; }
+    #case-table tr.row-stale48 { border-left: 4px solid #d93025 !important; }
+    #case-table tr.row-stale24 > td:first-child,
+    #case-table tr.row-stale48 > td:first-child { box-shadow: none !important; }
     #case-table td:empty { display: none; }
     #case-table .call-quick-btn { border-color: var(--line); color: var(--ink-2); font-weight: 600; }
     #case-table .m-tag { font-size: 10px; padding: 2px 6px; }
@@ -1951,20 +1953,374 @@
     body[data-page="cases"] .fab-new { display: none; }
   }
 
+  /* ================================================================
+     GA風テーマ（最終レイヤー）
+     白いカード＋薄いグレーの下地＋アクセント1色。
+     色は「識別のため」だけに使い、装飾では使わない。
+     直書きの色を潰すため、このブロックは最後に置いて優先させる。
+  ================================================================ */
+  body { background: var(--bg); color: var(--ink); letter-spacing: 0; }
+  * { letter-spacing: 0 !important; }
+
+  /* ---- アプリバー: 黒地→白地 ---- */
+  header {
+    background: #fff !important; color: var(--ink) !important;
+    border-bottom: 1px solid var(--line) !important;
+    box-shadow: none;
+  }
+  .logo { color: var(--ink) !important; font-weight: 700; }
+  .breadcrumb { color: var(--ink-3) !important; border-left-color: var(--line) !important; }
+  .breadcrumb b { color: var(--ink) !important; }
+  .header-meta { color: var(--ink-3); }
+  .header-meta span { color: var(--ink-3) !important; }
+  .source-badge { color: var(--ink-3) !important; border-color: var(--line) !important; border-radius: 16px; }
+  .source-badge .dot { background: var(--green) !important; }
+  /* ヘッダー内のボタン（インライン指定を上書き） */
+  header button, header .btn {
+    background: #fff !important; color: var(--accent) !important;
+    border: 1px solid var(--line) !important; border-radius: 6px !important;
+    font-weight: 600 !important;
+  }
+  header button:hover { background: var(--accent-tint, #f1f6fe) !important; }
+
+  /* ---- タブ ---- */
+  .page-tabs { background: #fff; border-bottom: 1px solid var(--line); }
+  .page-tab { color: var(--ink-3); font-weight: 600; border-bottom: 3px solid transparent; }
+  .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+  .page-tab .badge { background: var(--bg-soft) !important; color: var(--ink-2) !important; }
+  .page-tab.active .badge { background: #e8f0fe !important; color: var(--accent) !important; }
+
+  /* ---- 「本日の優先対応」: 赤い帯 → 白いカード ---- */
+  .today-banner {
+    background: #fff !important; color: var(--ink) !important;
+    border-bottom: 1px solid var(--line) !important;
+    border-left: 4px solid var(--accent);
+  }
+  .today-banner h3 { color: var(--ink) !important; }
+  .today-banner .meta { color: var(--ink-3) !important; opacity: 1 !important; }
+  .today-banner .icon { color: var(--accent) !important; }
+  .today-banner .count { color: var(--ink) !important; }
+
+  /* ---- パネル・カード ---- */
+  .panel, .card, .priority-card, .filters, .action-board, .month-hero {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: none;
+  }
+  .filters { border-radius: 0; border-left: 0; border-right: 0; border-top: 0; }
+  .priority-card.new .priority-header,
+  .priority-card.hot .priority-header { background: #fff !important; border-bottom: 1px solid var(--line); }
+  .priority-card.new .priority-icon { color: var(--green) !important; border-color: var(--green) !important; }
+  .priority-card.hot .priority-icon { color: var(--accent) !important; border-color: var(--accent) !important; }
+  .priority-card.new .priority-count { color: var(--ink) !important; }
+  .priority-card.hot .priority-count { color: var(--ink) !important; }
+
+  /* ---- チップ: GA風ピル ---- */
+  .chip {
+    border-radius: 16px; border: 1px solid var(--line); background: #fff;
+    color: var(--ink-2); font-weight: 500;
+  }
+  .chip:hover { background: var(--bg-soft); border-color: var(--line); }
+  .chip.active {
+    background: #e8f0fe !important; color: var(--accent) !important;
+    border-color: #d2e3fc !important; font-weight: 600;
+  }
+  /* タスクプリセット: インラインの原色を打ち消し、意味は左の点で示す */
+  .task-chip {
+    background: #fff !important; color: var(--ink-2) !important;
+    border: 1px solid var(--line) !important; border-radius: 16px !important;
+    font-weight: 600 !important; box-shadow: none !important;
+  }
+  .task-chip:hover { background: var(--bg-soft) !important; transform: none; box-shadow: none !important; }
+  .task-chip.active {
+    background: #e8f0fe !important; color: var(--accent) !important;
+    border-color: #d2e3fc !important; box-shadow: none !important; transform: none;
+  }
+
+  /* ---- ボタン ---- */
+  .btn-primary, .btn-new-inline, .fab-new {
+    background: var(--accent) !important; color: #fff !important;
+    border: 1px solid var(--accent) !important; border-radius: 6px !important;
+    font-weight: 600 !important; box-shadow: none !important;
+  }
+  .btn-primary:hover, .btn-new-inline:hover, .fab-new:hover {
+    background: var(--accent-dark) !important; border-color: var(--accent-dark) !important;
+    box-shadow: none !important; transform: none;
+  }
+  .fab-new { border-radius: 20px !important; box-shadow: 0 1px 3px rgba(60,64,67,.3) !important; }
+  .btn-secondary { background: #fff !important; color: var(--accent) !important; border: 1px solid var(--line) !important; border-radius: 6px !important; }
+  .btn-danger { background: #fff !important; color: var(--red) !important; border: 1px solid var(--line) !important; border-radius: 6px !important; }
+  .url-copy-btn, .call-quick-btn, .call-edit-btn {
+    background: #fff !important; color: var(--ink-2) !important;
+    border: 1px solid var(--line) !important; border-radius: 6px !important; font-weight: 500 !important;
+  }
+  .url-copy-btn:hover, .call-quick-btn:hover, .call-edit-btn:hover {
+    background: var(--bg-soft) !important; color: var(--ink) !important; border-color: var(--line) !important;
+  }
+
+  /* ---- 媒体タグ: ベタ塗り → 淡い地＋濃い文字（全6色 コントラスト4.5:1以上） ---- */
+  .m-tag {
+    font-weight: 600; border-radius: 4px; padding: 2px 7px;
+    background: var(--bg-soft); color: var(--ink-2);
+  }
+  .m-tag.mota      { background: #f7e9e1 !important; color: #9c4a21 !important; }
+  .m-tag.carsensor { background: #e5ebf5 !important; color: #2f5c93 !important; }
+  .m-tag.navikuru  { background: #e9f3eb !important; color: #2c7a3f !important; }
+  .m-tag.self      { background: #eee7f3 !important; color: #63408a !important; }
+  .m-tag.shop      { background: #faf6eb !important; color: #8c6a00 !important; }
+  .m-tag.other     { background: #eaecee !important; color: #4e555c !important; }
+
+  /* ---- 売却予定時期・ステータス: 状態色は「警告」だけに絞る ---- */
+  .sell-timing { border-radius: 4px; font-weight: 600; }
+  .sell-timing.urgent { background:#fce8e6 !important; color:#c5221f !important; border-color:#f6aea9 !important; }
+  .sell-timing.soon   { background:#fef7e0 !important; color:#b06000 !important; border-color:#fde293 !important; }
+  .sell-timing.later  { background:var(--bg-soft) !important; color:var(--ink-3) !important; border-color:var(--line) !important; }
+
+  /* ---- 表 ---- */
+  #case-table, .rep-table, .panel table { border-color: var(--line); }
+  #case-table th, .rep-table th, .panel table th {
+    background: var(--bg-soft); color: var(--ink-3); font-weight: 600; border-bottom: 1px solid var(--line);
+  }
+  #case-table td, .rep-table td, .panel table td { border-bottom: 1px solid #e8eaed; }
+  #case-table tbody tr:hover > td { background: var(--bg-soft); }
+  /* 滞留: 面で塗らず、左端の細いバーで示す */
+  #case-table tr.row-stale24 > td, #case-table tr.row-stale48 > td,
+  #case-table tr.row-stale24:hover > td, #case-table tr.row-stale48:hover > td { background: transparent !important; }
+  #case-table tr.row-stale24 > td:first-child { box-shadow: inset 3px 0 0 #f9ab00; }
+  #case-table tr.row-stale48 > td:first-child { box-shadow: inset 3px 0 0 #d93025; }
+
+  /* ---- 電話番号: 赤 → アクセント ---- */
+  #case-table a[href^="tel:"] { color: var(--accent) !important; }
+
+  /* ---- グラフ凡例・軸 ---- */
+  .rep-legend { color: var(--ink-3); }
+  .rep-legend i { border-radius: 2px; }
+
+  /* ---- 入力欄 ---- */
+  input[type=text], input[type=date], input[type=number], input[type=email], select, textarea, .search-box {
+    border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* ---- フェーズバッジ: 枠線＋原色 → 淡いチップ。色は意味のある3状態だけ ---- */
+  .phase {
+    border: 1px solid transparent !important; border-radius: 4px;
+    font-weight: 600; padding: 3px 8px;
+    background: var(--bg-soft) !important; color: var(--ink-2) !important;
+  }
+  .phase.ph-deal, .phase.ph-won {            /* 成約・入庫 = 良い状態 */
+    background: #e6f4ea !important; color: #137333 !important;
+  }
+  .phase.ph-revisit {                        /* 検討中 = 要フォロー */
+    background: #fef7e0 !important; color: #b06000 !important;
+  }
+  .phase.ph-est {                            /* 査定〇 = 進行中の山場 */
+    background: #e8f0fe !important; color: #1a73e8 !important;
+  }
+  .phase.ph-lost, .phase.ph-est-x,
+  .phase.ph-call, .phase.ph-apo, .phase.ph-bid, .phase.ph-other {
+    background: var(--bg-soft) !important; color: var(--ink-2) !important;
+  }
+
+  /* ---- 売却予定時期: 直近だけ色を残す ---- */
+  .sell-timing { border: 1px solid transparent !important; font-weight: 600; }
+  .sell-timing.urgent { background:#fef7e0 !important; color:#b06000 !important; }
+  .sell-timing.soon   { background:var(--bg-soft) !important; color:var(--ink-2) !important; }
+  .sell-timing.later  { background:var(--bg-soft) !important; color:var(--ink-3) !important; }
+
+  /* ---- 架電結果の小バッジ ---- */
+  .call-chip, .call-cell .call-chip { border-radius: 4px; }
+
+  /* ---- ファネル文字列: 段はまとめて折り返し、矢印の前後で改行できるように ---- */
+  .ab-arrow { white-space: normal !important; }
+  .ab-seg { white-space: nowrap; display: inline-block; }
+
+  /* ---- グラフ周り: 罫線を薄く、面を白に ---- */
+  .rep-legend { color: var(--ink-3); font-size: 12px; padding: 4px 2px 10px; }
+  .rep-legend i { width: 9px; height: 9px; border-radius: 50%; }
+  .donut-svg .donut-segment { stroke: #fff; stroke-width: 2; }   /* 隣接セグメントに2pxの隙間 */
+  .donut-center-num { color: var(--ink); font-weight: 700; }
+  .donut-center-label { color: var(--ink-3); }
+  .donut-legend { color: var(--ink-2); }
+  .donut-legend i, .donut-legend .dot { border-radius: 50%; }
+  /* 媒体別の横棒: 淡い地＋媒体色 */
+  .media-compare .bar-bg { background: var(--bg-soft) !important; border-radius: 4px; }
+  .media-compare .bar-fill { border-radius: 4px; }
+  .media-compare .bar-fill.mota, .bar-fill.mota-c { background: #c98a63 !important; }
+  .media-compare .bar-fill.cs,   .bar-fill.cs-c   { background: #7b9ec8 !important; }
+  .media-compare .bar-fill.nav,  .bar-fill.nav-c  { background: #7fb392 !important; }
+  .media-compare .bar-fill.self, .bar-fill.self-c { background: #a891c0 !important; }
+  .media-compare .bar-fill.shop, .bar-fill.shop-c { background: #cbb476 !important; }
+  .media-compare .dot-mota { background: #9c4a21 !important; }
+  .media-compare .dot-cs   { background: #2f5c93 !important; }
+  .media-compare .dot-nav  { background: #2c7a3f !important; }
+  .media-compare .dot-self { background: #63408a !important; }
+  .media-compare .dot-shop { background: #8c6a00 !important; }
+  .media-compare .dot-m { border-radius: 50%; }
+  .media-compare .name { white-space: nowrap; }
+  .bar-fill.amber { background: #f5c26b !important; }
+
+  /* ---- セクション見出し ---- */
+  .section-title { font-weight: 600; }
+  .section-title::before { background: var(--accent); }
+
+  /* ================================================================
+     サイドナビ＋アイコン（在庫システムと同じテイスト）
+  ================================================================ */
+  .ic { width: 18px; height: 18px; stroke: currentColor; fill: none;
+        stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+        flex: 0 0 auto; display: inline-block; vertical-align: -3px; }
+
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 236px; height: 100vh;
+    background: #fff; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; z-index: 130;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .sb-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px 16px; }
+  .sb-mark {
+    width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; letter-spacing: 0.02em; flex: 0 0 auto;
+  }
+  .sb-name { display: flex; flex-direction: column; font-weight: 700; font-size: 15px; color: var(--ink); line-height: 1.25; }
+  .sb-name small { font-weight: 500; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .sb-close { display: none; margin-left: auto; background: none; border: 0; color: var(--ink-3); cursor: pointer; padding: 4px; }
+
+  .sidebar .page-tabs {
+    display: flex; flex-direction: column; gap: 2px; padding: 6px 10px;
+    background: transparent; border: 0; overflow: visible;
+  }
+  .sidebar .page-tab {
+    display: flex; align-items: center; gap: 11px;
+    padding: 9px 12px; border-radius: 8px; border: 0 !important;
+    font-size: 13.5px; font-weight: 500; color: var(--ink-2);
+    cursor: pointer; white-space: nowrap;
+  }
+  .sidebar .page-tab:hover { background: var(--bg-soft); }
+  .sidebar .page-tab.active { background: #e8f0fe; color: var(--accent); font-weight: 600; }
+  .sidebar .page-tab .badge {
+    margin-left: auto; background: var(--bg-soft); color: var(--ink-3);
+    font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; min-width: 20px; text-align: center;
+  }
+  .sidebar .page-tab.active .badge { background: #d2e3fc; color: var(--accent); }
+
+  .sb-foot { margin-top: auto; padding: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+  .sb-action {
+    display: flex; align-items: center; gap: 11px; width: 100%;
+    padding: 9px 12px; border: 0; border-radius: 8px; background: none;
+    font-family: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer; text-align: left;
+  }
+  .sb-action:hover { background: var(--bg-soft); }
+
+  .nav-scrim { display: none; position: fixed; inset: 0; background: rgba(32,33,36,.4); z-index: 125; }
+  .nav-scrim.show { display: block; }
+  .nav-toggle { display: none; background: none; border: 0; color: var(--ink-2); cursor: pointer; padding: 6px; margin-right: 2px; }
+  .nav-toggle .ic { width: 22px; height: 22px; }
+  .today-banner .icon .ic { width: 22px; height: 22px; }
+  .task-chip .ic, .btn-new-inline .ic, .url-copy-btn .ic, .call-quick-btn .ic, .call-edit-btn .ic { width: 14px; height: 14px; }
+  .fab-new .ic { width: 16px; height: 16px; }
+
+  /* 本体をサイドバー分だけ右へ */
+  body { padding-left: 236px; }
+  header {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 24px !important;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+  }
+  .page-title { font-size: 17px; font-weight: 600; color: var(--ink); }
+  .header-meta { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-3); }
+  .hm-updated, .hm-ver { color: var(--ink-3); white-space: nowrap; }
+  .source-badge { padding: 4px 10px; border-radius: 16px; font-size: 11.5px; }
+
+  @media (max-width: 900px) {
+    .header-meta .source-badge { display: none; }
+  }
+  @media (max-width: 680px) {
+    body { padding-left: 0; }
+    .sidebar { transform: translateX(-100%); transition: transform .22s ease; box-shadow: 0 0 24px rgba(0,0,0,.18); }
+    .sidebar.open { transform: none; }
+    .sb-close { display: block; }
+    .nav-toggle { display: inline-flex; }
+    header { padding: 10px 12px !important; padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important; gap: 8px; }
+    .page-title { font-size: 15px; }
+    .header-meta { gap: 8px; font-size: 11px; }
+    .hm-ver { display: none; }
+  }
+
+  /* ---- KPIタイル ---- */
+  .kpi-tiles {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px;
+  }
+  .kpi-tile {
+    display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+    padding: 14px 14px 12px; background: #fff;
+    border: 1px solid var(--line); border-radius: 10px;
+    font-family: inherit; text-align: left; cursor: pointer;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .kpi-tile:hover { border-color: #c6c9cd; }
+  .kpi-tile.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: #f8fbff; }
+  .kt-label { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+  .kt-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+  .kt-value { font-size: 27px; font-weight: 700; color: var(--ink); line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .spark { width: 92px; height: 30px; flex: 0 0 auto; }
+  .kt-delta { display: flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+  .kt-delta .ic { width: 13px; height: 13px; }
+  .kt-delta.up { color: #137333; }
+  .kt-delta.down { color: #c5221f; }
+  .kt-delta em { font-style: normal; font-weight: 500; color: var(--ink-3); margin-left: 2px; }
+  .trend-panel { padding: 14px 16px 8px; }
+  .trend-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .trend-head b { font-size: 14px; color: var(--ink); }
+  .trend-head span { font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
+  @media (max-width: 900px) { .kpi-tiles { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 680px) {
+    .kpi-tiles { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .kpi-tile { padding: 11px 11px 9px; border-radius: 10px; }
+    .kt-value { font-size: 22px; }
+    .spark { width: 56px; height: 24px; }
+    .trend-head span { margin-left: 0; flex-basis: 100%; }
+  }
+
 </style>
 </head>
 <body data-page="dashboard">
+<!-- ラインアイコン（Lucide系のパスをインラインSVGで内包。外部依存なし） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-dashboard" viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="4" width="3" height="14" rx="1"/></symbol>
+    <symbol id="ic-list" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="ic-report" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></symbol>
+    <symbol id="ic-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="ic-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></symbol>
+    <symbol id="ic-flame" viewBox="0 0 24 24"><path d="M12 3s5 4 5 8a5 5 0 01-10 0c0-1.5.7-2.8 1.5-3.8C9 8.5 10 7 10 5.5c1 .5 2 1.5 2 2.5"/></symbol>
+    <symbol id="ic-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="ic-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="ic-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+    <symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0115.4-6.4L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol>
+    <symbol id="ic-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 5h11l-2 3 2 3H5"/></symbol>
+    <symbol id="ic-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="ic-zap" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+    <symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/></symbol>
+    <symbol id="ic-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="ic-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="ic-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="ic-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+    <symbol id="ic-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="ic-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/></symbol>
+    <symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></symbol>
+  </defs>
+</svg>
 
 <header>
-  <div class="logo">kaimax</div>
-  <div class="breadcrumb">買 取 案 件 管 理</div>
+  <button class="nav-toggle" id="navToggle" aria-label="メニュー"><svg class="ic"><use href="#ic-menu"/></svg></button>
+  <div class="page-title" id="pageTitle">ダッシュボード</div>
   <div class="header-meta">
-    <div class="source-badge"><span class="dot"></span>データソース: スプレッドシート連携</div>
-    <span style="color:#5d5d5d;">最終更新 <span id="last-update">読み込み中...</span></span>
-    <span id="outbox-badge" style="display:none;background:#c88a30;color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:10px;"></span>
-    <span id="app-build" style="color:#8a8a8a;font-size:11px;">ver —</span>
-    <button onclick="openReplies()" style="padding:4px 12px;background:#0B5D4E;color:#fff;border:1px solid #0B5D4E;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;border-radius:4px;" title="お客様からの回答一覧">📩 顧客回答 <span id="replies-count" style="display:none;"></span></button>
-    <button onclick="initDashboard()" style="padding:4px 12px;background:transparent;color:#d8d3c7;border:1px solid #555;cursor:pointer;font-family:inherit;font-size:13px;" title="データを再読込">↻ 更新</button>
+    <div class="source-badge"><span class="dot"></span>スプレッドシート連携</div>
+    <span class="hm-updated">更新 <span id="last-update">読み込み中...</span></span>
+    <span id="outbox-badge" style="display:none;"></span>
+    <span id="app-build" class="hm-ver">ver —</span>
   </div>
 </header>
 
@@ -1980,17 +2336,29 @@
   #data-loading[style*="display:none"], #data-loading[style*="display: none"] { display: none !important; }
 </style>
 
-<!-- Page tabs -->
-<div class="page-tabs">
-  <div class="page-tab active" data-page="dashboard">📊 ダッシュボード</div>
-  <div class="page-tab" data-page="cases">📋 案件一覧 (HOT) <span class="badge">14</span></div>
-  <div class="page-tab" data-page="report">📊 実績集計</div>
-  <div class="page-tab" data-page="targets">🎯 目標設定</div>
-</div>
+<!-- サイドナビ -->
+<div class="nav-scrim" id="navScrim"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <span class="sb-mark">IN</span>
+    <span class="sb-name">kaimax<small>買取案件管理</small></span>
+    <button class="sb-close" id="navClose" aria-label="メニューを閉じる"><svg class="ic"><use href="#ic-x"/></svg></button>
+  </div>
+  <nav class="page-tabs">
+    <div class="page-tab active" data-page="dashboard"><svg class="ic"><use href="#ic-dashboard"/></svg><span>ダッシュボード</span></div>
+    <div class="page-tab" data-page="cases"><svg class="ic"><use href="#ic-list"/></svg><span>案件一覧</span><span class="badge">14</span></div>
+    <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
+    <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標設定</span></div>
+  </nav>
+  <div class="sb-foot">
+    <button onclick="openReplies()" class="sb-action" title="お客様からの回答一覧"><svg class="ic"><use href="#ic-mail"/></svg><span>顧客回答</span><span id="replies-count" style="display:none;"></span></button>
+    <button onclick="initDashboard()" class="sb-action" title="データを再読込"><svg class="ic"><use href="#ic-refresh"/></svg><span>更新</span></button>
+  </div>
+</aside>
 
 <!-- 今日のバナー (常時表示) -->
 <div class="today-banner">
-  <div class="icon">⚑</div>
+  <div class="icon"><svg class="ic"><use href="#ic-flag"/></svg></div>
   <div>
     <h3>本日の優先対応</h3>
     <div class="meta">新着(未コール) + HOT(査定アポ・返事待ち) + 後追日が今日以前</div>
@@ -2079,7 +2447,7 @@
       <span class="chip period-chip" data-period="1y">過去1年</span>
       <span class="chip period-chip" data-period="all">全期間</span>
       <span class="chip period-chip custom-chip" data-period="custom" id="customChip">
-        <span class="cal-icon">📅</span>
+        <span class="cal-icon"><svg class="ic"><use href="#ic-clock"/></svg></span>
         <span id="customLabel">自由選択</span>
       </span>
       <div class="period-display" id="periodDisplay">2026/05/01 — 2026/05/31</div>
@@ -2162,10 +2530,10 @@
   <div class="filters">
     <div class="filter-group task-preset-group">
       <span class="filter-label" style="font-weight:700;">タスク</span>
-      <span class="chip task-chip" data-task="call" style="background:#b8312f;color:#fff;border-color:#b8312f;font-weight:700;">📞 コール案件</span>
-      <span class="chip task-chip" data-task="hot" style="background:#c89030;color:#fff;border-color:#c89030;font-weight:700;">🔥 HOT案件</span>
-      <span class="chip task-chip" data-task="assess" style="background:#3a6ea5;color:#fff;border-color:#3a6ea5;font-weight:700;">📋 査定予定</span>
-      <span class="chip task-chip" data-task="reset" style="background:#888;color:#fff;border-color:#888;">↺ リセット</span>
+      <span class="chip task-chip" data-task="call" style="background:#b8312f;color:#fff;border-color:#b8312f;font-weight:700;"><svg class="ic"><use href="#ic-phone"/></svg> コール案件</span>
+      <span class="chip task-chip" data-task="hot" style="background:#c89030;color:#fff;border-color:#c89030;font-weight:700;"><svg class="ic"><use href="#ic-flame"/></svg> HOT案件</span>
+      <span class="chip task-chip" data-task="assess" style="background:#3a6ea5;color:#fff;border-color:#3a6ea5;font-weight:700;"><svg class="ic"><use href="#ic-clipboard"/></svg> 査定予定</span>
+      <span class="chip task-chip" data-task="reset" style="background:#888;color:#fff;border-color:#888;"><svg class="ic"><use href="#ic-reset"/></svg> リセット</span>
     </div>
     <div class="filter-group">
       <span class="filter-label">担当者</span>
@@ -2222,7 +2590,7 @@
     <h2 class="section-title">案件一覧 <span class="ja">入札日が新しい順 / 媒体は1列で表示</span></h2>
     <div class="table-controls">
       <input type="text" class="search-box" id="case-search" placeholder="顧客名・車種・案件番号で検索...">
-      <button class="btn-new-inline" id="newCaseInline" title="店頭査定・カーセンサーなど、MOTA以外の案件を手入力で登録">＋ 新規案件登録</button>
+      <button class="btn-new-inline" id="newCaseInline" title="店頭査定・カーセンサーなど、MOTA以外の案件を手入力で登録"><svg class="ic"><use href="#ic-plus"/></svg> 新規案件登録</button>
       <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
     </div>
 
@@ -2283,7 +2651,7 @@
 <div class="detail-overlay" id="overlay"></div>
 <div class="detail-panel" id="detail">
   <div class="detail-header">
-    <button class="detail-back" id="detailBack">← 一覧へ戻る</button>
+    <button class="detail-back" id="detailBack"><svg class="ic"><use href="#ic-back"/></svg> 一覧へ戻る</button>
     <button class="detail-close" id="closeBtn">×</button>
     <div class="detail-id" id="detail-id"></div>
     <div class="detail-name" id="detail-name"></div>
@@ -2452,7 +2820,7 @@
   function showError(msg) {
     const loadEl = document.getElementById('data-loading');
     if (loadEl) {
-      loadEl.innerHTML = `<div style="color:var(--red);"><strong>⚠ データ読み込みエラー</strong><br><span style="font-size:13px;">${msg}</span><br><button class="btn-primary" onclick="location.reload()" style="margin-top:12px;">再読み込み</button></div>`;
+      loadEl.innerHTML = `<div style="color:var(--red);"><strong>データ読み込みエラー</strong><br><span style="font-size:13px;">${msg}</span><br><button class="btn-primary" onclick="location.reload()" style="margin-top:12px;">再読み込み</button></div>`;
     }
   }
   
@@ -2755,8 +3123,8 @@
       </div>` : '';
     wrap.innerHTML = `
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--accent);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;">📄 スプレッドシートで目標を編集</a>
-        <button onclick="reloadSheetTargets()" style="padding:9px 14px;background:var(--bg-panel);color:var(--ink-2);border:1px solid var(--line);border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;">🔄 シートから再取得</button>
+        <a href="${SHEET_EDIT_URL}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--accent);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none;"><svg class="ic"><use href="#ic-list"/></svg> スプレッドシートで目標を編集</a>
+        <button onclick="reloadSheetTargets()" style="padding:9px 14px;background:var(--bg-panel);color:var(--ink-2);border:1px solid var(--line);border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;"><svg class="ic"><use href="#ic-refresh"/></svg> シートから再取得</button>
       </div>
       <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:10px;line-height:1.7;">下の値は「月別実績」シートから読み込んだ <b>${ym}</b> の目標です（全端末で共有・ここでは表示のみ）。編集は上のボタンからシートで行ってください（反映まで数分かかります）。<br>シートの各担当者は、1行目に担当者名・その下の列に月ごとの目標を入力してください。</div>
       ${rows}
@@ -2860,7 +3228,7 @@
             <td>${progressBar(overall.deal, overallTarget)}</td>
           </tr></tfoot>
         </table>
-        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px;">※ 目標（成約件数の月間目標）は上部の「🎯 目標設定」タブで入力できます。</div>
+        <div style="font-size:11.5px;color:var(--ink-3);margin-top:8px;">※ 目標（成約件数の月間目標）は上部の「目標設定」タブで入力できます。</div>
       </div>
     `;
   }
@@ -2886,13 +3254,13 @@
     const barW = target > 0 ? Math.min(100, rate) : 0;
     return `
       <div class="month-hero">
-        <div class="mh-head">📅 ${plabel}ステータス <span class="mh-badge">${disp}</span></div>
+        <div class="mh-head"><svg class="ic"><use href="#ic-clock"/></svg> ${plabel}ステータス <span class="mh-badge">${disp}</span></div>
         <div class="mh-grid">
           <div class="mh-tile"><div class="mh-label">目標</div><div class="mh-val">${target || 0}<span>件</span></div><div class="mh-sub">成約目標</div></div>
           <div class="mh-tile"><div class="mh-label">実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約</div></div>
           <div class="mh-tile"><div class="mh-label">進捗率</div><div class="mh-val accent">${target > 0 ? fmtPct(rate) : '—'}<span>${target > 0 ? '%' : ''}</span></div>
             <div class="mh-bar"><div style="width:${barW}%;background:${met ? 'var(--green)' : 'var(--accent)'};"></div></div>
-            <div class="mh-sub">${target > 0 ? (deal + ' / ' + target + '件' + (met ? ' ✓達成' : '')) : '目標未設定（🎯目標設定タブで入力）'}</div>
+            <div class="mh-sub">${target > 0 ? (deal + ' / ' + target + '件' + (met ? ' ✓達成' : '')) : '目標未設定（目標設定タブで入力）'}</div>
           </div>
           <div class="mh-tile hot"><div class="mh-label">HOT案件 <span style="font-weight:400;">(現在)</span></div><div class="mh-val hotc">${hot}<span>件</span></div><div class="mh-sub">検討1ヶ月以内＋近日返事</div></div>
         </div>
@@ -2905,6 +3273,104 @@
         </div>
       </div>
     `;
+  }
+
+  // ===== KPIタイル（大きい数字＋前月比＋スパークライン）=====
+  // 数値は現在のフィルタ、推移は受信月ベースの直近6ヶ月
+  const KPI_METRICS = [
+    { key: 'cases',  label: '受信件数',  color: '#5f6368' },
+    { key: 'reach',  label: '架電到達',  color: '#2a78d6' },
+    { key: 'apo',    label: 'アポ獲得',  color: '#2a78d6' },
+    { key: 'assess', label: '査定〇',    color: '#1baf7a' },
+    { key: 'deal',   label: '成約',      color: '#eb6834' },
+  ];
+  let kpiSelected = 'cases';
+
+  function kpiHistory() {
+    const coh = buildCohort('month');
+    const keys = Object.keys(coh).sort().slice(-6);
+    return { keys, coh };
+  }
+
+  // スパークライン（面＋線）。値が全部0でも軸だけ描いて崩さない
+  function drawSpark(values, color, w, h) {
+    w = w || 92; h = h || 30;
+    const n = values.length;
+    if (!n) return `<svg class="spark" viewBox="0 0 ${w} ${h}"></svg>`;
+    const max = Math.max(...values, 1);
+    const x = i => n === 1 ? w / 2 : (i * w) / (n - 1);
+    const y = v => h - 3 - (v / max) * (h - 6);
+    const line = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const area = `${x(0).toFixed(1)},${h} ${line} ${x(n - 1).toFixed(1)},${h}`;
+    const uid = 'sg' + Math.abs(color.split('').reduce((a, ch) => a + ch.charCodeAt(0), 0));
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient></defs>
+      <polygon points="${area}" fill="url(#${uid})"/>
+      <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  function kpiDelta(series) {
+    if (series.length < 2) return null;
+    const cur = series[series.length - 1], prev = series[series.length - 2];
+    if (!prev) return cur > 0 ? { dir: 'up', text: '—' } : null;
+    const p = ((cur - prev) / prev) * 100;
+    return { dir: p > 0.5 ? 'up' : p < -0.5 ? 'down' : 'flat', text: (p > 0 ? '+' : '') + p.toFixed(0) + '%' };
+  }
+
+  function renderKpiTiles(k) {
+    const { keys, coh } = kpiHistory();
+    const apoNow = (cases || []).filter(c => (c.calls || []).some(x => x.result === 'アポ')).length;
+    const now = { cases: k.total, reach: k.reached, apo: apoNow, assess: k.assessedYes, deal: k.dealCount };
+    const tiles = KPI_METRICS.map(m => {
+      const series = keys.map(kk => coh[kk][m.key] || 0);
+      const d = kpiDelta(series);
+      const arrow = d ? (d.dir === 'up' ? 'ic-arrow-up' : d.dir === 'down' ? 'ic-arrow-down' : 'ic-minus') : 'ic-minus';
+      return `<button type="button" class="kpi-tile${kpiSelected === m.key ? ' on' : ''}" data-kpi="${m.key}">
+        <span class="kt-label">${m.label}</span>
+        <span class="kt-row">
+          <span class="kt-value">${now[m.key]}</span>
+          ${drawSpark(series, m.color)}
+        </span>
+        <span class="kt-delta ${d ? d.dir : 'flat'}"><svg class="ic"><use href="#${arrow}"/></svg>${d ? d.text : '—'} <em>前月比</em></span>
+      </button>`;
+    }).join('');
+    const sel = KPI_METRICS.find(m => m.key === kpiSelected) || KPI_METRICS[0];
+    const series = keys.map(kk => coh[kk][sel.key] || 0);
+    return `
+      <div class="kpi-tiles">${tiles}</div>
+      <div class="panel trend-panel">
+        <div class="trend-head"><b>${sel.label}の推移</b><span>受信月ベース・直近${keys.length}ヶ月 ・ 上のタイルを押すと指標が切り替わります</span></div>
+        ${drawAreaChart(keys.map(lab6), series, sel.color)}
+      </div>`;
+  }
+  function lab6(k) { const m = String(k).match(/(\d{4})-(\d{2})/); return m ? `${+m[2]}月` : k; }
+
+  // 面グラフ（在庫システムと同じテイスト：薄い水平罫線＋淡いグラデーション）
+  function drawAreaChart(labels, values, color) {
+    const n = labels.length;
+    if (!n) return '<div class="rep-note">データがありません</div>';
+    const W = 720, H = 200, padL = 40, padR = 14, padT = 12, padB = 30;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const maxY = niceMax(Math.max(...values, 1));
+    const x = i => n === 1 ? padL + plotW / 2 : padL + (i * plotW) / (n - 1);
+    const y = v => padT + plotH * (1 - v / maxY);
+    const grid = [0, 0.5, 1].map(f => { const yy = padT + plotH * (1 - f); return `<line x1="${padL}" y1="${yy}" x2="${padL + plotW}" y2="${yy}" stroke="#e8eaed"/><text x="${padL - 8}" y="${yy + 3.5}" text-anchor="end" font-size="10" fill="#5f6368">${Math.round(maxY * f)}</text>`; }).join('');
+    const line = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const area = `${x(0).toFixed(1)},${padT + plotH} ${line} ${x(n - 1).toFixed(1)},${padT + plotH}`;
+    const dots = values.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="4" fill="${color}" stroke="#fff" stroke-width="1.5"><title>${labels[i]} ${v}</title></circle>`).join('');
+    const xl = labels.map((l, i) => `<text x="${x(i).toFixed(1)}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="#5f6368">${l}</text>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" width="${W}" style="max-width:100%;height:auto;display:block;">
+      <defs><linearGradient id="agrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+      </linearGradient></defs>
+      ${grid}<polygon points="${area}" fill="url(#agrad)"/>
+      <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}${xl}</svg>`;
   }
 
   // 全媒体ビュー
@@ -2930,13 +3396,7 @@
     return `
       ${renderMonthHero()}
 
-      <h2 class="section-title">全媒体サマリー <span class="ja">主要指標</span></h2>
-      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
-        <div class="kpi"><div class="kpi-label">総受信件数</div><div class="kpi-value">${k.total}<span class="kpi-unit">件</span></div><div class="kpi-sub">媒体横断合計</div></div>
-        <div class="kpi"><div class="kpi-label">架電到達</div><div class="kpi-value">${k.reached}<span class="kpi-unit">件</span></div><div class="kpi-sub">到達率 ${fmtPct(k.reachRate)}%</div></div>
-        <div class="kpi"><div class="kpi-label">査定済</div><div class="kpi-value">${k.assessedYes}<span class="kpi-unit">件</span></div><div class="kpi-sub">査定率 ${fmtPct(k.assessRate)}%</div></div>
-        <div class="kpi"><div class="kpi-label">成約</div><div class="kpi-value">${k.dealCount}<span class="kpi-unit">件</span></div><div class="kpi-sub up">成約率 ${fmtPct(k.dealRate)}%</div></div>
-      </div>
+      ${renderKpiTiles(k)}
 
       ${renderAssigneePerformance()}
 
@@ -3398,18 +3858,18 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-family:Arial,monospace;font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;">${c.date || '—'}</td>
-        <td class="editable-cell" title="クリックで担当者を編集" style="font-size:12px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint">✎</span></td>
+        <td class="editable-cell" title="クリックで担当者を編集" style="font-size:12px;color:var(--ink-2);white-space:nowrap;">${c.assignee ? c.assignee : '<span style="color:var(--ink-3);">—</span>'}<span class="edit-hint"><svg class="ic"><use href="#ic-pencil"/></svg></span></td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media]}</span></td>
         <td style="white-space:nowrap;">
           <div style="font-weight:700;font-size:13.5px;white-space:nowrap;">${c.customer || '<span style="color:var(--ink-2);font-weight:400;">(顧客名未入力)</span>'}</div>
-          ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} 📞</a></div>` : ''}
-          ${c.reply ? `<div style="margin-top:4px;"><span class="reply-badge${/売却した|やめた|売却済み|売却中止/.test(c.reply) ? ' off' : ''}">🗨 ${c.reply}</span></div>` : ''}
-          <div style="margin-top:5px;"><button class="url-copy-btn" title="送信文面（URL付き）を選んでコピー" onclick="event.stopPropagation(); openMsgModal(${c.no});">✉ SMS文面</button></div>
+          ${c.tel ? `<div style="font-size:13px;margin-top:3px;white-space:nowrap;"><a href="tel:${String(c.tel).replace(/[^0-9+]/g,'')}" style="color:var(--accent);text-decoration:none;font-weight:700;font-family:Arial,monospace;" onclick="event.stopPropagation(); openQuickCall(${c.no});">${c.tel} <svg class="ic"><use href="#ic-phone"/></svg></a></div>` : ''}
+          ${c.reply ? `<div style="margin-top:4px;"><span class="reply-badge${/売却した|やめた|売却済み|売却中止/.test(c.reply) ? ' off' : ''}">${c.reply}</span></div>` : ''}
+          <div style="margin-top:5px;"><button class="url-copy-btn" title="送信文面（URL付き）を選んでコピー" onclick="event.stopPropagation(); openMsgModal(${c.no});"><svg class="ic"><use href="#ic-mail"/></svg> SMS文面</button></div>
         </td>
-        <td style="font-size:13px;font-weight:500;line-height:1.35;">${c.car}${c.timing ? `<div style="margin-top:3px;"><span class="sell-timing ${timingClass(c.timing)}">🕐 売却 ${c.timing}</span></div>` : ''}</td>
-        <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint">✎</span></td>
+        <td style="font-size:13px;font-weight:500;line-height:1.35;">${c.car}${c.timing ? `<div style="margin-top:3px;"><span class="sell-timing ${timingClass(c.timing)}">売却 ${c.timing}</span></div>` : ''}</td>
+        <td class="editable-cell" title="クリックで結果/フェーズを編集"><span class="phase ph-${phase.code}">${phase.name}</span><span class="edit-hint"><svg class="ic"><use href="#ic-pencil"/></svg></span></td>
         <td><span class="followup-cell ${fu.class}">${fu.label}</span></td>
-        <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-quick-btn" title="架電結果をワンタップ記録（電話なしでOK）" onclick="event.stopPropagation(); openQuickCall(${c.no});">⚡ 記録</button><button class="call-edit-btn" title="この案件のコール結果を入力">✎ 入力</button></td>
+        <td class="call-cell"><div class="call-view">${callTrail}</div><button class="call-quick-btn" title="架電結果をワンタップ記録（電話なしでOK）" onclick="event.stopPropagation(); openQuickCall(${c.no});"><svg class="ic"><use href="#ic-zap"/></svg> 記録</button><button class="call-edit-btn" title="この案件のコール結果を入力"><svg class="ic"><use href="#ic-pencil"/></svg> 入力</button></td>
         <td class="center" style="font-family:Arial,serif;font-size:16px;font-weight:700;">${c.assess === '〇' ? '<span style="color:var(--green);">〇</span>' : c.assess === '×' ? '<span style="color:var(--ink-3);">×</span>' : '<span style="color:var(--line);">—</span>'}</td>
         <td></td>
       `;
@@ -3679,7 +4139,7 @@
     if (!o) { o = document.createElement('div'); o.id = 'msg-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
     o.innerHTML = `
       <div class="qc-modal">
-        <div class="qc-head">✉ 送信する文面を選ぶ <button class="qc-x" data-mc="close">×</button></div>
+        <div class="qc-head"><svg class="ic"><use href="#ic-mail"/></svg> 送信する文面を選ぶ <button class="qc-x" data-mc="close">×</button></div>
         <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.car || ''}<br>タップで「文面＋回答URL」をコピー → SMS/メールに貼り付け</div>
         <div class="msg-list">${tpls.map((t, i) => `<button class="msg-tpl-btn" data-i="${i}"><span class="mt-label">${t.label}</span><span class="mt-prev">${t.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').slice(0, 60)}…</span></button>`).join('')}</div>
       </div>`;
@@ -3702,7 +4162,7 @@
   window.openReplies = async function () {
     let o = document.getElementById('replies-overlay');
     if (!o) { o = document.createElement('div'); o.id = 'replies-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
-    o.innerHTML = `<div class="qc-modal rep-modal"><div class="qc-head">📩 顧客回答一覧 <button class="qc-x" data-rc="close">×</button></div><div class="rep-list"><div style="padding:20px;text-align:center;color:var(--ink-3);">読み込み中…</div></div></div>`;
+    o.innerHTML = `<div class="qc-modal rep-modal"><div class="qc-head"><svg class="ic"><use href="#ic-mail"/></svg> 顧客回答一覧 <button class="qc-x" data-rc="close">×</button></div><div class="rep-list"><div style="padding:20px;text-align:center;color:var(--ink-3);">読み込み中…</div></div></div>`;
     o.classList.add('show');
     o.onclick = function (ev) { const t = ev.target; if (t && t.closest && (t.closest('[data-rc="close"]') || !t.closest('.qc-modal'))) o.classList.remove('show'); };
     let text = null;
@@ -3728,10 +4188,10 @@
       return `<div class="rep-item">
         <div class="rep-top"><span class="reply-badge ${replyStatusClass(st)}">${st || '—'}</span><span class="rep-dt">${g(r, 'dt')}</span></div>
         <div class="rep-name">${g(r, 'name') || '(顧客名未取得)'} <span class="rep-car">${g(r, 'car')}</span></div>
-        ${sched ? `<div class="rep-line">🗓 ${sched}</div>` : ''}
-        ${contact ? `<div class="rep-line">📞 希望: ${contact}</div>` : ''}
-        ${g(r, 'memo') ? `<div class="rep-line rep-memo">💬 ${g(r, 'memo').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>` : ''}
-        <div class="rep-actions">${g(r, 'tel') ? `<a class="rep-btn" href="tel:${g(r, 'tel').replace(/[^0-9+]/g, '')}">📞 ${g(r, 'tel')}</a>` : ''}${idv ? `<button class="rep-btn" onclick="openCaseById('${idv}')">案件を開く</button>` : ''}</div>
+        ${sched ? `<div class="rep-line"><svg class="ic"><use href="#ic-clock"/></svg> ${sched}</div>` : ''}
+        ${contact ? `<div class="rep-line"><svg class="ic"><use href="#ic-phone"/></svg> 希望: ${contact}</div>` : ''}
+        ${g(r, 'memo') ? `<div class="rep-line rep-memo">${g(r, 'memo').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>` : ''}
+        <div class="rep-actions">${g(r, 'tel') ? `<a class="rep-btn" href="tel:${g(r, 'tel').replace(/[^0-9+]/g, '')}"><svg class="ic"><use href="#ic-phone"/></svg> ${g(r, 'tel')}</a>` : ''}${idv ? `<button class="rep-btn" onclick="openCaseById('${idv}')">案件を開く</button>` : ''}</div>
       </div>`;
     }).join('');
   };
@@ -3757,11 +4217,11 @@
     if (!o) { o = document.createElement('div'); o.id = 'qc-overlay'; o.className = 'qc-overlay'; document.body.appendChild(o); }
     o.innerHTML = `
       <div class="qc-modal">
-        <div class="qc-head">📞 架電結果を記録 <button class="qc-x" data-qc="close">×</button></div>
+        <div class="qc-head"><svg class="ic"><use href="#ic-phone"/></svg> 架電結果を記録 <button class="qc-x" data-qc="close">×</button></div>
         <div class="qc-sub"><b>${c.customer || '(顧客名未入力)'}</b> 様 ／ ${c.tel || ''}<br>記録先：<b>${marks[targetIdx]}</b>${full ? '（⑧に上書き）' : ''}　※結果を選ぶと自動保存されます</div>
         <div class="qc-date">日付 <input type="date" id="qc-date" value="${iso}"></div>
         <div class="qc-opts">${opts.map(r => `<button type="button" data-r="${r}"${r.indexOf('アポ') === 0 ? ' class="apo"' : ''}>${r}</button>`).join('')}</div>
-        <div class="qc-note">電話をかけずに記録だけでもOK。詳しく編集したい場合は一覧の「✎入力」から。</div>
+        <div class="qc-note">電話をかけずに記録だけでもOK。詳しく編集したい場合は一覧の「入力」から。</div>
       </div>`;
     o.classList.add('show');
     // 結果ボタン選択→保存の実処理（二重発火防止フラグ付き）
@@ -3940,14 +4400,23 @@
     const plotW = Math.max(1, n * stepMin), W = padL + padR + plotW, H = 230, plotH = H - padT - padB;
     let maxY = 0; series.forEach(s => s.values.forEach(v => { if (v > maxY) maxY = v; })); maxY = niceMax(maxY);
     const x = i => padL + (i + 0.5) * (plotW / n), y = v => padT + plotH * (1 - v / maxY);
-    const grid = [0, 0.25, 0.5, 0.75, 1].map(f => { const yy = padT + plotH * (1 - f); return `<line x1="${padL}" y1="${yy}" x2="${padL + plotW}" y2="${yy}" stroke="var(--line)"/><text x="${padL - 5}" y="${yy + 3}" text-anchor="end" font-size="9" fill="var(--ink-3)">${Math.round(maxY * f)}</text>`; }).join('');
+    // 目盛りは水平線だけ、極薄。軸線は引かない（GA風）
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(f => { const yy = padT + plotH * (1 - f); return `<line x1="${padL}" y1="${yy}" x2="${padL + plotW}" y2="${yy}" stroke="#e8eaed" stroke-width="1"/><text x="${padL - 8}" y="${yy + 3.5}" text-anchor="end" font-size="10" fill="#5f6368">${Math.round(maxY * f)}</text>`; }).join('');
     const barS = series.filter(s => s.type === 'bar'), lineS = series.filter(s => s.type === 'line');
     const bw = Math.min(24, (plotW / n) * 0.5);
-    let bars = ''; barS.forEach(s => s.values.forEach((v, i) => { const h = plotH * (v / maxY); bars += `<rect x="${x(i) - bw / 2}" y="${padT + plotH - h}" width="${bw}" height="${h}" rx="2" fill="${s.color}" opacity="0.8"><title>${labels[i]} ${s.name}:${v}</title></rect>`; }));
-    let lines = ''; lineS.forEach(s => { const pts = s.values.map((v, i) => x(i) + ',' + y(v)).join(' '); lines += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2"/>`; s.values.forEach((v, i) => { lines += `<circle cx="${x(i)}" cy="${y(v)}" r="2.6" fill="${s.color}"><title>${labels[i]} ${s.name}:${v}</title></circle>`; }); });
-    const xl = labels.map((l, i) => `<text x="${x(i)}" y="${H - padB + 12}" text-anchor="end" font-size="9" fill="var(--ink-3)" transform="rotate(-40 ${x(i)} ${H - padB + 12})">${l}</text>`).join('');
-    const legend = series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('');
-    return `<div class="rep-legend">${legend}</div><div style="overflow-x:auto;"><svg viewBox="0 0 ${W} ${H}" width="${W}" style="max-width:100%;min-width:${Math.min(W, 680)}px;height:auto;display:block;">${grid}${bars}${lines}${xl}</svg></div>`;
+    // 棒は上端だけ4px丸め、下端はベースラインに接地させる
+    const barPath = (bx, by, bwid, bh) => { const r = Math.min(4, bwid / 2, bh); return `M${bx},${by + bh} L${bx},${by + r} Q${bx},${by} ${bx + r},${by} L${bx + bwid - r},${by} Q${bx + bwid},${by} ${bx + bwid},${by + r} L${bx + bwid},${by + bh} Z`; };
+    let bars = ''; barS.forEach(s => s.values.forEach((v, i) => { const h = plotH * (v / maxY); if (h <= 0) return; bars += `<path d="${barPath(x(i) - bw / 2, padT + plotH - h, bw, h)}" fill="${s.color}"><title>${labels[i]} ${s.name}:${v}</title></path>`; }));
+    // 折れ線は2px、点は直径8px。重なりが読めるよう白い縁を1.5px付ける
+    let lines = ''; lineS.forEach(s => {
+      const pts = s.values.map((v, i) => x(i) + ',' + y(v)).join(' ');
+      lines += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+      s.values.forEach((v, i) => { lines += `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="#fff" stroke-width="1.5"><title>${labels[i]} ${s.name}:${v}</title></circle>`; });
+    });
+    // 横軸ラベルは回転させず水平に（短いので収まる）
+    const xl = labels.map((l, i) => `<text x="${x(i)}" y="${H - padB + 14}" text-anchor="middle" font-size="10" fill="#5f6368">${l}</text>`).join('');
+    const legend = series.map(s => `<span><i style="background:${s.color};border-radius:50%;"></i>${s.name}</span>`).join('');
+    return `<div class="rep-legend">${legend}</div><div style="overflow-x:auto;"><svg viewBox="0 0 ${W} ${H}" width="${W}" style="max-width:100%;min-width:${Math.min(W, 520)}px;height:auto;display:block;margin:0 auto;">${grid}${bars}${lines}${xl}</svg></div>`;
   }
 
   window.reportUnit = 'month';
@@ -3975,10 +4444,10 @@
         <tfoot><tr><td>合計</td><td>${cSum.cases}</td><td>${cSum.bid}</td><td>${cSum.calls}</td><td>${cSum.reach}</td><td>${cSum.apo}</td><td>${cSum.assess}</td><td>${cSum.deal}</td><td>${pct(cSum.deal, cSum.cases)}</td></tr></tfoot>
       </table></div>`;
     const cohChart = `<div class="rep-chart">${drawRepChart(ck.map(lab), [
-      { name: '案件数', color: '#c99a3b', type: 'bar', values: ck.map(k => coh[k].cases) },
-      { name: 'アポ', color: '#3a6ea5', type: 'line', values: ck.map(k => coh[k].apo) },
-      { name: '査定', color: '#4a7c4a', type: 'line', values: ck.map(k => coh[k].assess) },
-      { name: '成約', color: '#b8312f', type: 'line', values: ck.map(k => coh[k].deal) }
+      { name: '案件数', color: '#c4cbd3', type: 'bar', values: ck.map(k => coh[k].cases) },
+      { name: 'アポ', color: '#2a78d6', type: 'line', values: ck.map(k => coh[k].apo) },
+      { name: '査定', color: '#1baf7a', type: 'line', values: ck.map(k => coh[k].assess) },
+      { name: '成約', color: '#eb6834', type: 'line', values: ck.map(k => coh[k].deal) }
     ])}</div>`;
     // 活動ベース表
     const aSum = { calls: 0, reach: 0, apo: 0 };
@@ -3992,9 +4461,9 @@
         <tfoot><tr><td>合計</td><td>${aSum.calls}</td><td>${aSum.reach}</td><td>${aSum.apo}</td><td>${pct(aSum.reach, aSum.calls)}</td></tr></tfoot>
       </table></div>`;
     const actChart = `<div class="rep-chart">${drawRepChart(ak.map(lab), [
-      { name: 'コール', color: '#9aa0a8', type: 'line', values: ak.map(k => act[k].calls) },
-      { name: '着電', color: '#3a6ea5', type: 'line', values: ak.map(k => act[k].reach) },
-      { name: 'アポ', color: '#b8312f', type: 'line', values: ak.map(k => act[k].apo) }
+      { name: 'コール', color: '#c4cbd3', type: 'line', values: ak.map(k => act[k].calls) },
+      { name: '着電', color: '#2a78d6', type: 'line', values: ak.map(k => act[k].reach) },
+      { name: 'アポ', color: '#eb6834', type: 'line', values: ak.map(k => act[k].apo) }
     ])}</div>`;
     host.innerHTML = cohortTable + cohChart + actTable + actChart;
   }
@@ -4304,11 +4773,11 @@
         <h3>回答URL</h3>
         <div style="font-size:12px;line-height:1.5;">
           <span style="word-break:break-all;-webkit-user-select:all;user-select:all;color:var(--ink-2);">${esc(buildReplyUrl(c))}</span><br>
-          <button class="url-copy-btn" style="margin-top:6px;" onclick="copyReplyUrl(${c.no});">🔗 URLをコピー</button>
+          <button class="url-copy-btn" style="margin-top:6px;" onclick="copyReplyUrl(${c.no});"><svg class="ic"><use href="#ic-link"/></svg> URLをコピー</button>
           <span style="color:var(--ink-3);font-size:11px;">（長押しでも選べます）</span>
         </div>
         ${c.reply ? `<div style="margin-top:10px;font-size:13px;">お客様回答: <b>${esc(c.reply)}</b></div>` : ''}
-        ${c.timing ? `<div style="margin-top:6px;font-size:13px;">売却予定時期: <span class="sell-timing ${timingClass(c.timing)}">🕐 ${esc(c.timing)}</span></div>` : ''}
+        ${c.timing ? `<div style="margin-top:6px;font-size:13px;">売却予定時期: <span class="sell-timing ${timingClass(c.timing)}">${esc(c.timing)}</span></div>` : ''}
       </div>`;
 
     document.getElementById('detail-body').innerHTML = `
@@ -4324,7 +4793,7 @@
           <label class="edit-field"><span class="ef-label">TEL番号</span>
             <span style="display:flex;gap:6px;align-items:center;">
               <input type="text" id="dp-tel" value="${esc(c.tel)}" placeholder="090-1234-5678" style="flex:1;min-width:0;">
-              ${telDigits && !isNew ? `<a href="tel:${telDigits}" class="url-copy-btn" style="text-decoration:none;white-space:nowrap;" onclick="openQuickCall(${c.no});">📞 発信</a>` : ''}
+              ${telDigits && !isNew ? `<a href="tel:${telDigits}" class="url-copy-btn" style="text-decoration:none;white-space:nowrap;" onclick="openQuickCall(${c.no});"><svg class="ic"><use href="#ic-phone"/></svg> 発信</a>` : ''}
             </span></label>
           <label class="edit-field"><span class="ef-label">担当者</span>
             <input type="text" id="dp-assignee" list="dp-assignee-list" value="${esc(c.assignee)}" placeholder="例:高木">
@@ -4517,6 +4986,33 @@
   { const _fb = document.getElementById('fabNew'); if (_fb) _fb.addEventListener('click', openDetailNew); }
   { const _ni = document.getElementById('newCaseInline'); if (_ni) _ni.addEventListener('click', openDetailNew); }
 
+  // KPIタイルのクリックで下の推移グラフを切り替える
+  document.addEventListener('click', function (e) {
+    const t = e.target.closest && e.target.closest('.kpi-tile');
+    if (!t) return;
+    kpiSelected = t.dataset.kpi;
+    if (typeof renderAll === 'function') renderAll();
+  });
+
+  // ===== サイドナビの開閉（スマホ） =====
+  (function () {
+    const sb = document.getElementById('sidebar');
+    const scrim = document.getElementById('navScrim');
+    const open = () => { sb.classList.add('open'); scrim.classList.add('show'); };
+    const close = () => { sb.classList.remove('open'); scrim.classList.remove('show'); };
+    const t = document.getElementById('navToggle'); if (t) t.addEventListener('click', open);
+    const c = document.getElementById('navClose'); if (c) c.addEventListener('click', close);
+    if (scrim) scrim.addEventListener('click', close);
+    // メニューを選んだら閉じる
+    document.querySelectorAll('.sidebar .page-tab').forEach(el => el.addEventListener('click', close));
+  })();
+  // ヘッダーのページ名を現在のタブに追従させる
+  function updatePageTitle(key) {
+    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', report: '実績集計', targets: '目標設定' };
+    const el = document.getElementById('pageTitle');
+    if (el && names[key]) el.textContent = names[key];
+  }
+
   // ===== 絞り込みの折りたたみ（スマホ）=====
   (function () {
     const btn = document.getElementById('filterToggle');
@@ -4547,6 +5043,7 @@
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       document.getElementById('page-' + t.dataset.page).classList.add('active');
       document.body.dataset.page = t.dataset.page;   // CSSでページ別に出し分けるため
+      updatePageTitle(t.dataset.page);
       
       // 新着・HOTセクションの表示制御:ダッシュボードタブの時だけ表示
       const prioritySection = document.getElementById('priority-section');
@@ -5010,14 +5507,14 @@
     const totalReject = counts['着信拒'] + counts['拒否'];
     
     return [
-      { name: '不通', value: counts['不通'] + counts['不在'], color: 'rgba(200,144,48,0.55)' },
-      { name: '不通SMS', value: counts['不通SMS'], color: 'rgba(184,149,74,0.55)' },
-      { name: '留守', value: counts['留守'], color: 'rgba(26,26,26,0.45)' },
-      { name: '着信拒', value: counts['着信拒'] + counts['拒否'], color: 'rgba(198,56,56,0.55)' },
-      { name: '通話', value: counts['通話'], color: 'rgba(74,124,74,0.55)' },
-      { name: '検討中', value: counts['検討中'], color: 'rgba(44,82,130,0.55)' },
-      { name: 'アポ', value: counts['アポ'], color: 'rgba(184,49,47,0.55)' },
-      { name: 'その他', value: counts['その他'], color: 'rgba(170,170,170,0.55)' },
+      { name: '不通', value: counts['不通'] + counts['不在'], color: '#dadce0' },
+      { name: '不通SMS', value: counts['不通SMS'], color: '#c4cbd3' },
+      { name: '留守', value: counts['留守'], color: '#aab2bb' },
+      { name: '着信拒', value: counts['着信拒'] + counts['拒否'], color: '#e8a49f' },
+      { name: '通話', value: counts['通話'], color: '#7aa9e8' },
+      { name: '検討中', value: counts['検討中'], color: '#4a8ee0' },
+      { name: 'アポ', value: counts['アポ'], color: '#1a73e8' },
+      { name: 'その他', value: counts['その他'], color: '#e8eaed' },
     ].filter(d => d.value > 0);
   }
   
@@ -5031,14 +5528,14 @@
       if (counts.hasOwnProperty(c.result)) counts[c.result]++;
     });
     return [
-      { name: '入庫済み',     value: counts['入庫済み'],     color: 'rgba(74,124,74,0.65)' },
-      { name: '成約',         value: counts['成約'],         color: 'rgba(74,124,74,0.4)' },
-      { name: '検討(直近)',   value: counts['検討(直近)'],   color: 'rgba(200,144,48,0.55)' },
-      { name: '検討(長期)',   value: counts['検討(長期)'],   color: 'rgba(184,149,74,0.6)' },
-      { name: '他社結果待ち', value: counts['他社結果待ち'], color: 'rgba(44,82,130,0.55)' },
-      { name: '他社売却',     value: counts['他社売却'],     color: 'rgba(136,136,136,0.6)' },
-      { name: '自社代替',     value: counts['自社代替'],     color: 'rgba(107,74,124,0.55)' },
-      { name: '売却しない',   value: counts['売却しない'],   color: 'rgba(170,170,170,0.55)' },
+      { name: '入庫済み',     value: counts['入庫済み'],     color: '#137333' },
+      { name: '成約',         value: counts['成約'],         color: '#5bab7a' },
+      { name: '検討(直近)',   value: counts['検討(直近)'],   color: '#f5c26b' },
+      { name: '検討(長期)',   value: counts['検討(長期)'],   color: '#fbdca0' },
+      { name: '他社結果待ち', value: counts['他社結果待ち'], color: '#7aa9e8' },
+      { name: '他社売却',     value: counts['他社売却'],     color: '#c4cbd3' },
+      { name: '自社代替',     value: counts['自社代替'],     color: '#b7a3cd' },
+      { name: '売却しない',   value: counts['売却しない'],   color: '#e8eaed' },
     ].filter(d => d.value > 0);
   }
   
@@ -5148,7 +5645,7 @@
       renderDonuts();
       const banner = document.createElement('div');
       banner.style.cssText = 'background:rgba(198,56,56,0.1);border-left:3px solid var(--red);padding:10px 32px;font-size:13px;color:var(--ink-2);';
-      banner.innerHTML = `⚠ スプレッドシートからのデータ読み込みに失敗しました。サンプルデータを表示中です。 <span style="color:var(--ink-3);">エラー: ${err.message}</span>`;
+      banner.innerHTML = `スプレッドシートからのデータ読み込みに失敗しました。サンプルデータを表示中です。 <span style="color:var(--ink-3);">エラー: ${err.message}</span>`;
       document.body.insertBefore(banner, document.body.children[1]);
     }
   }
