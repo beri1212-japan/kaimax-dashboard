@@ -388,10 +388,38 @@ node verify.js cases      # 案件一覧
 
 ## リリース手順
 
-1. `index.html` の `APP_BUILD` を上げる（現在 `ver 0817b` / `index.html:4024`）
-2. コミット＆プッシュ
-3. GitHub Pages のビルドに1〜3分かかる。`?cb=xxxx` を付けて確認
-4. 本番で `APP_BUILD` の表示・`allCases.length`・エラー赤帯の有無を確認する
+1. `index.html` の `APP_BUILD` を上げる（現在 `ver 0818a` / `index.html:4067`）
+2. `node verify.js` で PC/スマホの画像を確認してからコミット
+3. コミット＆プッシュ
+4. GitHub Pages のビルドに1〜3分かかる。`?cb=xxxx` を付けて確認
+5. **本番で `APP_BUILD` の表示を必ず確認する**・`allCases.length`・エラー赤帯の有無
+
+### ★ push の成功 ≠ 本番への反映
+
+Pages のビルドは push とは独立して失敗しうる。**失敗しても push は成功したままで、
+本番は前回成功したビルドを配信し続ける**（＝壊れはしないが、変更も届かない）。
+
+2026/08/17 に GitHub 側の障害（Actions が major outage、`codeload.github.com` が 503/429）で
+2回連続でビルドが失敗し、push 後も本番が旧版のままになった事例がある。
+
+確認方法:
+
+```bash
+# 本番のビルド番号
+curl -s "https://beri1212-japan.github.io/kaimax-dashboard/index.html?cb=$RANDOM" | grep -o "APP_BUILD = '[^']*'"
+
+# ビルドの成否（公開リポジトリなら認証不要）
+curl -s "https://api.github.com/repos/beri1212-japan/kaimax-dashboard/actions/runs?per_page=3" \
+  | python3 -c "import sys,json;[print(r['head_sha'][:7],r['status'],r['conclusion']) for r in json.load(sys.stdin)['workflow_runs']]"
+```
+
+ビルドが `failure` のときは、空コミットを push すれば再ビルドされる。
+
+```bash
+git commit --allow-empty -m "Pages 再ビルド" && git push origin main
+```
+
+GitHub 側の障害が疑われるときは https://www.githubstatus.com/api/v2/summary.json を見る。
 
 Pages 設定: Deploy from a branch / `main` / `(root)`。Custom domain 未設定。
 
