@@ -315,6 +315,8 @@
   #page-deals.page-section { max-width:none; padding-left:24px; padding-right:24px; }
   @media (max-width:720px) { #page-deals.page-section { padding-left:0; padding-right:0; } }
   #page-deals .tg-wrap { display:inline-block; max-width:100%; vertical-align:top; }
+  .dl-two { display:flex; gap:16px 28px; flex-wrap:wrap; align-items:flex-start; }
+  .dl-two > div { max-width:100%; }
   .dl-car { display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
   #priority-section, .page-section {
     max-width: 1240px;
@@ -4268,7 +4270,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v6'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v7'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4843,11 +4845,18 @@
   const ocEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   // 買取月（成約日の月）ごとの現状と確定利益
   function ocMonthTable(rows) {
+    return ocGroupTable(rows, c => { const d = dealDateOf(c); return d ? ymKeyOf(d) : '—'; }, k => k === '—' ? '日付なし' : `${k.slice(0, 4)}年${+k.slice(5)}月`, '買取月', '買取月別の現状と確定利益', (a, b) => b.localeCompare(a));
+  }
+  function ocStaffTable(rows) {
+    return ocGroupTable(rows, c => c.assignee || '（未割当）', k => k, '担当', '担当別の成果', null);
+  }
+  function ocGroupTable(rows, keyOf, labelOf, head, title, sorter) {
     const by = new Map();
-    rows.forEach(c => { const d = dealDateOf(c); const k = d ? ymKeyOf(d) : '—'; if (!by.has(k)) by.set(k, []); by.get(k).push(c); });
+    rows.forEach(c => { const k = keyOf(c); if (!by.has(k)) by.set(k, []); by.get(k).push(c); });
     const yenS = n => (n < 0 ? '−¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
     let T = { n: 0, none: 0, stock: 0, aa: 0, scrap: 0, sold: 0, profit: 0, pn: 0, hold: 0 };
-    const tr = [...by.keys()].sort().reverse().map(k => {
+    const keys = [...by.keys()].sort(sorter || ((a, b) => by.get(b).length - by.get(a).length));
+    const tr = keys.map(k => {
       const r = { n: 0, none: 0, stock: 0, aa: 0, scrap: 0, sold: 0, profit: 0, pn: 0, hold: 0 };
       by.get(k).forEach(c => { const o = ocOf(c), st = ocState(o).key; r.n++; r[st]++;
         const pf = ocProfit(c, o); if (pf != null) { r.profit += pf; r.pn++; }
@@ -4855,14 +4864,12 @@
       Object.keys(T).forEach(x => T[x] += r[x]);
       return r;
     });
-    const keys = [...by.keys()].sort().reverse();
     const cell = (v, z) => v ? v : `<span style="color:var(--ink-3);font-weight:400;">${z || '0'}</span>`;
     const line = (label, r) => `<tr><td style="text-align:left;font-weight:700;">${label}</td><td>${r.n}</td><td>${cell(r.none)}</td><td>${cell(r.stock)}</td><td>${cell(r.aa)}</td><td>${cell(r.scrap)}</td><td style="font-weight:700;">${cell(r.sold)}</td>
       <td style="font-weight:700;" class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit) : cell(0, '—')}</td><td class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit / r.pn) : cell(0, '—')}</td><td>${r.hold ? yenS(r.hold) : cell(0, '—')}</td></tr>`;
-    return `<div class="rep-sec-title" style="font-size:13px;margin-top:4px;">買取月別の現状と確定利益</div>
-      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th style="text-align:left;">買取月</th><th>台数</th><th>出口未定</th><th>商品・在庫</th><th>AA</th><th>廃車手配</th><th>売却済</th><th>確定利益</th><th>1台あたり</th><th>未売却の買取額</th></tr></thead>
-      <tbody>${keys.map((k, i) => line(k === '—' ? '日付なし' : `${k.slice(0, 4)}年${+k.slice(5)}月`, tr[i])).join('')}${keys.length > 1 ? line('合計', T) : ''}</tbody></table></div>
-      <div class="tg-note">買取月は成約日の月です。確定利益は「売却日・売却額」が入り、買取額（成約額）もある車だけで計算します（売却額 − 買取額 − 原価 − AA費用）。未売却の買取額は、まだ売れていない車の買取額の合計です。</div>`;
+    return `<div class="rep-sec-title" style="font-size:13px;margin-top:4px;">${title}</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th style="text-align:left;">${head}</th><th>台数</th><th>出口未定</th><th>商品・在庫</th><th>AA</th><th>廃車手配</th><th>売却済</th><th>確定利益</th><th>1台あたり</th><th>未売却の買取額</th></tr></thead>
+      <tbody>${keys.map((k, i) => line(ocEsc(labelOf(k)), tr[i])).join('')}${keys.length > 1 ? line('合計', T) : ''}</tbody></table></div>`;
   }
   // 成果の入力モーダル
   window.openOutcome = function (no, state) {
@@ -4881,6 +4888,7 @@
       <label class="oc-f">落札額<input class="yen" inputmode="numeric" data-k="price" value="${yv(a.price)}"></label></div></div>`;
     const showAA = o.route === 'AA' || o.route === '商品→AA' || aas.length;
     dlModal(`<div class="dl-modal-h">成果の入力：NO ${no} ${ocEsc(c.car || '')}（${ocEsc(c.assignee || '担当なし')}）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="tg-note" style="margin-top:-4px;">金額はすべて<b>税込</b>で入力してください。</div>
       <div id="oc-form" oninput="ocRecalc(${no})" onchange="ocRecalc(${no})">
       <div class="oc-row">
         <label class="oc-f">出口<select id="oc-route" onchange="openOutcome(${no}, ocCollect())">${OC_ROUTES.map(r => `<option${r === o.route ? ' selected' : ''}>${r}</option>`).join('')}</select></label>
@@ -4945,6 +4953,55 @@
       const o = document.getElementById('dl-modal'); if (o) o.remove(); renderDealsPage(); alertBar(`NO ${no} の成果を保存しました`);
     } else if (m) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; }
   };
+
+  // ===== insmart の成約車から成約案件を新規作成（店頭即決など、kaimaxに案件が無いもの） =====
+  function insUnlinked() { const used = linkedCarIds(); return insmartCars.filter(i => i.status === '成約' && !used.has(i.car_id)).sort((a, b) => String(b.deal_on || '').localeCompare(String(a.deal_on || ''))); }
+  function insAssigneeOf(i) { const a = String(i.assessor || '').replace(/\s/g, ''); return allAssignees().filter(n => n && a.startsWith(n)).sort((x, y) => y.length - x.length)[0] || ''; }
+  window.openInsmartCreate = function () {
+    const list = insUnlinked();
+    // 未紐づけの成約案件のうち、この車を候補に持つもの（重複作成を防ぐため先に見せる）
+    const candOf = new Map();
+    (allCases || []).filter(c => isDeal(c) && !dealExtra(c).insmartCarId).forEach(c => insmartCandidates(c).forEach(i => { if (!candOf.has(i.car_id)) candOf.set(i.car_id, []); candOf.get(i.car_id).push(c); }));
+    const yen = n => n ? '¥' + Number(n).toLocaleString('ja-JP') : '—';
+    dlModal(`<div class="dl-modal-h">insmartの成約から追加（kaimaxに未登録 ${list.length}台）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="tg-note">店頭即決など、kaimaxに案件が無い成約を insmart から作れます。「kaimaxの候補」に案件NOが出ているものは、すでに案件があるかもしれません。その場合は新規で作らず「紐づけ」を押してください。</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th>成約日</th><th style="text-align:left;">車名</th><th>初度</th><th>走行</th><th style="text-align:left;">査定担当</th><th>成約金額</th><th style="text-align:left;">kaimaxの候補</th><th></th></tr></thead><tbody>
+      ${list.map(i => { const cs = candOf.get(i.car_id) || [];
+        return `<tr><td>${String(i.deal_on || '').replace(/-/g, '/') || '—'}</td><td style="text-align:left;"><span class="dl-car" style="max-width:240px;" title="${ocEsc((i.maker || '') + ' ' + (i.car || '') + ' ' + (i.grade || ''))}">${ocEsc(i.maker || '')} ${ocEsc(i.car || '')} <span style="color:var(--ink-3);">${ocEsc(i.grade || '')}</span></span></td>
+          <td>${String(i.first_reg || '').slice(0, 4)}</td><td>${i.mileage ? Number(i.mileage).toLocaleString() + 'km' : '—'}</td><td style="text-align:left;">${ocEsc((i.assessor || '').split(' ')[0])}</td><td>${yen(i.deal_yen)}</td>
+          <td style="text-align:left;">${cs.slice(0, 3).map(c => `<button class="dl-btn ghost" title="${ocEsc(c.car || '')}（${ocEsc(c.assignee || '')}・受信 ${ocEsc(c.date || '')}）" onclick="insLinkFromCreate(${c.no},'${i.car_id}')">NO ${c.no} と紐づけ</button>`).join(' ') || '<span style="color:var(--ink-3);">なし</span>'}</td>
+          <td><button class="dl-btn" onclick="openInsmartCreateForm('${i.car_id}')">新規で追加</button></td></tr>`; }).join('') || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">insmartの成約はすべてkaimaxに登録済みです</td></tr>'}
+      </tbody></table></div><div id="dl-modal-msg" style="font-size:12.5px;font-weight:700;margin-top:8px;"></div>`);
+  };
+  window.insLinkFromCreate = async function (no, carId) {
+    const r = await postWebhook('link_insmart', { no, carId }, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') { await applyLinkResult(no, carId); renderDealsPage(); openInsmartCreate(); alertBar(`NO ${no} を insmart と紐づけました`); }
+    else { const m = document.getElementById('dl-modal-msg'); if (m) { m.style.color = '#d93025'; m.textContent = '紐づけできませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; } }
+  };
+  window.openInsmartCreateForm = function (carId) {
+    const i = insmartCars.find(x => x.car_id === carId); if (!i) return;
+    const who = insAssigneeOf(i);
+    dlModal(`<div class="dl-modal-h">insmartの成約から新規作成<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.8;margin-bottom:10px;"><b style="color:var(--ink);">${ocEsc(i.maker || '')} ${ocEsc(i.car || '')} ${ocEsc(i.grade || '')}</b><br>
+        成約日 ${String(i.deal_on || '—').replace(/-/g, '/')}・成約金額 ${i.deal_yen ? '¥' + Number(i.deal_yen).toLocaleString('ja-JP') : '—'}・初度 ${String(i.first_reg || '').slice(0, 4)}年・${i.mileage ? Number(i.mileage).toLocaleString() + 'km' : '走行不明'}<br>
+        車台番号 <span style="font-family:Arial,monospace;">${ocEsc(i.vin || '')}</span>・insmart査定担当 ${ocEsc(i.assessor || '')}</div>
+      <div class="oc-row">
+        <label class="oc-f">媒体<select id="ic-media">${Object.values(mediaLabels).map(l => `<option${l === '店頭' ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="oc-f">担当<select id="ic-assignee"><option value="">（未割当）</option>${allAssignees().map(n => `<option${n === who ? ' selected' : ''}>${ocEsc(n)}</option>`).join('')}</select></label>
+        <label class="oc-f" style="flex:1 1 200px;">お客様名（任意）<input id="ic-customer" type="text" placeholder="分かれば入力"></label>
+      </div>
+      <div class="tg-note" style="margin-top:8px;">受信日と成約日は insmart の成約日、結果は「成約」で作成します。車台番号・成約金額も入ります。</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;"><button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="doInsmartCreate('${i.car_id}')">この内容で作成</button><button class="dl-btn ghost" style="height:32px;" onclick="openInsmartCreate()">一覧に戻る</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span></div>`);
+  };
+  window.doInsmartCreate = async function (carId) {
+    const m = document.getElementById('dl-modal-msg'); if (m) { m.style.color = 'var(--ink-3)'; m.textContent = '作成中...'; }
+    const v = id => (document.getElementById(id) || {}).value || '';
+    const r = await postWebhook('create_from_insmart', { carId, media: v('ic-media'), assignee: v('ic-assignee'), customer: v('ic-customer').trim() }, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') {
+      const o = document.getElementById('dl-modal'); if (o) o.remove();
+      await initDashboard(); renderDealsPage(); alertBar(`案件NO ${r.data.no} を作成しました（insmartと紐づけ済み）`);
+    } else if (m) { m.style.color = '#d93025'; m.textContent = '作成できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; }
+  };
   function renderDealsPage() {
     const host = document.getElementById('deals-body'); if (!host) return;
     const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -5007,9 +5064,11 @@
         ${tile('平均成約額', withAmt.length ? yenS(sum / withAmt.length) : '—', '金額ありの件数で平均')}
         ${tile('insmart 紐づけ', linkedN + '<span>/ ' + rows.length + '件</span>', rows.length - linkedN ? `未紐づけ ${rows.length - linkedN}件` : 'すべて紐づけ済み')}
       </div>
+      ${insmartCars.length ? `<div style="font-size:12.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><button class="dl-btn ghost" onclick="openInsmartCreate()">＋ insmartの成約から追加</button><span style="color:var(--ink-3);">kaimaxに未登録のinsmart成約 ${insUnlinked().length}台（店頭即決など）</span></div>` : ''}
       ${window.__dlSingles.length ? `<div style="font-size:12.5px;background:#e8f0fe;border:1px solid #aecbfa;border-radius:7px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">insmartの候補が1件に決まる成約が <b>${window.__dlSingles.length}件</b> あります。<button class="dl-btn" onclick="openInsmartBulk()">確認してまとめて紐づけ</button></div>` : ''}
       ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
-      ${rows.length ? ocMonthTable(rows) : ''}
+      ${rows.length ? `<div class="dl-two"><div>${ocMonthTable(rows)}</div><div>${ocStaffTable(rows)}</div></div>
+      <div class="tg-note">買取月は成約日の月です。確定利益は「売却日・売却額」が入り、買取額（成約額）もある車だけで計算します（売却額 − 買取額 − 原価 − AA費用、すべて税込）。未売却の買取額は、まだ売れていない車の買取額の合計です。</div>` : ''}
       <div class="rep-sec-title" style="font-size:13px;margin-top:14px;">成約車の一覧 <span style="font-weight:400;color:var(--ink-3);font-size:12px;">「出口・状況」か「確定利益」を押すと、原価・AA出品・売却を入力できます</span></div>
       <div class="tg-note">期間は<b>成約日</b>で絞り込みます。insmartと未紐づけの成約は、成約日が分からないため受信日で代用しています。紐づけると車台番号・成約日が入り、成約額が空ならinsmartの成約金額で埋まります。</div>
       <div class="tg-wrap"><table class="tg" style="min-width:100%;">

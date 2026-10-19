@@ -3,7 +3,7 @@
 //      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
-//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_insmart・unlink_insmart(成約車とinsmartの紐づけ) / set_outcome(成約車の成果管理)
+//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_insmart・unlink_insmart(成約車とinsmartの紐づけ) / set_outcome(成約車の成果管理) / create_from_insmart(insmartの成約車から成約案件を新規作成)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -18,7 +18,7 @@ const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, head
 
 const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
-const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_insmart", "unlink_insmart", "set_outcome"]);
+const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_insmart", "unlink_insmart", "set_outcome", "create_from_insmart"]);
 
 // ---------- 共通ユーティリティ ----------
 const t = (v: unknown) => String(v ?? "").trim();
@@ -238,6 +238,30 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     if (error) return { status: "error", message: error.message };
     await audit(actor, "set_staff", null, { name, status: st });
     return { status: "success", message: `担当者「${name}」を${st === "archived" ? "退職" : "在籍"}にしました` };
+  }
+  if (action === "create_from_insmart") {
+    // 店頭即決などで kaimax に案件が無い成約を、insmart の成約車から作る（結果=成約・紐づけ済みで作成）
+    const MEDIA_LABELS = ["MOTA", "カーセンサー", "ナビクル", "LINE", "Yahoo!", "自社サイト", "店頭", "その他"];
+    const carId = t(p.carId), media = t(p.media) || "店頭", assignee = t(p.assignee), customer = t(p.customer);
+    if (!MEDIA_LABELS.includes(media)) return { status: "error", message: "媒体が不正です" };
+    if (assignee.length > 30 || customer.length > 100) return { status: "error", message: "担当者またはお客様名が長すぎます" };
+    const { data: ic } = await sb.from("kaimax_insmart_cars").select("*").eq("car_id", carId).maybeSingle();
+    if (!ic) return { status: "error", message: "insmart の車輌が見つかりません" };
+    if (ic.status !== "成約") return { status: "error", message: "insmart で成約になっていない車輌です" };
+    const { data: other } = await sb.from("kaimax_cases").select("case_no").eq("insmart_car_id", carId).is("deleted_at", null).maybeSingle();
+    if (other) return { status: "error", message: `この車輌は案件NO ${other.case_no} に紐づけ済みです` };
+    const on = ic.deal_on || (ic.registered_at ? new Date(Date.parse(ic.registered_at) + 9 * 3600000).toISOString().slice(0, 10) : todayISO());
+    const y = String(ic.first_reg || "").slice(0, 4);
+    const row = await insertCase({
+      media, received_on: on, received_raw: `${+on.slice(0, 4)}/${+on.slice(5, 7)}/${+on.slice(8, 10)}`,
+      customer_name: customer || null, car_name: [ic.maker, ic.car, ic.grade].filter(Boolean).join(" ") || null,
+      result: "成約", assignee: assignee || null, model_year: /^\d{4}$/.test(y) ? y + "年" : null,
+      mileage: ic.mileage ? `${Number(ic.mileage).toLocaleString("ja-JP")}km` : null,
+      deal_yen: ic.deal_yen || null, deal_raw: ic.deal_yen ? `${Number(ic.deal_yen).toLocaleString("ja-JP")}円` : null,
+      vin: ic.vin, insmart_car_id: ic.car_id, deal_on: ic.deal_on, note: `insmartから作成（車輌ID:${ic.car_id}）`, source: "insmart",
+    });
+    await audit(actor, "create_from_insmart", row.case_no, { carId, media, assignee, customer: customer ? "(入力あり)" : null });
+    return { status: "success", message: `案件NO ${row.case_no} を作成しました`, no: row.case_no };
   }
   const no = parseInt(t(p.no));
   if (!no) return { status: "error", message: "案件NOが指定されていません" };

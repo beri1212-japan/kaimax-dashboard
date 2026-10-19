@@ -26,7 +26,7 @@
 `kaimax_insmart_cars`（insmartの成約車。車台番号・成約日・成約金額）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
 
 kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_won` `mota_refill` `GET list_assess_nos` /
-スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_insmart` `unlink_insmart` `set_outcome` /
+スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_insmart` `unlink_insmart` `set_outcome` `create_from_insmart`(insmart成約車→成約案件を新規作成。source=insmart) /
 お客様 `reply`（認証なし・状況は固定リストのみ）
 
 画面側の要点:
