@@ -285,9 +285,9 @@
 <script>
 (function(){
   // ════════ ここだけ書き換えてください ════════
-  var ENDPOINT = 'https://script.google.com/macros/s/AKfycbyfvacDa_So-347Il4KpSPEDjQjWwdD5wuEw6Un8v9MAyxJX_i0XQUW_onu_Fs1oEQU/exec'; // ①GASウェブアプリURL（既存kaimaxのGASに回答分岐を足して再デプロイした場合はこのままでOK）
+  var ENDPOINT = 'https://artkjsyyrmwagmqitiaz.supabase.co/functions/v1/kaimax-api'; // ①回答の送信先（2026/10 データベースへ移行）
   var TEL      = '0764959700';                                           // ②代表電話（ハイフンなし）
-  var KEY      = 'indio9700';                                            // ③GAS側と一致させる
+  var KEY      = '';                                                     // ③（旧GAS用の鍵。廃止）
   // ═══════════════════════════════════════════
   var qs   = new URLSearchParams(location.search);
   var id   = qs.get('id') || '';
@@ -386,7 +386,7 @@
     };
     btn.disabled = true;
     btn.textContent = '送信中…';
-    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(payload) })
+    fetch(ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action: 'reply', payload: payload }) })
       .then(function(){ show(status); })
       .catch(function(){ show(status); }); // 通信結果に関わらず完了表示（GAS側で受信ログを確認）
   });

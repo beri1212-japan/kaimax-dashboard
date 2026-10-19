@@ -58,6 +58,7 @@
     .hide-sp{ display:none }
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -106,8 +107,24 @@
 </div>
 <script>
 (function(){
-  // kaimaxダッシュボードと同じ公開CSV
-  var CSV_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?output=csv';
+  // 2026/10 データベース(Supabase)から読む。ログインはダッシュボードと共通（同じ保存キー）
+  var sbc=window.supabase.createClient('https://artkjsyyrmwagmqitiaz.supabase.co','sb_publishable_D9b_W9t5F9RX-C-S6yRW7g_Cdn9YsXi',{auth:{persistSession:true,autoRefreshToken:true,storageKey:'kaimax-auth'}});
+  var CALL_POS={1:[9,-1],2:[10,11],3:[12,13],4:[14,15],5:[16,17],6:[33,34],7:[35,36],8:[37,38]};
+  var HEAD=['案件NO','媒体','受信日','顧客名','TEL番号','車名','入札','入札結果','','①TEL結果','②TEL結果','②日付','③TEL結果','③日付','④TEL結果','④日付','⑤TEL結果','⑤日付','査定','結果','次回後追日','担当者','備考','顧客希望額','査定提示額','成約額','住所','メール','年式','走行距離','','通話メモ','回答','⑥結果','⑥日付','⑦結果','⑦日付','⑧結果','⑧日付'];
+  async function selectAll(table,cols,build){ var out=[]; for(var from=0;;from+=1000){ var q=sbc.from(table).select(cols).range(from,from+999); if(build)q=build(q); var res=await q; if(res.error)throw new Error(res.error.message); out=out.concat(res.data||[]); if(!res.data||res.data.length<1000)break; } return out; }
+  async function loadRows(){
+    var cs=await selectAll('kaimax_cases','id,case_no,media,received_on,received_raw,customer_name,car_name,bid,bid_result,assess,result,assignee,reply_status',function(q){return q.is('deleted_at',null).order('case_no');});
+    var calls=await selectAll('kaimax_calls','case_id,seq,result,called_raw');
+    var by={}; calls.forEach(function(k){(by[k.case_id]=by[k.case_id]||[]).push(k);});
+    var v=function(x){return x==null?'':String(x);};
+    var rows=[HEAD.slice()];
+    cs.forEach(function(c){ var r=new Array(HEAD.length).fill('');
+      r[0]=v(c.case_no); r[1]=v(c.media); r[2]=c.received_raw||(c.received_on?c.received_on.replace(/^(\d+)-0?(\d+)-0?(\d+)$/,'$1/$2/$3'):'');
+      r[3]=v(c.customer_name); r[5]=v(c.car_name); r[6]=v(c.bid); r[7]=v(c.bid_result); r[18]=v(c.assess); r[19]=v(c.result); r[21]=v(c.assignee); r[32]=v(c.reply_status);
+      (by[c.id]||[]).forEach(function(k){var p=CALL_POS[k.seq]; if(!p)return; r[p[0]]=v(k.result); if(p[1]>=0)r[p[1]]=v(k.called_raw);});
+      rows.push(r); });
+    return rows;
+  }
   var ROSTER=['前田','川縁','高木','上野','野村','馬塚','諸田','石川'];
   var REACHED=['通話','検討中','アポ'];
   var state={min:24, unassignedOnly:false, cases:[]};
@@ -239,13 +256,15 @@
   async function load(){
     document.getElementById('err').style.display='none';
     document.getElementById('updated').textContent='読み込み中…';
-    var text=null;
-    for(var a=0;a<4&&!text;a++){
-      try{ var r=await fetch(CSV_URL+'&_='+Date.now()+'_'+a,{cache:'no-store'}); if(r.ok){var t=await r.text(); if(t&&!/^\s*</.test(t))text=t;} }catch(e){}
-      if(!text)await new Promise(function(res){setTimeout(res,500*(a+1));});
+    var sess=(await sbc.auth.getSession()).data.session;
+    if(!sess){ document.getElementById('err').style.display='block'; document.getElementById('err').innerHTML='ログインが必要です。<a href="./">ダッシュボード</a>でGoogleログインしてから開き直してください。'; document.getElementById('updated').textContent=''; return; }
+    var rows=null, lastErr='';
+    for(var a=0;a<3&&!rows;a++){
+      try{ rows=await loadRows(); }catch(e){ lastErr=e.message; }
+      if(!rows)await new Promise(function(res){setTimeout(res,500*(a+1));});
     }
-    if(!text){ document.getElementById('err').style.display='block'; document.getElementById('err').textContent='データの読み込みに失敗しました。時間をおいて「↻ 更新」を押してください。'; document.getElementById('updated').textContent=''; return; }
-    state.cases=rowsToCases(parseCSV(text));
+    if(!rows){ document.getElementById('err').style.display='block'; document.getElementById('err').textContent='データの読み込みに失敗しました（'+lastErr+'）。時間をおいて「↻ 更新」を押してください。'; document.getElementById('updated').textContent=''; return; }
+    state.cases=rowsToCases(rows);
     render();
   }
 
