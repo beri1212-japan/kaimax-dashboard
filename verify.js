@@ -40,6 +40,7 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_cases')) return j(DB_CASES);
     if (u.includes('.supabase.co/rest/v1/kaimax_calls')) return j(DB_CALLS);
     if (u.includes('.supabase.co/rest/v1/kaimax_replies')) return j([]);
+    if (u.includes('.supabase.co/rest/v1/kaimax_insmart_cars')) return j([{ car_id: '2607101000001', vin: 'DJ3AS-000001', maker: 'マツダ', car: 'デミオ', grade: '13C', first_reg: '2009/04/01', mileage: 75000, assessor: '前田 峻哉', status: '成約', registered_at: '2026-07-11T10:00:00+09:00', deal_on: '2026-07-15', deal_yen: 120000 }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_staff')) return j([{ name: '前田', status: 'active' }, { name: '金木', status: 'archived' }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_costs')) return j([{ ym: '2026-07', kind: 'media', item: 'mota', amount: 150000 }, { ym: '2026-07', kind: 'media', item: 'carsensor', amount: 80000 }, { ym: '2026-07', kind: 'other', item: '人件費', amount: 300000 }, { ym: '2026-10', kind: 'media', item: 'mota', amount: 6000000 }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_targets')) return j([{ ym: '2026-10', assignee: '前田', target: 16 }, { ym: '2026-10', assignee: '高木', target: 2 }]);

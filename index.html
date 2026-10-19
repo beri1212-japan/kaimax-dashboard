@@ -438,6 +438,13 @@
   .dl-tile .v span { font-size:13px; font-weight:700; color:var(--ink-3); margin-left:3px; }
   .dl-tile .s { font-size:11.5px; color:var(--ink-3); margin-top:2px; }
   @media (max-width:720px) { .dl-grid { grid-template-columns:1fr 1fr; gap:8px; } .dl-tile .v { font-size:20px; } }
+  .dl-btn { height:26px; padding:0 10px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .dl-btn.ghost { background:var(--bg-panel); color:var(--accent); }
+  .dl-modal { position:fixed; inset:0; z-index:9000; background:rgba(32,33,36,.45); display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .dl-modal-box { background:var(--bg-panel); border-radius:10px; padding:16px 18px; width:100%; max-width:980px; box-shadow:0 8px 28px rgba(0,0,0,.2); }
+  .dl-modal-h { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+  .dl-x { margin-left:auto; border:0; background:none; font-size:22px; color:var(--ink-3); cursor:pointer; line-height:1; }
+  @media (max-width:720px) { .dl-modal { padding:12px 8px; } .dl-modal-box { padding:12px; } }
 
   /* ========== 架電クイック記録（電話タップ時） ========== */
   .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:none; align-items:flex-end; justify-content:center; }
@@ -4239,7 +4246,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v3'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v4'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4773,18 +4780,35 @@
   }
   window.renderReport = renderReport;
 
-  // ===== 成約一覧（結果が 成約 / 入庫済み）。期間は受信日で絞る（成約日はデータに無いため） =====
+  // ===== 成約一覧（結果が 成約 / 入庫済み） =====
+  // 期間の基準は「成約日」（insmartと紐づけた案件）／未紐づけは受信日で代用。insmart紐づけで車台番号・成約日・成約金額が入る
   const DEAL_AMT_LOW = 50000, DEAL_AMT_HIGH = 10000000; // この範囲外の成約額は入力ミスの可能性として ⚠ を付ける
+  const insNorm = s => String(s || '').normalize('NFKC').toUpperCase().replace(/[\s\-・ー]|ハイブリッド|HYBRID|HV|HB|セダン|SD/g, '');
+  function dealExtra(c) { return caseExtra.get(String(c.no)) || { vin: '', insmartCarId: '', dealOn: '' }; }
+  function dealDateOf(c) { const e = dealExtra(c); return e.dealOn ? new Date(e.dealOn + 'T00:00:00') : parseDateFlexible(c.date); }
+  function linkedCarIds() { const set = new Set(); caseExtra.forEach(e => { if (e.insmartCarId) set.add(e.insmartCarId); }); return set; }
+  // insmart の成約車から、この案件の候補を探す（担当・車名・日付・年式）
+  function insmartCandidates(c) {
+    const used = linkedCarIds(), nc = insNorm(c.car), rd = parseDateFlexible(c.date);
+    const y = (String(c.year || '').match(/(\d{4})/) || [])[1];
+    return insmartCars.filter(i => i.status === '成約' && !used.has(i.car_id)).filter(i => {
+      const ni = insNorm(i.car); if (!ni || nc.length < 2) return false;
+      if (!(nc.includes(ni) || ni.includes(nc))) return false;
+      if (c.assignee && !String(i.assessor || '').replace(/\s/g, '').startsWith(c.assignee)) return false;
+      if (rd && i.registered_at) { const dd = (new Date(i.registered_at) - rd) / 86400000; if (dd < -10 || dd > 60) return false; }
+      if (y && i.first_reg && Math.abs(+y - +String(i.first_reg).slice(0, 4)) > 1) return false;
+      return true;
+    }).sort((a, b) => Math.abs(new Date(a.registered_at) - (rd || 0)) - Math.abs(new Date(b.registered_at) - (rd || 0)));
+  }
   function renderDealsPage() {
     const host = document.getElementById('deals-body'); if (!host) return;
     const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const all = (allCases || []).filter(isDeal);
     const fySel = document.getElementById('dl-fy'), mSel = document.getElementById('dl-month');
     const aSel = document.getElementById('dl-assignee'), mdSel = document.getElementById('dl-media'), qIn = document.getElementById('dl-q');
-    // 選択肢（初回だけ組み立てて、以後は選択を保持）
     if (fySel && !fySel.options.length) {
       const nowFy = fyOfDate(new Date(TODAY));
-      const fys = new Set([nowFy]); all.forEach(c => { const d = parseDateFlexible(c.date); if (d) fys.add(fyOfDate(d)); });
+      const fys = new Set([nowFy]); all.forEach(c => { const d = dealDateOf(c); if (d) fys.add(fyOfDate(d)); });
       fySel.innerHTML = '<option value="all">全期間</option>' + [...fys].sort((a, b) => b - a).map(y => `<option value="${y}"${y === nowFy ? ' selected' : ''}>${y}年度（${y}/6〜${y + 1}/5）</option>`).join('');
       aSel.innerHTML = '<option value="all">担当者：全員</option>' + allAssignees().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') + '<option value="">（未割当）</option>';
       mdSel.innerHTML = '<option value="all">媒体：すべて</option>' + Object.keys(mediaLabels).map(m => `<option value="${m}">${mediaLabels[m]}</option>`).join('');
@@ -4800,43 +4824,119 @@
     const ym = mSel ? mSel.value : 'all', who = aSel ? aSel.value : 'all', md = mdSel ? mdSel.value : 'all';
     const q = (qIn ? qIn.value : '').trim().toLowerCase();
     const rows = all.filter(c => {
-      const d = parseDateFlexible(c.date);
+      const d = dealDateOf(c);
       if (fy !== 'all') { if (!d || fyOfDate(d) !== +fy) return false; if (ym !== 'all' && ymKeyOf(d) !== ym) return false; }
       if (who !== 'all' && (c.assignee || '') !== who) return false;
       if (md !== 'all' && c.media !== md) return false;
-      if (q && !(`${c.no} ${c.customer || ''} ${c.car || ''}`.toLowerCase().includes(q))) return false;
+      if (q && !(`${c.no} ${c.customer || ''} ${c.car || ''} ${dealExtra(c).vin}`.toLowerCase().includes(q))) return false;
       return true;
-    }).sort((a, b) => { const da = parseDateFlexible(a.date), db = parseDateFlexible(b.date); return (db ? db.getTime() : 0) - (da ? da.getTime() : 0) || b.no - a.no; });
+    }).sort((a, b) => { const da = dealDateOf(a), db = dealDateOf(b); return (db ? db.getTime() : 0) - (da ? da.getTime() : 0) || b.no - a.no; });
     const withAmt = rows.filter(c => c.deal > 0);
     const sum = withAmt.reduce((s, c) => s + c.deal, 0);
+    const linkedN = rows.filter(c => dealExtra(c).insmartCarId).length;
     const odd = c => c.deal > 0 && (c.deal < DEAL_AMT_LOW || c.deal > DEAL_AMT_HIGH);
     const oddN = rows.filter(odd).length;
+    const singles = all.filter(c => !dealExtra(c).insmartCarId).map(c => ({ c, cand: insmartCandidates(c) })).filter(x => x.cand.length === 1);
+    // 候補が1件でも、同じinsmart車が複数案件の候補になっているものは除く
+    const candCount = {}; singles.forEach(x => { candCount[x.cand[0].car_id] = (candCount[x.cand[0].car_id] || 0) + 1; });
+    window.__dlSingles = singles.filter(x => candCount[x.cand[0].car_id] === 1);
     const yenS = n => '¥' + Math.round(n).toLocaleString('ja-JP');
     const tile = (label, val, sub) => `<div class="dl-tile"><div class="l">${label}</div><div class="v">${val}</div><div class="s">${sub || ''}</div></div>`;
-    const body = rows.map(c => `<tr onclick="openCaseById('${c.no}')" style="cursor:pointer;">
-        <td>${esc(c.date || '—')}</td>
-        <td>${c.no}</td>
+    const body = rows.map(c => { const e = dealExtra(c); const dOn = e.dealOn ? e.dealOn.replace(/-/g, '/') : '';
+      return `<tr>
+        <td onclick="openCaseById('${c.no}')" style="cursor:pointer;">${dOn ? esc(dOn) : `<span style="color:var(--ink-3);" title="成約日が未確定のため受信日を表示">${esc(c.date || '—')}（受信）</span>`}</td>
+        <td onclick="openCaseById('${c.no}')" style="cursor:pointer;">${c.no}</td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media] || esc(c.media)}</span></td>
-        <td style="text-align:left;font-weight:700;color:var(--ink);">${esc(c.customer || '—')}</td>
+        <td onclick="openCaseById('${c.no}')" style="cursor:pointer;text-align:left;font-weight:700;color:var(--ink);">${esc(c.customer || '—')}</td>
         <td style="text-align:left;">${esc(c.car || '—')}</td>
         <td style="text-align:left;">${esc(c.assignee || '—')}</td>
-        <td>${c.offered > 0 ? yenS(c.offered) : '<span style="color:var(--ink-3);">—</span>'}</td>
         <td style="font-weight:700;">${c.deal > 0 ? yenS(c.deal) + (odd(c) ? ' <span title="金額が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : '<span style="color:var(--ink-3);font-weight:400;">未入力</span>'}</td>
-        <td style="text-align:left;">${esc(c.result)}</td>
-      </tr>`).join('');
+        <td style="text-align:left;">${e.insmartCarId ? `<span style="font-family:Arial,monospace;font-size:11.5px;">${esc(e.vin)}</span> <button class="dl-btn ghost" onclick="openInsmartLink(${c.no})">変更</button>` : `<button class="dl-btn" onclick="openInsmartLink(${c.no})">insmartと紐づけ</button>`}</td>
+      </tr>`; }).join('');
     host.innerHTML = `
       <div class="dl-grid">
-        ${tile('成約件数', rows.length + '<span>件</span>', fy === 'all' ? '全期間' : (ym === 'all' ? fy + '年度' : (+ym.slice(5)) + '月受信分'))}
-        ${tile('成約額 合計', withAmt.length ? yenS(sum) : '—', `金額入力あり ${withAmt.length}件`)}
-        ${tile('平均成約額', withAmt.length ? yenS(sum / withAmt.length) : '—', '入力ありの件数で平均')}
-        ${tile('成約額 未入力', (rows.length - withAmt.length) + '<span>件</span>', rows.length - withAmt.length ? '詳細を開いて成約額を入力' : 'すべて入力済み')}
+        ${tile('成約件数', rows.length + '<span>件</span>', fy === 'all' ? '全期間' : (ym === 'all' ? fy + '年度' : (+ym.slice(5)) + '月'))}
+        ${tile('成約額 合計', withAmt.length ? yenS(sum) : '—', `金額あり ${withAmt.length}件`)}
+        ${tile('平均成約額', withAmt.length ? yenS(sum / withAmt.length) : '—', '金額ありの件数で平均')}
+        ${tile('insmart 紐づけ', linkedN + '<span>/ ' + rows.length + '件</span>', rows.length - linkedN ? `未紐づけ ${rows.length - linkedN}件` : 'すべて紐づけ済み')}
       </div>
+      ${window.__dlSingles.length ? `<div style="font-size:12.5px;background:#e8f0fe;border:1px solid #aecbfa;border-radius:7px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">insmartの候補が1件に決まる成約が <b>${window.__dlSingles.length}件</b> あります。<button class="dl-btn" onclick="openInsmartBulk()">確認してまとめて紐づけ</button></div>` : ''}
       ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
-      <div class="tg-note">期間は<b>受信日</b>で絞り込みます（成約した日付はデータに記録されていないため）。行を押すと案件の詳細が開きます。</div>
+      <div class="tg-note">期間は<b>成約日</b>で絞り込みます。insmartと未紐づけの成約は、成約日が分からないため受信日で代用しています。紐づけると車台番号・成約日が入り、成約額が空ならinsmartの成約金額で埋まります。</div>
       <div class="tg-wrap"><table class="tg" style="min-width:100%;">
-        <thead><tr><th>受信日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>査定提示額</th><th>成約額</th><th style="text-align:left;">状態</th></tr></thead>
-        <tbody>${body || '<tr><td colspan="9" style="color:var(--ink-3);font-weight:400;">該当する成約はありません</td></tr>'}</tbody>
+        <thead><tr><th>成約日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>成約額</th><th style="text-align:left;">車台番号（insmart）</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">該当する成約はありません</td></tr>'}</tbody>
       </table></div>`;
+  }
+  // 紐づけモーダル
+  function dlModal(html) {
+    let o = document.getElementById('dl-modal');
+    if (!o) { o = document.createElement('div'); o.id = 'dl-modal'; o.className = 'dl-modal'; o.onclick = e => { if (e.target === o) o.remove(); }; document.body.appendChild(o); }
+    o.innerHTML = `<div class="dl-modal-box">${html}</div>`;
+    return o;
+  }
+  const insRow = (i, btn) => `<tr><td>${String(i.deal_on || '').replace(/-/g, '/') || '—'}</td><td style="text-align:left;">${i.maker || ''} ${i.car || ''} <span style="color:var(--ink-3);">${i.grade || ''}</span></td><td>${String(i.first_reg || '').slice(0, 4)}年</td><td>${i.mileage ? Number(i.mileage).toLocaleString() + 'km' : '—'}</td><td style="text-align:left;">${(i.assessor || '').split(' ')[0]}</td><td>${i.deal_yen ? '¥' + Number(i.deal_yen).toLocaleString() : '—'}</td><td style="font-family:Arial,monospace;font-size:11px;">${i.vin || ''}</td><td>${btn}</td></tr>`;
+  const insHead = '<thead><tr><th>成約日</th><th style="text-align:left;">車名</th><th>初度</th><th>走行</th><th style="text-align:left;">査定担当</th><th>成約金額</th><th>車台番号</th><th></th></tr></thead>';
+  window.openInsmartLink = function (no, query) {
+    const c = (allCases || []).find(x => x.no === no); if (!c) return;
+    const e = dealExtra(c);
+    const cand = insmartCandidates(c);
+    const used = linkedCarIds();
+    const qn = insNorm(query || '');
+    const others = qn ? insmartCars.filter(i => i.status === '成約' && !used.has(i.car_id) && (insNorm(i.car).includes(qn) || String(i.vin || '').toUpperCase().includes(qn))).slice(0, 30) : [];
+    const btn = i => `<button class="dl-btn" onclick="doInsmartLink(${no},'${i.car_id}')">これで紐づけ</button>`;
+    dlModal(`<div class="dl-modal-h">案件NO ${no}：${(c.car || '').replace(/</g, '&lt;')}（${c.assignee || '担当なし'}・受信 ${c.date || '—'}）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      ${e.insmartCarId ? `<div class="tg-note">紐づけ中：車台番号 <b>${e.vin}</b>（insmart ${e.insmartCarId}） <button class="dl-btn ghost" onclick="doInsmartUnlink(${no})">紐づけを外す</button></div>` : ''}
+      <div class="rep-sec-title" style="font-size:13px;">候補（担当・車名・日付・年式が近いinsmartの成約車） ${cand.length}件</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;">${insHead}<tbody>${cand.map(i => insRow(i, btn(i))).join('') || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">候補がありません。下で車名や車台番号から探してください。</td></tr>'}</tbody></table></div>
+      <div style="display:flex;gap:8px;align-items:center;margin:12px 0 6px;flex-wrap:wrap;"><input id="dl-ins-q" type="search" placeholder="車名・車台番号で探す" value="${(query || '').replace(/"/g, '&quot;')}" onkeydown="if(event.key==='Enter')openInsmartLink(${no},this.value)" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;min-width:200px;"><button class="dl-btn ghost" onclick="openInsmartLink(${no},document.getElementById('dl-ins-q').value)">検索</button></div>
+      ${qn ? `<div class="tg-wrap"><table class="tg" style="min-width:100%;">${insHead}<tbody>${others.map(i => insRow(i, btn(i))).join('') || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">見つかりません</td></tr>'}</tbody></table></div>` : ''}
+      <div id="dl-modal-msg" style="font-size:12.5px;font-weight:700;margin-top:8px;"></div>`);
+  };
+  async function applyLinkResult(no, carId) {
+    const c = (allCases || []).find(x => x.no === no); const i = insmartCars.find(x => x.car_id === carId);
+    if (carId && i) {
+      caseExtra.set(String(no), { vin: i.vin || '', insmartCarId: i.car_id, dealOn: i.deal_on || '' });
+      if (c && !(c.deal > 0) && i.deal_yen) { c.deal = Number(i.deal_yen); c.dealRaw = Number(i.deal_yen).toLocaleString('ja-JP') + '円'; }
+    } else caseExtra.set(String(no), { vin: '', insmartCarId: '', dealOn: '' });
+  }
+  window.doInsmartLink = async function (no, carId) {
+    const m = document.getElementById('dl-modal-msg'); if (m) { m.style.color = 'var(--ink-3)'; m.textContent = '紐づけ中...'; }
+    const r = await postWebhook('link_insmart', { no, carId }, 3);
+    const ok = r && r.ok && r.data && r.data.status === 'success';
+    if (ok) { await applyLinkResult(no, carId); const o = document.getElementById('dl-modal'); if (o) o.remove(); renderDealsPage(); }
+    else if (m) { m.style.color = '#d93025'; m.textContent = '紐づけできませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; }
+  };
+  window.doInsmartUnlink = async function (no) {
+    const r = await postWebhook('unlink_insmart', { no }, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') { await applyLinkResult(no, null); const o = document.getElementById('dl-modal'); if (o) o.remove(); renderDealsPage(); }
+  };
+  window.openInsmartBulk = function () {
+    const list = window.__dlSingles || [];
+    dlModal(`<div class="dl-modal-h">候補が1件に決まる成約 ${list.length}件<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="tg-note">左がkaimaxの案件、右がinsmartの成約車です。違うものはチェックを外してから「紐づける」を押してください。</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th></th><th>NO</th><th style="text-align:left;">kaimax 車名</th><th style="text-align:left;">担当</th><th>受信</th><th style="text-align:left;">insmart 車名</th><th>初度</th><th>成約日</th><th>成約金額</th></tr></thead><tbody>
+      ${list.map(x => `<tr><td><input type="checkbox" class="dl-bulk" data-no="${x.c.no}" data-car="${x.cand[0].car_id}" checked></td><td>${x.c.no}</td><td style="text-align:left;">${(x.c.car || '').replace(/</g, '&lt;')}</td><td style="text-align:left;">${x.c.assignee || ''}</td><td>${x.c.date || '—'}</td><td style="text-align:left;">${x.cand[0].car} <span style="color:var(--ink-3);">${x.cand[0].grade || ''}</span></td><td>${String(x.cand[0].first_reg || '').slice(0, 4)}</td><td>${String(x.cand[0].deal_on || '').replace(/-/g, '/')}</td><td>${x.cand[0].deal_yen ? '¥' + Number(x.cand[0].deal_yen).toLocaleString() : '—'}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;"><button class="dl-btn" onclick="doInsmartBulk()">チェックしたものを紐づける</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span></div>`);
+  };
+  window.doInsmartBulk = async function () {
+    const boxes = [...document.querySelectorAll('.dl-bulk:checked')]; const m = document.getElementById('dl-modal-msg');
+    let ok = 0, ng = 0;
+    for (const b of boxes) {
+      if (m) { m.style.color = 'var(--ink-3)'; m.textContent = `紐づけ中... ${ok + ng + 1}/${boxes.length}`; }
+      const no = +b.dataset.no, carId = b.dataset.car;
+      const r = await postWebhook('link_insmart', { no, carId }, 3);
+      if (r && r.ok && r.data && r.data.status === 'success') { ok++; await applyLinkResult(no, carId); } else ng++;
+    }
+    const o = document.getElementById('dl-modal'); if (o) o.remove(); renderDealsPage();
+    alertBar(`insmart紐づけ：${ok}件 完了${ng ? `／${ng}件 失敗` : ''}`, !!ng);
+  };
+  function alertBar(t, err) {
+    const h = document.getElementById('deals-body'); if (!h) return;
+    const d = document.createElement('div'); d.textContent = t;
+    d.style.cssText = `font-size:12.5px;font-weight:700;padding:7px 10px;border-radius:7px;margin-bottom:10px;${err ? 'color:#d93025;background:#fce8e6;' : 'color:#137333;background:#e6f4ea;'}`;
+    h.prepend(d); setTimeout(() => d.remove(), 5000);
   }
   window.renderDealsPage = renderDealsPage;
 
@@ -5965,12 +6065,17 @@
     return out;
   }
   function isoToSheetDate(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${+y}/${+m}/${+d}`; }
+  let caseExtra = new Map(), insmartCars = [];
   async function loadRowsFromDB() {
-    const [cs, calls] = await Promise.all([
-      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status',
+    const [cs, calls, ins] = await Promise.all([
+      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,insmart_car_id,deal_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
+      selectAll('kaimax_insmart_cars', 'car_id,vin,maker,car,grade,first_reg,mileage,assessor,status,registered_at,deal_on,deal_yen').catch(() => []),
     ]);
+    // シート形に載らない項目（車台番号・insmart紐づけ・成約日）は案件NOで引けるように別に持つ
+    caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', insmartCarId: c.insmart_car_id || '', dealOn: c.deal_on || '' }]));
+    insmartCars = ins || [];
     const byCase = new Map();
     calls.forEach(k => { if (!byCase.has(k.case_id)) byCase.set(k.case_id, []); byCase.get(k.case_id).push(k); });
     const v = x => x == null ? '' : String(x);
