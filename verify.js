@@ -40,6 +40,7 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_cases')) return j(DB_CASES);
     if (u.includes('.supabase.co/rest/v1/kaimax_calls')) return j(DB_CALLS);
     if (u.includes('.supabase.co/rest/v1/kaimax_replies')) return j([]);
+    if (u.includes('.supabase.co/rest/v1/kaimax_staff')) return j([{ name: '前田', status: 'active' }, { name: '金木', status: 'archived' }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_costs')) return j([{ ym: '2026-07', kind: 'media', item: 'mota', amount: 150000 }, { ym: '2026-07', kind: 'media', item: 'carsensor', amount: 80000 }, { ym: '2026-07', kind: 'other', item: '人件費', amount: 300000 }, { ym: '2026-10', kind: 'media', item: 'mota', amount: 6000000 }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_targets')) return j([{ ym: '2026-10', assignee: '前田', target: 16 }, { ym: '2026-10', assignee: '高木', target: 2 }]);
     if (u.includes('.supabase.co/functions/'))  return j({ status: 'success', message: 'stub' });

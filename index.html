@@ -4201,7 +4201,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019db3'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019db4'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4513,38 +4513,45 @@
     (allCases || []).forEach(x => { if (x.assignee && String(x.assignee).trim()) s.add(String(x.assignee).trim()); });
     return Array.from(s).sort();
   }
-  // 手動で追加した担当者（ロースター）。この端末のブラウザに保存
-  function getRoster() { try { return JSON.parse(localStorage.getItem('kaimax_assignees') || '[]') || []; } catch (e) { return []; } }
-  function addRoster(name) { name = String(name || '').trim(); if (!name) return false; const r = getRoster(); if (r.includes(name) || distinctAssignees().includes(name)) return false; r.push(name); try { localStorage.setItem('kaimax_assignees', JSON.stringify(r)); } catch (e) {} return true; }
-  function removeRoster(name) { const r = getRoster().filter(x => x !== name); try { localStorage.setItem('kaimax_assignees', JSON.stringify(r)); } catch (e) {} }
-  // データ上の担当者 ＋ 手動追加分をまとめた一覧
+  // 担当者名簿（kaimax_staff）。追加・退職は全端末で共有。2026/10/19 までは端末ごとの保存だった
+  let staffDb = {};   // { 名前: 'active' | 'archived' }
+  async function fetchStaff() {
+    try {
+      const { data, error } = await sbc.from('kaimax_staff').select('name,status');
+      if (error) throw error;
+      const o = {}; (data || []).forEach(r => { o[r.name] = r.status; }); staffDb = o;
+    } catch (e) { /* 読めないときは案件データ上の担当者だけで動く */ }
+  }
+  window.fetchStaff = fetchStaff;
+  function getRoster() { return Object.keys(staffDb); }
   function allAssignees() { const set = new Set(distinctAssignees()); getRoster().forEach(n => { if (n) set.add(n); }); return Array.from(set).sort((a, b) => a.localeCompare(b, 'ja')); }
+  function staffFlash(t, err) {
+    const msg = document.getElementById('targets-saved-msg');
+    if (msg) { msg.style.color = err ? '#d93025' : 'var(--green)'; msg.textContent = t; setTimeout(() => { const m = document.getElementById('targets-saved-msg'); if (m && m.textContent === t) m.textContent = ''; }, 2200); }
+  }
+  async function setStaffStatus(name, status, okText) {
+    const prev = staffDb[name];
+    staffDb[name] = status;
+    renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all');
+    const r = await postWebhook('set_staff', { name, status }, 3);
+    const ok = r && r.ok && r.data && r.data.status === 'success';
+    if (!ok) { if (prev === undefined) delete staffDb[name]; else staffDb[name] = prev; renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all'); }
+    staffFlash(ok ? okText : '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）', !ok);
+  }
   window.addAssignee = function () {
     const inp = document.getElementById('new-assignee');
     if (!inp) return;
-    const name = inp.value.trim();
-    const msg = document.getElementById('targets-saved-msg');
-    const flash = (t, err) => { if (msg) { msg.style.color = err ? 'var(--red)' : 'var(--green)'; msg.textContent = t; setTimeout(() => { const m = document.getElementById('targets-saved-msg'); if (m) { m.textContent = ''; m.style.color = 'var(--green)'; } }, 2000); } };
-    if (!name) { flash('担当者名を入力してください', true); return; }
-    if (addRoster(name)) { inp.value = ''; renderTargetsForm(); flash('✓ 担当者「' + name + '」を追加しました'); }
-    else { flash('「' + name + '」は既に存在します', true); }
-  };
-  window.removeAssignee = function (name) {
-    removeRoster(name);
-    renderTargetsForm();
-    if (currentMedia === 'all') renderMediaView('all');
+    const name = inp.value.trim().slice(0, 30);
+    if (!name) { staffFlash('担当者名を入力してください', true); return; }
+    if (allAssignees().includes(name) && staffDb[name] !== 'archived') { staffFlash('「' + name + '」は既に存在します', true); return; }
+    inp.value = '';
+    setStaffStatus(name, 'active', '✓ 担当者「' + name + '」を追加しました');
   };
   // 退職者（過去データは残すが、目標入力の対象外にする）
-  function getArchived() { try { return JSON.parse(localStorage.getItem('kaimax_archived') || '[]') || []; } catch (e) { return []; } }
-  function isArchived(name) { return getArchived().indexOf(name) !== -1; }
-  window.archiveAssignee = function (name) {
-    const a = getArchived(); if (a.indexOf(name) === -1) { a.push(name); try { localStorage.setItem('kaimax_archived', JSON.stringify(a)); } catch (e) {} }
-    renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all');
-  };
-  window.restoreAssignee = function (name) {
-    const a = getArchived().filter(x => x !== name); try { localStorage.setItem('kaimax_archived', JSON.stringify(a)); } catch (e) {}
-    renderTargetsForm(); if (currentMedia === 'all') renderMediaView('all');
-  };
+  function getArchived() { return Object.keys(staffDb).filter(n => staffDb[n] === 'archived'); }
+  function isArchived(name) { return staffDb[name] === 'archived'; }
+  window.archiveAssignee = function (name) { setStaffStatus(name, 'archived', '✓「' + name + '」を退職にしました'); };
+  window.restoreAssignee = function (name) { setStaffStatus(name, 'active', '✓「' + name + '」を在籍に戻しました'); };
   const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
 
   function openAssigneeEditor(td, c) {
@@ -5944,7 +5951,7 @@
         if (periodDisplay) periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
       }
       cases = applyPeriodFilter(allCases);
-      await Promise.all([fetchSheetTargets(), fetchCosts()]);  // データベースから目標・コストを取得（全端末共有）
+      await Promise.all([fetchSheetTargets(), fetchCosts(), fetchStaff()]);  // データベースから目標・コスト・担当者名簿を取得（全端末共有）
       renderStageFilter();  // 実データの結果値に合わせて統合フィルタのボタンを生成
 
       hideLoading();
