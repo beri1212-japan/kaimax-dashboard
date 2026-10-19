@@ -368,6 +368,28 @@
   .rep-sec-title { font-size:14px; font-weight:700; color:var(--ink); margin:14px 0 5px; display:flex; align-items:center; gap:8px; }
   .rep-note { font-size:11.5px; color:var(--ink-3); margin:0 0 7px; line-height:1.5; }
   .rep-table-wrap { overflow-x:auto; }
+  /* 目標・コスト（年度表） */
+  .fy-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 6px; }
+  .fy-bar select { padding:6px 10px; border:1px solid var(--line); border-radius:7px; font-size:14px; color:var(--ink); background:var(--bg-panel); }
+  .tg-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:8px; background:var(--bg-panel); }
+  table.tg { border-collapse:separate; border-spacing:0; font-size:12px; }
+  table.tg th, table.tg td { padding:3px 6px; border-bottom:1px solid #eceef0; white-space:nowrap; text-align:right; height:30px; }
+  table.tg th { font-size:11px; color:var(--ink-3); font-weight:700; background:var(--bg-soft); }
+  table.tg th:first-child, table.tg td:first-child { position:sticky; left:0; z-index:1; background:var(--bg-panel); text-align:left; font-weight:700; color:var(--ink); padding-left:10px; min-width:84px; border-right:1px solid #eceef0; }
+  table.tg th:first-child { background:var(--bg-soft); }
+  table.tg .cur { background:#e8f0fe; }
+  table.tg tfoot td, table.tg .tot { font-weight:700; color:var(--ink); }
+  table.tg tfoot td { background:var(--bg-soft); border-top:1px solid var(--line); }
+  table.tg tfoot td:first-child { background:var(--bg-soft); }
+  table.tg .grp td { background:var(--bg-soft); color:var(--ink-3); font-size:11px; font-weight:700; height:24px; }
+  table.tg .grp td:first-child { background:var(--bg-soft); color:var(--ink-3); }
+  .tg-in { width:44px; height:24px; text-align:right; font-size:12px; border:1px solid var(--line); border-radius:4px; padding:0 5px; background:var(--bg-panel); color:var(--ink); font-family:inherit; }
+  .tg-in.cost { width:80px; }
+  .tg-in:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px #e8f0fe; }
+  .tg-in.ok { border-color:#1baf7a; }
+  .tg-in.ng { border-color:#d93025; background:#fce8e6; }
+  .tg-in.warn { border-color:#f9ab00; background:#fef7e0; }
+  .tg-note { font-size:11.5px; color:var(--ink-3); line-height:1.6; margin:4px 0 8px; }
   table.rep-table { width:100%; border-collapse:collapse; font-size:12.5px; min-width:560px; }
   table.rep-table th, table.rep-table td { padding:5px 8px; border-bottom:1px solid #eceef0; white-space:nowrap; text-align:right; line-height:1.45; }
   table.rep-table th { font-size:11.5px; color:var(--ink-3); font-weight:700; background:var(--bg-soft); position:sticky; top:0; }
@@ -2425,7 +2447,7 @@
     <div class="page-tab active" data-page="dashboard"><svg class="ic"><use href="#ic-dashboard"/></svg><span>ダッシュボード</span></div>
     <div class="page-tab" data-page="cases"><svg class="ic"><use href="#ic-list"/></svg><span>案件一覧</span><span class="badge">14</span></div>
     <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
-    <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標設定</span></div>
+    <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標・コスト</span></div>
   </nav>
   <!-- 外部リンク。URLを変えたいときは下の href だけ書き換えればOK -->
   <div class="sb-links">
@@ -2712,18 +2734,10 @@
   </div>
 </div>
 
-<!-- 目標設定ページ -->
+<!-- 目標・コストページ -->
 <div class="page-section" id="page-targets">
-  <h2 class="section-title" style="margin-top:20px;">目標設定 <span class="ja">担当者ごとの月間成約目標</span></h2>
-  <div class="panel" style="max-width:620px;">
-    <div style="font-size:13px;color:var(--ink-2);line-height:1.7;margin-bottom:16px;">
-      目標はこの画面で入力します（全端末で共有）。対象月を選ぶと、その月の担当者別の目標を表示・編集できます。<br>
-      <span style="color:var(--ink-3);font-size:12px;">※ ダッシュボードの「担当者別実績」に進捗バーで反映されます。</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <span style="font-weight:700;font-size:14px;">対象月</span>
-      <input type="month" id="target-month" onchange="renderTargetsForm()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:15px;color:var(--ink);">
-    </div>
+  <h2 class="section-title" style="margin-top:20px;">目標・コスト <span class="ja">年度は6月〜翌5月</span></h2>
+  <div class="panel">
     <div id="targets-form"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);flex-wrap:wrap;">
       <span style="font-weight:700;font-size:13px;color:var(--ink-2);">担当者を追加</span>
@@ -3194,76 +3208,198 @@
     return result;
   }
 
-  // 目標設定タブ:月別実績シート（全端末共有）の目標を表示（編集はシートで）
+  // ===== 目標・コストタブ（年度 = 6月〜翌5月） =====
+  const FY_START_MONTH = 6; // 期首は6月
+  const COST_MEDIA = ['mota', 'carsensor', 'navikuru', 'line', 'yahoo', 'self', 'shop', 'other'];
+  const COST_WARN_YEN = 5000000; // 1費目・1か月でこれ以上は入力ミスの可能性として黄色表示
+  let costData = {};        // { 'YYYY-MM': { 'media:mota': 円, 'other:人件費': 円 } }
+  let costLoaded = false;
+  let extraOtherItems = []; // 画面で追加しただけで、まだ金額が入っていない費目
+  let fySelected = null;
+
+  function fyOfDate(d) { return d.getMonth() + 1 >= FY_START_MONTH ? d.getFullYear() : d.getFullYear() - 1; }
+  function fyMonths(fy) { const r = []; for (let i = 0; i < 12; i++) { const m = (FY_START_MONTH - 1 + i) % 12; const y = fy + Math.floor((FY_START_MONTH - 1 + i) / 12); r.push(y + '-' + String(m + 1).padStart(2, '0')); } return r; }
+  const yenFmt = n => (n == null || n === '') ? '' : Number(n).toLocaleString('ja-JP');
+  const yenCell = n => (n == null || !isFinite(n)) ? '—' : '¥' + Math.round(n).toLocaleString('ja-JP');
+
+  async function fetchCosts() {
+    try {
+      const { data, error } = await sbc.from('kaimax_costs').select('ym,kind,item,amount');
+      if (error) throw error;
+      const res = {};
+      (data || []).forEach(r => { (res[r.ym] = res[r.ym] || {})[r.kind + ':' + r.item] = Number(r.amount); });
+      costData = res; costLoaded = true;
+    } catch (e) { costLoaded = false; }
+  }
+  window.fetchCosts = fetchCosts;
+  function otherItemsAll() {
+    const set = new Set(extraOtherItems);
+    Object.values(costData).forEach(m => Object.keys(m).forEach(k => { if (k.startsWith('other:')) set.add(k.slice(6)); }));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ja'));
+  }
+
   function renderTargetsForm() {
     const wrap = document.getElementById('targets-form');
-    const monthInput = document.getElementById('target-month');
-    if (!wrap || !monthInput) return;
-    if (!monthInput.value) monthInput.value = currentYM();
-    const ym = monthInput.value;
+    if (!wrap) return;
+    const nowFy = fyOfDate(new Date(TODAY));
+    if (fySelected == null) fySelected = nowFy;
+    const fy = fySelected, months = fyMonths(fy), curYM = currentYM();
+    const mLabel = ym => (+ym.slice(5)) + '月';
+    const cls = ym => ym === curYM ? ' class="cur"' : '';
+    const esc = v => String(v).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const jsq = v => String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     const archivedSet = new Set(getArchived());
     const names = allAssignees().filter(n => !archivedSet.has(n));
     const archivedNames = allAssignees().filter(n => archivedSet.has(n));
-    const targets = getMonthTargets(ym);
-    const total = names.reduce((s, n) => s + (targets[n] || 0), 0);
-    const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const rows = names.length ? names.map(n => `
-      <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);">
-        <span style="flex:1;font-weight:700;font-size:15px;">${n}</span>
-        <input type="number" inputmode="numeric" min="0" max="9999" value="${targets[n] || ''}" placeholder="—" onchange="saveTargetInput('${ym}','${esc(n)}',this.value)" style="width:64px;height:30px;text-align:right;font-weight:700;font-size:16px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--bg-panel);color:var(--ink);">
-        <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
-        <button onclick="archiveAssignee('${esc(n)}')" title="退職者にする（実績は残ります）" style="width:52px;height:26px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">退職</button>
-      </div>`).join('') : '<div style="color:var(--ink-3);padding:12px 0;">担当者がいません。</div>';
-    const archivedBlock = archivedNames.length ? `
+    const fyOpts = [nowFy - 1, nowFy, nowFy + 1].map(y => `<option value="${y}"${y === fy ? ' selected' : ''}>${y}年度（${y}/6〜${y + 1}/5）</option>`).join('');
+
+    // ① 年間目標
+    const tHead = `<tr><th>担当者</th>${months.map(ym => `<th${cls(ym)}>${mLabel(ym)}</th>`).join('')}<th>年計</th><th></th></tr>`;
+    const tRows = names.map(n => `<tr><td>${esc(n)}</td>${months.map(ym => { const v = (sheetTargets[ym] || {})[n]; return `<td${cls(ym)}><input class="tg-in" inputmode="numeric" value="${v || ''}" placeholder="—" data-ym="${ym}" onchange="saveTargetCell(this,'${ym}','${jsq(n)}')"></td>`; }).join('')}<td class="tot" data-tsum-name="${esc(n)}"></td><td><button onclick="archiveAssignee('${jsq(n)}')" title="退職者にする（実績は残ります）" style="height:24px;padding:0 8px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:5px;cursor:pointer;font-size:11px;">退職</button></td></tr>`).join('');
+    const tFoot = `<tr><td>月計</td>${months.map(ym => `<td${cls(ym)} data-tsum-ym="${ym}"></td>`).join('')}<td data-tsum-all></td><td></td></tr>`;
+
+    // ② コスト
+    const cHead = `<tr><th>費目</th>${months.map(ym => `<th${cls(ym)}>${mLabel(ym)}</th>`).join('')}<th>年計</th></tr>`;
+    const cIn = (kind, item) => months.map(ym => { const v = (costData[ym] || {})[kind + ':' + item]; return `<td${cls(ym)}><input class="tg-in cost${v >= COST_WARN_YEN ? ' warn' : ''}" inputmode="numeric" value="${yenFmt(v)}" placeholder="—" onchange="saveCostCell(this,'${ym}','${kind}','${jsq(item)}')"${v >= COST_WARN_YEN ? ' title="金額が大きいため入力ミスの可能性があります"' : ''}></td>`; }).join('');
+    const mediaRows = COST_MEDIA.map(m => `<tr><td><span class="m-tag ${m}">${mediaLabels[m]}</span></td>${cIn('media', m)}<td class="tot" data-csum-row="media:${m}"></td></tr>`).join('');
+    const others = otherItemsAll();
+    const otherRows = others.map(o => `<tr><td>${esc(o)}</td>${cIn('other', o)}<td class="tot" data-csum-row="other:${esc(o)}"></td></tr>`).join('');
+    const cFoot = `<tr><td>コスト計</td>${months.map(ym => `<td${cls(ym)} data-csum-ym="${ym}"></td>`).join('')}<td data-csum-all></td></tr>`;
+    const nCols = months.length + 2;
+
+    wrap.innerHTML = `
+      <div class="fy-bar">
+        <span style="font-weight:700;font-size:14px;">年度</span>
+        <select onchange="fySelected=+this.value;renderTargetsForm()">${fyOpts}</select>
+        <span id="targets-saved-msg" style="font-size:12.5px;font-weight:700;"></span>
+      </div>
+      ${targetsLoaded && costLoaded ? '' : '<div style="font-size:12.5px;color:#d93025;font-weight:700;margin:6px 0;">目標またはコストをデータベースから読み込めていません。保存前に画面を再読み込みしてください。</div>'}
+
+      <div class="rep-sec-title" style="margin-top:14px;">① 年間目標（成約件数）</div>
+      <div class="tg-note">数字を入れて欄の外を押すと保存され、全端末で共有されます。空欄で削除。今月の列は青く表示します。</div>
+      <div class="tg-wrap"><table class="tg"><thead>${tHead}</thead><tbody>${tRows || `<tr><td colspan="${nCols + 1}" style="color:var(--ink-3);">担当者がいません。</td></tr>`}</tbody><tfoot>${tFoot}</tfoot></table></div>
+
+      <div class="rep-sec-title" style="margin-top:22px;">② コスト（円・税込/税抜は統一して入力）</div>
+      <div class="tg-note">媒体ごとの掲載料・成果報酬と、その他の経費を月ごとに入力します。空欄で削除、0円も入力できます。${(COST_WARN_YEN / 10000).toLocaleString()}万円以上は入力ミスの可能性として黄色で表示します。</div>
+      <div class="tg-wrap"><table class="tg"><thead>${cHead}</thead><tbody>
+        <tr class="grp"><td>媒体費</td><td colspan="${nCols - 1}"></td></tr>
+        ${mediaRows}
+        <tr class="grp"><td>その他経費</td><td colspan="${nCols - 1}"></td></tr>
+        ${otherRows || `<tr><td colspan="${nCols}" style="color:var(--ink-3);font-weight:400;">まだありません。下の欄から費目を追加してください。</td></tr>`}
+      </tbody><tfoot>${cFoot}</tfoot></table></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <input type="text" id="new-cost-item" maxlength="40" placeholder="費目名（例: 人件費・広告費）" onkeydown="if(event.key==='Enter'){event.preventDefault();addCostItem();}" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;color:var(--ink);min-width:200px;">
+        <button onclick="addCostItem()" style="padding:6px 12px;background:var(--bg-panel);color:var(--accent);border:1px solid var(--accent);border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;">＋ 費目を追加</button>
+      </div>
+
+      <div class="rep-sec-title" style="margin-top:22px;">③ 獲得単価（コスト ÷ 件数）</div>
+      <div class="tg-note">案件・査定・成約は<b>受信月</b>で数えます（その月に受信した案件のうち、査定・成約まで進んだ件数）。媒体別の単価は媒体費だけで計算し、その他経費は全体の単価にだけ含めます。</div>
+      <div id="roi-body"></div>
+      ${archivedNames.length ? `
       <div style="margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);">
         <div style="font-size:12px;font-weight:700;color:var(--ink-3);margin-bottom:6px;">退職者 <span style="font-weight:400;">（目標対象外・過去実績は保持）</span></div>
-        ${archivedNames.map(n => `
-          <div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
-            <span style="flex:1;font-size:14px;color:var(--ink-3);text-decoration:line-through;">${n}</span>
-            <button onclick="restoreAssignee('${esc(n)}')" title="在籍に戻す" style="height:26px;padding:0 12px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">復帰</button>
-          </div>`).join('')}
-      </div>` : '';
-    wrap.innerHTML = `
-      <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:10px;line-height:1.7;"><b>${ym}</b> の目標です。数字を入力して欄の外を押すと保存され、全端末で共有されます（空欄または0で削除）。</div>
-      ${targetsLoaded ? '' : '<div style="font-size:12.5px;color:var(--red,#d93025);font-weight:700;margin-bottom:8px;">目標をデータベースから読み込めていません。保存前に画面を再読み込みしてください。</div>'}
-      ${rows}
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 0 2px;margin-top:4px;border-top:2px solid var(--line);">
-        <span style="flex:1;font-weight:700;font-size:15px;">合計目標</span>
-        <span style="width:64px;text-align:right;font-weight:700;font-size:16px;color:var(--accent);">${total || 0}</span>
-        <span style="width:24px;font-size:13px;color:var(--ink-3);">件</span>
-        <span style="width:52px;"></span>
-      </div>
-      <div id="targets-saved-msg" style="font-size:12.5px;color:var(--green);font-weight:700;height:18px;margin-top:8px;"></div>
-      ${archivedBlock}`;
+        ${archivedNames.map(n => `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;"><span style="flex:1;font-size:14px;color:var(--ink-3);text-decoration:line-through;">${esc(n)}</span><button onclick="restoreAssignee('${jsq(n)}')" style="height:26px;padding:0 12px;border:1px solid var(--line);background:var(--bg-panel);color:var(--ink-2);border-radius:6px;cursor:pointer;font-size:12px;">復帰</button></div>`).join('')}
+      </div>` : ''}`;
+    updateTargetsTotals();
+    // 横スクロールする表は、今月の列が見える位置まで送っておく（スマホで6月始まりだと今月が画面外になるため）
+    requestAnimationFrame(() => wrap.querySelectorAll('.tg-wrap').forEach(w => {
+      const th = w.querySelector('thead th.cur'), first = w.querySelector('thead th');
+      if (th && first && w.scrollWidth > w.clientWidth) w.scrollLeft = Math.max(0, th.offsetLeft - first.offsetWidth - 8);
+    }));
   }
   window.renderTargetsForm = renderTargetsForm;
-  window.reloadSheetTargets = async function () {
-    const msg = document.getElementById('targets-saved-msg');
-    if (msg) { msg.style.color = 'var(--ink-3)'; msg.textContent = '取得中...'; }
-    await fetchSheetTargets();
-    renderTargetsForm();
-    if (currentMedia === 'all') renderMediaView('all');
-    const m2 = document.getElementById('targets-saved-msg');
-    if (m2) { m2.style.color = 'var(--green)'; m2.textContent = '✓ 最新の目標を取得しました'; setTimeout(() => { const x = document.getElementById('targets-saved-msg'); if (x) x.textContent = ''; }, 2000); }
-  };
 
-  window.saveTargetInput = async function (ym, name, val) {
-    const msg = () => document.getElementById('targets-saved-msg');
+  function updateTargetsTotals() {
+    const months = fyMonths(fySelected);
+    const names = [...document.querySelectorAll('[data-tsum-name]')].map(e => e.dataset.tsumName);
+    let all = 0;
+    months.forEach(ym => { const v = names.reduce((s, n) => s + ((sheetTargets[ym] || {})[n] || 0), 0); all += v; const el = document.querySelector(`[data-tsum-ym="${ym}"]`); if (el) el.textContent = v || ''; });
+    document.querySelectorAll('[data-tsum-name]').forEach(el => { const n = el.dataset.tsumName; const v = months.reduce((s, ym) => s + ((sheetTargets[ym] || {})[n] || 0), 0); el.textContent = v || ''; });
+    const ea = document.querySelector('[data-tsum-all]'); if (ea) ea.textContent = all || '';
+    let call = 0;
+    months.forEach(ym => { const v = Object.values(costData[ym] || {}).reduce((s, x) => s + x, 0); call += v; const el = document.querySelector(`[data-csum-ym="${ym}"]`); if (el) el.textContent = v ? yenFmt(v) : ''; });
+    document.querySelectorAll('[data-csum-row]').forEach(el => { const k = el.dataset.csumRow; const v = months.reduce((s, ym) => s + ((costData[ym] || {})[k] || 0), 0); el.textContent = v ? yenFmt(v) : ''; });
+    const ca = document.querySelector('[data-csum-all]'); if (ca) ca.textContent = call ? yenFmt(call) : '';
+    renderRoi();
+  }
+
+  function renderRoi() {
+    const host = document.getElementById('roi-body'); if (!host) return;
+    const months = fyMonths(fySelected), mset = new Set(months);
+    const byM = {}, byMedia = {};
+    months.forEach(ym => byM[ym] = { cases: 0, assess: 0, deal: 0 });
+    (allCases || []).forEach(c => {
+      const d = parseDateFlexible(c.date); if (!d) return;
+      const ym = ymKeyOf(d); if (!mset.has(ym)) return;
+      const o = byM[ym]; o.cases++; if (isAssessed(c)) o.assess++; if (isDeal(c)) o.deal++;
+      const mk = COST_MEDIA.includes(c.media) ? c.media : 'other';
+      const q = byMedia[mk] || (byMedia[mk] = { cases: 0, assess: 0, deal: 0 }); q.cases++; if (isAssessed(c)) q.assess++; if (isDeal(c)) q.deal++;
+    });
+    const div = (a, b) => (a > 0 && b > 0) ? a / b : null;
+    const curYM = currentYM();
+    let T = { cost: 0, cases: 0, assess: 0, deal: 0 };
+    const rows = months.map(ym => {
+      const cost = Object.values(costData[ym] || {}).reduce((s, x) => s + x, 0);
+      const o = byM[ym]; T.cost += cost; T.cases += o.cases; T.assess += o.assess; T.deal += o.deal;
+      return `<tr${ym === curYM ? ' class="cur"' : ''}><td>${+ym.slice(0, 4)}/${+ym.slice(5)}</td><td>${cost ? yenCell(cost) : '—'}</td><td>${o.cases}</td><td>${o.assess}</td><td>${o.deal}</td><td>${yenCell(div(cost, o.cases))}</td><td>${yenCell(div(cost, o.assess))}</td><td>${yenCell(div(cost, o.deal))}</td></tr>`;
+    }).join('');
+    const mRows = COST_MEDIA.map(m => {
+      const cost = months.reduce((s, ym) => s + ((costData[ym] || {})['media:' + m] || 0), 0);
+      const q = byMedia[m] || { cases: 0, assess: 0, deal: 0 };
+      if (!cost && !q.cases) return '';
+      return `<tr><td><span class="m-tag ${m}">${mediaLabels[m]}</span></td><td>${cost ? yenCell(cost) : '—'}</td><td>${q.cases}</td><td>${q.assess}</td><td>${q.deal}</td><td>${yenCell(div(cost, q.cases))}</td><td>${yenCell(div(cost, q.assess))}</td><td>${yenCell(div(cost, q.deal))}</td></tr>`;
+    }).join('');
+    const head = first => `<tr><th>${first}</th><th>コスト</th><th>案件</th><th>査定</th><th>成約</th><th>案件単価</th><th>査定単価</th><th>成約単価</th></tr>`;
+    host.innerHTML = `
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead>${head('月')}</thead><tbody>${rows}</tbody>
+        <tfoot><tr><td>年度計</td><td>${T.cost ? yenCell(T.cost) : '—'}</td><td>${T.cases}</td><td>${T.assess}</td><td>${T.deal}</td><td>${yenCell(div(T.cost, T.cases))}</td><td>${yenCell(div(T.cost, T.assess))}</td><td>${yenCell(div(T.cost, T.deal))}</td></tr></tfoot></table></div>
+      <div class="rep-sec-title" style="font-size:13px;margin-top:14px;">媒体別（年度計・媒体費のみ）</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead>${head('媒体')}</thead><tbody>${mRows || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">この年度のデータはまだありません。</td></tr>'}</tbody></table></div>`;
+  }
+
+  function flashSaved(ok, text) {
+    const m = document.getElementById('targets-saved-msg'); if (!m) return;
+    m.style.color = ok ? 'var(--green)' : '#d93025'; m.textContent = text;
+    if (ok) setTimeout(() => { const x = document.getElementById('targets-saved-msg'); if (x && x.textContent === text) x.textContent = ''; }, 1600);
+  }
+  window.saveTargetCell = async function (inp, ym, name) {
+    const raw = String(inp.value).replace(/[^\d]/g, '');
     const prev = (sheetTargets[ym] || {})[name];
-    setMonthTarget(ym, name, val);
-    if (msg()) { msg().style.color = 'var(--ink-3)'; msg().textContent = '保存中...'; }
-    const r = await postWebhook('set_target', { ym, name, target: String(val || '') }, 3);
+    if (raw !== '' && +raw >= 10000) { inp.classList.add('ng'); flashSaved(false, '目標が大きすぎます'); return; }
+    setMonthTarget(ym, name, raw);
+    inp.value = raw && +raw > 0 ? +raw : ''; inp.classList.remove('ok', 'ng');
+    updateTargetsTotals();
+    const r = await postWebhook('set_target', { ym, name, target: raw }, 3);
     const ok = r && r.ok && r.data && r.data.status === 'success';
-    if (!ok) { setMonthTarget(ym, name, prev || ''); }
-    renderTargetsForm();
-    const m = msg();
-    if (m) {
-      m.style.color = ok ? 'var(--green)' : 'var(--red,#d93025)';
-      m.textContent = ok ? '✓ 保存しました' : '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）';
-      if (ok) setTimeout(() => { const x = msg(); if (x) x.textContent = ''; }, 1500);
-    }
-    if (currentMedia === 'all') renderMediaView('all'); // ダッシュボードの進捗にも反映
+    if (!ok) { setMonthTarget(ym, name, prev || ''); inp.value = prev || ''; updateTargetsTotals(); }
+    inp.classList.add(ok ? 'ok' : 'ng');
+    flashSaved(ok, ok ? '✓ 保存しました' : '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）');
+    if (typeof currentMedia !== 'undefined' && currentMedia === 'all') renderMediaView('all');
   };
+  window.saveCostCell = async function (inp, ym, kind, item) {
+    const raw = String(inp.value).replace(/[^\d]/g, '');
+    const key = kind + ':' + item;
+    const prev = (costData[ym] || {})[key];
+    const setLocal = v => { const m = costData[ym] || (costData[ym] = {}); if (v === '' || v == null) delete m[key]; else m[key] = Number(v); };
+    setLocal(raw);
+    inp.value = yenFmt(raw === '' ? '' : Number(raw)); inp.classList.remove('ok', 'ng', 'warn'); inp.title = '';
+    updateTargetsTotals();
+    const r = await postWebhook('set_cost', { ym, kind, item, amount: raw }, 3);
+    const ok = r && r.ok && r.data && r.data.status === 'success';
+    if (!ok) { setLocal(prev == null ? '' : prev); inp.value = yenFmt(prev); updateTargetsTotals(); }
+    const big = ok && raw !== '' && Number(raw) >= COST_WARN_YEN;
+    inp.classList.add(!ok ? 'ng' : big ? 'warn' : 'ok');
+    if (big) inp.title = '金額が大きいため入力ミスの可能性があります';
+    flashSaved(ok, ok ? (big ? '✓ 保存しました（金額が大きいので入力ミスがないか確認してください）' : '✓ 保存しました') : '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）');
+  };
+  window.addCostItem = function () {
+    const inp = document.getElementById('new-cost-item'); if (!inp) return;
+    const v = inp.value.trim().slice(0, 40); if (!v) return;
+    if (!otherItemsAll().includes(v)) extraOtherItems.push(v);
+    inp.value = ''; renderTargetsForm();
+  };
+  // 旧版の互換（ダッシュボード側から呼ばれることがある）
+  window.saveTargetInput = function (ym, name, val) { const i = document.createElement('input'); i.value = val; return window.saveTargetCell(i, ym, name); };
 
   function assigneeKPI(list) {
     const total = list.length;
@@ -4065,7 +4201,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019db2'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019db3'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5124,7 +5260,7 @@
   })();
   // ヘッダーのページ名を現在のタブに追従させる
   function updatePageTitle(key) {
-    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', report: '実績集計', targets: '目標設定' };
+    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', report: '実績集計', targets: '目標・コスト' };
     const el = document.getElementById('pageTitle');
     if (el && names[key]) el.textContent = names[key];
   }
@@ -5808,7 +5944,7 @@
         if (periodDisplay) periodDisplay.textContent = `${fmtDateJP(from)} — ${fmtDateJP(to)}`;
       }
       cases = applyPeriodFilter(allCases);
-      await fetchSheetTargets();  // データベースから目標を取得（全端末共有）
+      await Promise.all([fetchSheetTargets(), fetchCosts()]);  // データベースから目標・コストを取得（全端末共有）
       renderStageFilter();  // 実データの結果値に合わせて統合フィルタのボタンを生成
 
       hideLoading();
