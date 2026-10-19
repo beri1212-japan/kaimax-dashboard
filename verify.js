@@ -40,7 +40,11 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_cases')) return j(DB_CASES);
     if (u.includes('.supabase.co/rest/v1/kaimax_calls')) return j(DB_CALLS);
     if (u.includes('.supabase.co/rest/v1/kaimax_replies')) return j([]);
-    if (u.includes('.supabase.co/rest/v1/kaimax_insmart_cars')) return j([{ car_id: '2607101000001', vin: 'DJ3AS-000001', maker: 'マツダ', car: 'デミオ', grade: '13C', first_reg: '2009/04/01', mileage: 75000, assessor: '前田 峻哉', status: '成約', registered_at: '2026-07-11T10:00:00+09:00', deal_on: '2026-07-15', deal_yen: 120000 }]);
+    if (u.includes('.supabase.co/rest/v1/kaimax_contracts')) return j([
+      { contract_no: '2607156000001', contract_on: '2026-07-15', status: '契約済', customer_name: 'サンプル40', maker: 'マツダ', car: 'デミオ', grade: '13C', vin: 'DJ3AS-000001', first_reg: '2009/04/01', mileage: 75000, amount: 120000, trade_in_yen: 0, assignee: '前田 峻哉' },
+      { contract_no: '2610186000002', contract_on: '2026-10-18', status: '契約済', customer_name: '店頭 太郎', maker: 'ホンダ', car: 'N BOX', grade: 'G Lパッケージ', vin: 'JF1-0000002', first_reg: '2014/03/01', mileage: 116557, amount: 70000, trade_in_yen: 0, assignee: '野村 昂祐' },
+      { contract_no: '2610176000003', contract_on: '2026-10-17', status: '契約済', customer_name: '下取 花子', maker: '日産', car: 'エクストレイル', grade: '20X', vin: 'HNT32-0000003', first_reg: '2015/10/01', mileage: 74000, amount: 350000, trade_in_yen: 36800, assignee: '高木 光嗣' },
+      { contract_no: '2609206000004', contract_on: '2026-09-20', status: 'キャンセル', customer_name: '取消 一郎', maker: 'トヨタ', car: 'クラウン', grade: '', vin: 'AWS210-0000004', first_reg: '2017/06/01', mileage: 50000, amount: 1300000, trade_in_yen: 0, assignee: '野村 昂祐' }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_outcomes')) { const ds = DB_CASES.filter(c => /成約|入庫/.test(c.result || '')); return j([
       ds[0] && { case_id: ds[0].id, route: '商品→成約', cost_yen: 80000, cost_memo: '板金 5万 / タイヤ 3万', auctions: [], sold_on: '2026-08-20', sold_yen: 980000, sold_to: '山田様', memo: '', updated_by: 'cs@indio.co.jp', updated_at: '2026-10-19T07:00:00Z' },
       ds[1] && { case_id: ds[1].id, route: 'AA', cost_yen: null, auctions: [{ date: '2026-08-05', venue: 'USS名古屋', listingFee: 11000, successFee: null, transportFee: 15000, result: '流札', price: null }, { date: '2026-08-12', venue: 'USS名古屋', listingFee: 11000, successFee: 16500, transportFee: null, result: '成約', price: 520000 }], sold_on: '2026-08-12', sold_yen: 520000, sold_to: 'USS名古屋', memo: '' },

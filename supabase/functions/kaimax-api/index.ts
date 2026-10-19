@@ -3,7 +3,7 @@
 //      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
-//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_insmart・unlink_insmart(成約車とinsmartの紐づけ) / set_outcome(成約車の成果管理) / create_from_insmart(insmartの成約車から成約案件を新規作成)
+//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -18,7 +18,7 @@ const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, head
 
 const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
-const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_insmart", "unlink_insmart", "set_outcome", "create_from_insmart"]);
+const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts"]);
 
 // ---------- 共通ユーティリティ ----------
 const t = (v: unknown) => String(v ?? "").trim();
@@ -239,28 +239,52 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     await audit(actor, "set_staff", null, { name, status: st });
     return { status: "success", message: `担当者「${name}」を${st === "archived" ? "退職" : "在籍"}にしました` };
   }
-  if (action === "create_from_insmart") {
-    // 店頭即決などで kaimax に案件が無い成約を、insmart の成約車から作る（結果=成約・紐づけ済みで作成）
+  if (action === "import_contracts") {
+    // smart-sign 買取契約一覧（ダウンロードしたExcel）を画面で読み、必要な列だけ送ってくる。契約番号で上書き
+    const src = Array.isArray(p.rows) ? p.rows : [];
+    if (!src.length || src.length > 2000) return { status: "error", message: "取り込む行がありません（または多すぎます）" };
+    const day = (v: unknown) => { const m = t(v).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/); return m ? ymd(+m[1], +m[2], +m[3]) : null; };
+    const int = (v: unknown) => { const r = t(v).replace(/[,円\s]/g, ""); return /^-?\d+$/.test(r) && Math.abs(Number(r)) < 2_000_000_000 ? Number(r) : null; };
+    const s100 = (v: unknown) => { const r = t(v).normalize("NFKC").replace(/\u3000/g, " ").trim(); return r ? r.slice(0, 100) : null; };
+    const recs = [];
+    for (const r0 of src) {
+      const r = (r0 || {}) as Record<string, unknown>;
+      const no = t(r.contract_no), on = day(r.contract_on), st = s100(r.status);
+      if (!/^\d{6,20}$/.test(no) || !on || !st) continue;
+      recs.push({ contract_no: no, contract_on: on, status: st, cancel_on: day(r.cancel_on), customer_name: s100(r.customer_name), maker: s100(r.maker), car: s100(r.car), grade: s100(r.grade),
+        vin: s100(r.vin), first_reg: s100(r.first_reg), mileage: int(r.mileage), insmart_car_id: s100(r.insmart_car_id), amount: int(r.amount), trade_in_yen: int(r.trade_in_yen),
+        assignee: s100(r.assignee), car_received_on: day(r.car_received_on), paid_on: day(r.paid_on), source: "smart-sign", synced_at: new Date().toISOString() });
+    }
+    if (!recs.length) return { status: "error", message: "契約番号・契約日・ステータスが読めませんでした（smart-signの買取契約一覧のファイルか確認してください）" };
+    const nos = recs.map((r) => r.contract_no);
+    const { data: before } = await sb.from("kaimax_contracts").select("contract_no").in("contract_no", nos);
+    const { error } = await sb.from("kaimax_contracts").upsert(recs, { onConflict: "contract_no" });
+    if (error) return { status: "error", message: error.message };
+    const added = recs.length - (before?.length ?? 0);
+    await audit(actor, "import_contracts", null, { rows: recs.length, added, from: recs.reduce((m, r) => r.contract_on < m ? r.contract_on : m, "9999"), to: recs.reduce((m, r) => r.contract_on > m ? r.contract_on : m, "0000") });
+    return { status: "success", message: `契約 ${recs.length}件を取り込みました（新規 ${added}件・更新 ${recs.length - added}件）`, rows: recs.length, added };
+  }
+  if (action === "create_from_contract") {
+    // 店頭即決などで kaimax に案件が無い成約を、smart-sign の契約から作る（結果=成約・紐づけ済みで作成）
     const MEDIA_LABELS = ["MOTA", "カーセンサー", "ナビクル", "LINE", "Yahoo!", "自社サイト", "店頭", "その他"];
-    const carId = t(p.carId), media = t(p.media) || "店頭", assignee = t(p.assignee), customer = t(p.customer);
+    const contractNo = t(p.contractNo), media = t(p.media) || "店頭", assignee = t(p.assignee);
     if (!MEDIA_LABELS.includes(media)) return { status: "error", message: "媒体が不正です" };
-    if (assignee.length > 30 || customer.length > 100) return { status: "error", message: "担当者またはお客様名が長すぎます" };
-    const { data: ic } = await sb.from("kaimax_insmart_cars").select("*").eq("car_id", carId).maybeSingle();
-    if (!ic) return { status: "error", message: "insmart の車輌が見つかりません" };
-    if (ic.status !== "成約") return { status: "error", message: "insmart で成約になっていない車輌です" };
-    const { data: other } = await sb.from("kaimax_cases").select("case_no").eq("insmart_car_id", carId).is("deleted_at", null).maybeSingle();
-    if (other) return { status: "error", message: `この車輌は案件NO ${other.case_no} に紐づけ済みです` };
-    const on = ic.deal_on || (ic.registered_at ? new Date(Date.parse(ic.registered_at) + 9 * 3600000).toISOString().slice(0, 10) : todayISO());
-    const y = String(ic.first_reg || "").slice(0, 4);
+    if (assignee.length > 30) return { status: "error", message: "担当者名が長すぎます" };
+    const { data: k } = await sb.from("kaimax_contracts").select("*").eq("contract_no", contractNo).maybeSingle();
+    if (!k) return { status: "error", message: "契約が見つかりません" };
+    if (k.status !== "契約済") return { status: "error", message: `この契約は「${k.status}」です` };
+    const { data: other } = await sb.from("kaimax_cases").select("case_no").eq("contract_no", contractNo).is("deleted_at", null).maybeSingle();
+    if (other) return { status: "error", message: `この契約は案件NO ${other.case_no} に紐づけ済みです` };
+    const on = k.contract_on as string, y = String(k.first_reg || "").slice(0, 4);
     const row = await insertCase({
       media, received_on: on, received_raw: `${+on.slice(0, 4)}/${+on.slice(5, 7)}/${+on.slice(8, 10)}`,
-      customer_name: customer || null, car_name: [ic.maker, ic.car, ic.grade].filter(Boolean).join(" ") || null,
+      customer_name: k.customer_name, car_name: [k.maker, k.car, k.grade].filter(Boolean).join(" ") || null,
       result: "成約", assignee: assignee || null, model_year: /^\d{4}$/.test(y) ? y + "年" : null,
-      mileage: ic.mileage ? `${Number(ic.mileage).toLocaleString("ja-JP")}km` : null,
-      deal_yen: ic.deal_yen || null, deal_raw: ic.deal_yen ? `${Number(ic.deal_yen).toLocaleString("ja-JP")}円` : null,
-      vin: ic.vin, insmart_car_id: ic.car_id, deal_on: ic.deal_on, note: `insmartから作成（車輌ID:${ic.car_id}）`, source: "insmart",
+      mileage: k.mileage ? `${Number(k.mileage).toLocaleString("ja-JP")}km` : null,
+      deal_yen: k.amount || null, deal_raw: k.amount ? `${Number(k.amount).toLocaleString("ja-JP")}円` : null,
+      vin: k.vin, contract_no: k.contract_no, deal_on: on, note: `smart-sign契約から作成（契約番号:${k.contract_no}）`, source: "smart-sign",
     });
-    await audit(actor, "create_from_insmart", row.case_no, { carId, media, assignee, customer: customer ? "(入力あり)" : null });
+    await audit(actor, "create_from_contract", row.case_no, { contractNo, media, assignee });
     return { status: "success", message: `案件NO ${row.case_no} を作成しました`, no: row.case_no };
   }
   const no = parseInt(t(p.no));
@@ -268,20 +292,26 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
   const c = await byNo(no);
   if (!c) return { status: "error", message: `案件NO ${no} が見つかりません` };
 
-  if (action === "link_insmart") {
-    // insmart の成約車と紐づけ: 車台番号・insmart車輌ID・成約日を入れ、成約額が空なら insmart の成約金額で埋める
-    const carId = t(p.carId);
-    const { data: ic } = await sb.from("kaimax_insmart_cars").select("*").eq("car_id", carId).maybeSingle();
-    if (!ic) return { status: "error", message: "insmart の車輌が見つかりません" };
-    const { data: other } = await sb.from("kaimax_cases").select("case_no").eq("insmart_car_id", carId).is("deleted_at", null).neq("id", c.id).maybeSingle();
-    if (other) return { status: "error", message: `この車輌は案件NO ${other.case_no} に紐づけ済みです` };
-    const upd: Record<string, unknown> = { vin: ic.vin, insmart_car_id: ic.car_id, deal_on: ic.deal_on };
-    const filled = !c.deal_yen && ic.deal_yen;
-    if (filled) { upd.deal_yen = ic.deal_yen; upd.deal_raw = `${Number(ic.deal_yen).toLocaleString("ja-JP")}円`; }
+  if (action === "link_contract") {
+    // smart-sign の契約と紐づけ: 契約番号・車台番号・成約日(=契約日)を入れ、成約額が空なら契約金額で埋める
+    const contractNo = t(p.contractNo);
+    const { data: k } = await sb.from("kaimax_contracts").select("*").eq("contract_no", contractNo).maybeSingle();
+    if (!k) return { status: "error", message: "契約が見つかりません" };
+    if (k.status !== "契約済") return { status: "error", message: `この契約は「${k.status}」です` };
+    const { data: other } = await sb.from("kaimax_cases").select("case_no").eq("contract_no", contractNo).is("deleted_at", null).neq("id", c.id).maybeSingle();
+    if (other) return { status: "error", message: `この契約は案件NO ${other.case_no} に紐づけ済みです` };
+    const upd: Record<string, unknown> = { vin: k.vin, contract_no: k.contract_no, deal_on: k.contract_on };
+    const filled = !c.deal_yen && k.amount;
+    if (filled) { upd.deal_yen = k.amount; upd.deal_raw = `${Number(k.amount).toLocaleString("ja-JP")}円`; }
     const { error } = await sb.from("kaimax_cases").update(upd).eq("id", c.id);
     if (error) return { status: "error", message: error.message };
-    await audit(actor, "link_insmart", no, { carId, vin: ic.vin, prevDeal: c.deal_raw ?? null, filledDeal: !!filled });
-    return { status: "success", message: `案件NO ${no} を insmart ${carId} と紐づけました`, no };
+    await audit(actor, "link_contract", no, { contractNo, vin: k.vin, prevContract: c.contract_no ?? null, prevDeal: c.deal_raw ?? null, filledDeal: !!filled });
+    return { status: "success", message: `案件NO ${no} を契約 ${contractNo} と紐づけました`, no };
+  }
+  if (action === "unlink_contract") {
+    await sb.from("kaimax_cases").update({ vin: null, contract_no: null, insmart_car_id: null, deal_on: null }).eq("id", c.id);
+    await audit(actor, "unlink_contract", no, { contractNo: c.contract_no, vin: c.vin });
+    return { status: "success", message: `案件NO ${no} の紐づけを外しました`, no };
   }
   if (action === "set_outcome") {
     // 成約車の成果管理: 出口・原価・AA出品(最大5回)・売却。金額は円の整数、空は null
@@ -309,11 +339,6 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     if (error) return { status: "error", message: error.message };
     await audit(actor, "set_outcome", no, { prev: prev ?? null, next: rec });
     return { status: "success", message: `案件NO ${no} の成果を保存しました`, no };
-  }
-  if (action === "unlink_insmart") {
-    await sb.from("kaimax_cases").update({ vin: null, insmart_car_id: null, deal_on: null }).eq("id", c.id);
-    await audit(actor, "unlink_insmart", no, { carId: c.insmart_car_id, vin: c.vin });
-    return { status: "success", message: `案件NO ${no} の紐づけを外しました`, no };
   }
   if (action === "delete") {
     await sb.from("kaimax_cases").update({ deleted_at: new Date().toISOString() }).eq("id", c.id);

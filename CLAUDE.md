@@ -23,16 +23,16 @@
 テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
 `kaimax_targets`（月別目標）/ `kaimax_costs`（月別コスト: kind=media|other）/ `kaimax_staff`（担当者名簿・退職）/
 `kaimax_audit`（全書き込みの記録）/ `kaimax_worker_keys` / `kaimax_allowed_emails` /
-`kaimax_insmart_cars`（insmartの成約車。車台番号・成約日・成約金額）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
+`kaimax_contracts`（**smart-sign 買取契約＝成約の正本**。契約番号がキー。生年月日・住所・所有者は取り込まない）/ `kaimax_insmart_cars`（旧: insmart車輌。ステータスが「交渉中」のまま契約される車が多く成約判定に使えないため**使用停止**）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
 
 kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_won` `mota_refill` `GET list_assess_nos` /
-スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_insmart` `unlink_insmart` `set_outcome` `create_from_insmart`(insmart成約車→成約案件を新規作成。source=insmart) /
+スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_contract` `unlink_contract` `set_outcome` `create_from_contract`(契約→成約案件を新規作成。source=smart-sign) `import_contracts`(smart-sign契約一覧Excelの取込) /
 お客様 `reply`（認証なし・状況は固定リストのみ）
 
 画面側の要点:
 - `loadRowsFromDB()` が DB をシート形の行に組み直し、既存の `rowsToCases()` をそのまま通す（下流5,000行は無改修）
 - 目標・コストタブは年度＝**6月始まり**。獲得単価は**受信月**で数える
-- 成約一覧・成果: 期間は**成約日**（insmart紐づけで入る。未紐づけは受信日で代用）。利益＝売却額−買取額(成約額)−原価−AA費用(出品料+成約料+陸送費)。売却日と売却額が両方入ったものだけ「確定」
+- 成約一覧・成果: 案件は `kaimax_cases.contract_no` で契約と紐づく。期間は**成約日**（=契約日。紐づけで入る。未紐づけは受信日で代用）。利益＝売却額−買取額(成約額)−原価−AA費用(出品料+成約料+陸送費)。売却日と売却額が両方入ったものだけ「確定」
 - `kaimax-import`（シート→DB取込）は**無効化済み**。再実行すると本番データを上書きするので戻さない
 - スプレッドシート「買取案件管理表」は 2026/10/19 13:34 時点で凍結（参照用）。ウェブ公開は全シート解除済み
 
