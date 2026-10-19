@@ -14,7 +14,7 @@
 | 公開URL | **https://kaimax-indio.vercel.app**（Vercel プロジェクト `kaimax` / チーム beri1212-japans-projects、`main` への push で自動デプロイ） |
 | 旧URL | GitHub Pages（github.io）は各HTML先頭のスクリプトで新URLへ転送するだけ。Pages の設定は残している |
 | DB | Supabase `indio-hub`（id `artkjsyyrmwagmqitiaz`、問合せHUBと共用）。テーブルは `kaimax_` 接頭辞 |
-| 書き込み | Edge Function `kaimax-api`（verify_jwt=false・独自認証）。ソースはこのリポジトリに無い → 移行セッションの scratchpad。**書き戻しが課題** |
+| 書き込み | Edge Function `kaimax-api`（verify_jwt=false・独自認証）。ソースは `supabase/functions/kaimax-api/index.ts`（**ここが正**。変更したらこのファイルをそのままデプロイする） |
 | 読み込み | supabase-js で RLS 経由（`kaimax_can_access()`） |
 | ログイン | Google（Supabase Auth）。許可は HUB の team_members（admin または vehicle_sales）＋ `kaimax_allowed_emails`（cs@ / morota@） |
 | ワーカー | AIPC の `.env.local` が `kaimax-api/w/<鍵>` を向く。鍵は `.env.supabase` にあり SHA-256 を `kaimax_worker_keys` に登録。旧設定は `.env.local.bak-20261019-gas` |
@@ -22,15 +22,17 @@
 
 テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
 `kaimax_targets`（月別目標）/ `kaimax_costs`（月別コスト: kind=media|other）/ `kaimax_staff`（担当者名簿・退職）/
-`kaimax_audit`（全書き込みの記録）/ `kaimax_worker_keys` / `kaimax_allowed_emails`
+`kaimax_audit`（全書き込みの記録）/ `kaimax_worker_keys` / `kaimax_allowed_emails` /
+`kaimax_insmart_cars`（insmartの成約車。車台番号・成約日・成約金額）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
 
 kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_won` `mota_refill` `GET list_assess_nos` /
-スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` /
+スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_insmart` `unlink_insmart` `set_outcome` /
 お客様 `reply`（認証なし・状況は固定リストのみ）
 
 画面側の要点:
 - `loadRowsFromDB()` が DB をシート形の行に組み直し、既存の `rowsToCases()` をそのまま通す（下流5,000行は無改修）
 - 目標・コストタブは年度＝**6月始まり**。獲得単価は**受信月**で数える
+- 成約一覧・成果: 期間は**成約日**（insmart紐づけで入る。未紐づけは受信日で代用）。利益＝売却額−買取額(成約額)−原価−AA費用(出品料+成約料+陸送費)。売却日と売却額が両方入ったものだけ「確定」
 - `kaimax-import`（シート→DB取込）は**無効化済み**。再実行すると本番データを上書きするので戻さない
 - スプレッドシート「買取案件管理表」は 2026/10/19 13:34 時点で凍結（参照用）。ウェブ公開は全シート解除済み
 

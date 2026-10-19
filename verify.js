@@ -41,6 +41,13 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_calls')) return j(DB_CALLS);
     if (u.includes('.supabase.co/rest/v1/kaimax_replies')) return j([]);
     if (u.includes('.supabase.co/rest/v1/kaimax_insmart_cars')) return j([{ car_id: '2607101000001', vin: 'DJ3AS-000001', maker: 'マツダ', car: 'デミオ', grade: '13C', first_reg: '2009/04/01', mileage: 75000, assessor: '前田 峻哉', status: '成約', registered_at: '2026-07-11T10:00:00+09:00', deal_on: '2026-07-15', deal_yen: 120000 }]);
+    if (u.includes('.supabase.co/rest/v1/kaimax_outcomes')) { const ds = DB_CASES.filter(c => /成約|入庫/.test(c.result || '')); return j([
+      ds[0] && { case_id: ds[0].id, route: '商品→成約', cost_yen: 80000, cost_memo: '板金 5万 / タイヤ 3万', auctions: [], sold_on: '2026-08-20', sold_yen: 980000, sold_to: '山田様', memo: '', updated_by: 'cs@indio.co.jp', updated_at: '2026-10-19T07:00:00Z' },
+      ds[1] && { case_id: ds[1].id, route: 'AA', cost_yen: null, auctions: [{ date: '2026-08-05', venue: 'USS名古屋', listingFee: 11000, successFee: null, transportFee: 15000, result: '流札', price: null }, { date: '2026-08-12', venue: 'USS名古屋', listingFee: 11000, successFee: 16500, transportFee: null, result: '成約', price: 520000 }], sold_on: '2026-08-12', sold_yen: 520000, sold_to: 'USS名古屋', memo: '' },
+      ds[2] && { case_id: ds[2].id, route: '商品', cost_yen: 120000, auctions: [] },
+      ds[3] && { case_id: ds[3].id, route: '商品→AA', auctions: [{ date: '2026-10-10', venue: 'TAA中部', listingFee: 9900, transportFee: 12000, result: '流札' }] },
+      ds[4] && { case_id: ds[4].id, route: '廃車', auctions: [] },
+    ].filter(Boolean)); }
     if (u.includes('.supabase.co/rest/v1/kaimax_staff')) return j([{ name: '前田', status: 'active' }, { name: '金木', status: 'archived' }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_costs')) return j([{ ym: '2026-07', kind: 'media', item: 'mota', amount: 150000 }, { ym: '2026-07', kind: 'media', item: 'carsensor', amount: 80000 }, { ym: '2026-07', kind: 'other', item: '人件費', amount: 300000 }, { ym: '2026-10', kind: 'media', item: 'mota', amount: 6000000 }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_targets')) return j([{ ym: '2026-10', assignee: '前田', target: 16 }, { ym: '2026-10', assignee: '高木', target: 2 }]);
@@ -64,7 +71,10 @@ const stub = async (p) => {
   await stub(pc);
   await pc.goto(url); await pc.waitForTimeout(2600);
   if (PAGE !== 'dashboard') { await pc.click(`.page-tab[data-page="${PAGE}"]`); await pc.waitForTimeout(1600); }
-  await pc.screenshot({ path: path.join(OUT, `pc-${PAGE}.png`) });
+  // EVAL=... で撮影前に画面内のJSを実行できる（モーダルを開く等）。TAG=... で出力名を変える
+  const TAG = process.env.TAG ? '-' + process.env.TAG : '';
+  if (process.env.EVAL) { await pc.evaluate(process.env.EVAL); await pc.waitForTimeout(600); }
+  await pc.screenshot({ path: path.join(OUT, `pc-${PAGE}${TAG}.png`), fullPage: !!process.env.FULL });
 
   // --- スマホ（サイドバーは #navToggle を押してから）---
   const sp = await browser.newPage({ viewport:{width:390,height:844}, deviceScaleFactor:3, isMobile:true });
@@ -75,7 +85,8 @@ const stub = async (p) => {
     await sp.click('#navToggle').catch(()=>{}); await sp.waitForTimeout(500);
     await sp.click(`.page-tab[data-page="${PAGE}"]`); await sp.waitForTimeout(1600);
   }
-  await sp.screenshot({ path: path.join(OUT, `sp-${PAGE}.png`) });
+  if (process.env.EVAL) { await sp.evaluate(process.env.EVAL); await sp.waitForTimeout(600); }
+  await sp.screenshot({ path: path.join(OUT, `sp-${PAGE}${TAG}.png`), fullPage: !!process.env.FULL });
 
   const n = await pc.evaluate(() => (typeof allCases !== 'undefined' && allCases) ? allCases.length : null);
   console.log(`読み込み件数: ${n}`);

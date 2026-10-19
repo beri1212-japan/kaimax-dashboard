@@ -445,6 +445,23 @@
   .dl-modal-h { font-size:15px; font-weight:700; color:var(--ink); margin-bottom:10px; display:flex; align-items:center; gap:10px; }
   .dl-x { margin-left:auto; border:0; background:none; font-size:22px; color:var(--ink-3); cursor:pointer; line-height:1; }
   @media (max-width:720px) { .dl-modal { padding:12px 8px; } .dl-modal-box { padding:12px; } }
+  /* 成果管理（出口・原価・AA・売却） */
+  .oc-tag { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11.5px; font-weight:700; white-space:nowrap; background:var(--bg-soft); color:var(--ink-2); }
+  .oc-tag.sold { background:#e6f4ea; color:#137333; }
+  .oc-tag.aa { background:#e8f0fe; color:#1557b0; }
+  .oc-tag.stock { background:#fef7e0; color:#8c6a00; }
+  .oc-tag.scrap { background:#eaecee; color:#4e555c; }
+  .oc-sec { font-size:13px; font-weight:700; color:var(--ink); margin:14px 0 6px; }
+  .oc-row { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:flex-end; }
+  .oc-f { display:flex; flex-direction:column; gap:3px; font-size:11.5px; color:var(--ink-3); font-weight:700; }
+  .oc-f input, .oc-f select { height:32px; padding:0 8px; border:1px solid var(--line); border-radius:6px; font-size:14px; color:var(--ink); background:var(--bg-panel); font-weight:400; }
+  .oc-f input.yen { width:120px; text-align:right; }
+  .oc-aa { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px; }
+  .oc-aa-h { font-size:12px; font-weight:700; color:var(--ink-2); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .oc-calc { margin-top:14px; background:var(--bg-soft); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--ink-2); line-height:1.8; }
+  .oc-calc b { font-family:Arial,inherit; color:var(--ink); }
+  .neg { color:#d93025 !important; }
+  @media (max-width:720px) { .oc-f input.yen { width:104px; } .oc-f { flex:1 1 auto; } }
 
   /* ========== 架電クイック記録（電話タップ時） ========== */
   .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:none; align-items:flex-end; justify-content:center; }
@@ -2779,7 +2796,7 @@
 
 <!-- 成約一覧ページ -->
 <div class="page-section" id="page-deals">
-  <h2 class="section-title" style="margin-top:20px;">成約一覧 <span class="ja">結果が「成約」「入庫済み」の案件</span></h2>
+  <h2 class="section-title" style="margin-top:20px;">成約一覧・成果 <span class="ja">買い取った車のその後（出口・原価・AA・売却）と確定利益</span></h2>
   <div class="panel">
     <div class="fy-bar" style="gap:8px;">
       <select id="dl-fy" onchange="renderDealsPage()"></select>
@@ -4246,7 +4263,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v4'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v5'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4800,6 +4817,129 @@
       return true;
     }).sort((a, b) => Math.abs(new Date(a.registered_at) - (rd || 0)) - Math.abs(new Date(b.registered_at) - (rd || 0)));
   }
+
+  // ===== 成果管理（成約車のその後：出口・原価・AA出品・売却 → 利益） =====
+  // 利益 = 売却額 − 買取額(成約額) − 原価 − AA費用(出品料+成約料+陸送費)。売却日と売却額が入ったものを「確定」とする
+  const OC_ROUTES = ['未定', '廃車', '商品', 'AA', '商品→AA', '商品→成約'];
+  const PROFIT_LOW = -500000, PROFIT_HIGH = 2000000; // この範囲外の利益は入力ミスの可能性として ⚠
+  function ocOf(c) { return outcomes.get(String(c.no)) || null; }
+  function ocFees(o) { return ((o && o.auctions) || []).reduce((s, a) => s + (+a.listingFee || 0) + (+a.successFee || 0) + (+a.transportFee || 0), 0); }
+  function ocSold(o) { return !!(o && o.sold_on && o.sold_yen != null); }
+  function ocProfit(c, o) { if (!ocSold(o) || !(c.deal > 0)) return null; return o.sold_yen - c.deal - (o.cost_yen || 0) - ocFees(o); }
+  function ocState(o) {
+    if (ocSold(o)) return { key: 'sold', label: '売却済・' + o.route, cls: 'sold' };
+    if (!o || o.route === '未定') return { key: 'none', label: '未定', cls: '' };
+    if (o.route === '廃車') return { key: 'scrap', label: '廃車手配中', cls: 'scrap' };
+    if (o.route === 'AA' || o.route === '商品→AA') { const n = (o.auctions || []).length; return { key: 'aa', label: n ? `AA出品中（${n}回）` : 'AA準備中', cls: 'aa' }; }
+    return { key: 'stock', label: '商品・在庫中', cls: 'stock' };
+  }
+  const ocOdd = p => p != null && (p < PROFIT_LOW || p > PROFIT_HIGH);
+  function ocYen(v) { const r = String(v == null ? '' : v).replace(/[^\d]/g, ''); return r === '' ? null : Number(r); }
+  const ocEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  // 買取月（成約日の月）ごとの現状と確定利益
+  function ocMonthTable(rows) {
+    const by = new Map();
+    rows.forEach(c => { const d = dealDateOf(c); const k = d ? ymKeyOf(d) : '—'; if (!by.has(k)) by.set(k, []); by.get(k).push(c); });
+    const yenS = n => (n < 0 ? '−¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+    let T = { n: 0, none: 0, stock: 0, aa: 0, scrap: 0, sold: 0, profit: 0, pn: 0, hold: 0 };
+    const tr = [...by.keys()].sort().reverse().map(k => {
+      const r = { n: 0, none: 0, stock: 0, aa: 0, scrap: 0, sold: 0, profit: 0, pn: 0, hold: 0 };
+      by.get(k).forEach(c => { const o = ocOf(c), st = ocState(o).key; r.n++; r[st]++;
+        const pf = ocProfit(c, o); if (pf != null) { r.profit += pf; r.pn++; }
+        if (st !== 'sold' && c.deal > 0) r.hold += c.deal; });
+      Object.keys(T).forEach(x => T[x] += r[x]);
+      return r;
+    });
+    const keys = [...by.keys()].sort().reverse();
+    const cell = (v, z) => v ? v : `<span style="color:var(--ink-3);font-weight:400;">${z || '0'}</span>`;
+    const line = (label, r) => `<tr><td style="text-align:left;font-weight:700;">${label}</td><td>${r.n}</td><td>${cell(r.none)}</td><td>${cell(r.stock)}</td><td>${cell(r.aa)}</td><td>${cell(r.scrap)}</td><td style="font-weight:700;">${cell(r.sold)}</td>
+      <td style="font-weight:700;" class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit) : cell(0, '—')}</td><td class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit / r.pn) : cell(0, '—')}</td><td>${r.hold ? yenS(r.hold) : cell(0, '—')}</td></tr>`;
+    return `<div class="rep-sec-title" style="font-size:13px;margin-top:4px;">買取月別の現状と確定利益</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th style="text-align:left;">買取月</th><th>台数</th><th>出口未定</th><th>商品・在庫</th><th>AA</th><th>廃車手配</th><th>売却済</th><th>確定利益</th><th>1台あたり</th><th>未売却の買取額</th></tr></thead>
+      <tbody>${keys.map((k, i) => line(k === '—' ? '日付なし' : `${k.slice(0, 4)}年${+k.slice(5)}月`, tr[i])).join('')}${keys.length > 1 ? line('合計', T) : ''}</tbody></table></div>
+      <div class="tg-note">買取月は成約日の月です。確定利益は「売却日・売却額」が入り、買取額（成約額）もある車だけで計算します（売却額 − 買取額 − 原価 − AA費用）。未売却の買取額は、まだ売れていない車の買取額の合計です。</div>`;
+  }
+  // 成果の入力モーダル
+  window.openOutcome = function (no, state) {
+    const c = (allCases || []).find(x => x.no === no); if (!c) return;
+    const o = state || ocOf(c) || { route: '未定', auctions: [] };
+    const aas = (o.auctions || []).slice(0, 5);
+    if (!state && aas.length < 5 && (o.route === 'AA' || o.route === '商品→AA') && !ocSold(o)) aas.push({});
+    const yv = v => v == null ? '' : v;
+    const aaBlock = (a, i) => `<div class="oc-aa" data-i="${i}"><div class="oc-aa-h">AA出品 ${i + 1}回目 <button class="dl-btn ghost" style="margin-left:auto;height:22px;" onclick="ocRemoveAA(${no},${i})">この回を消す</button></div><div class="oc-row">
+      <label class="oc-f">出品日<input type="date" data-k="date" value="${ocEsc(a.date || '')}"></label>
+      <label class="oc-f">会場<input type="text" data-k="venue" value="${ocEsc(a.venue || '')}" placeholder="USS名古屋 など" style="width:140px;"></label>
+      <label class="oc-f">出品料<input class="yen" inputmode="numeric" data-k="listingFee" value="${yv(a.listingFee)}"></label>
+      <label class="oc-f">成約料<input class="yen" inputmode="numeric" data-k="successFee" value="${yv(a.successFee)}"></label>
+      <label class="oc-f">陸送費用<input class="yen" inputmode="numeric" data-k="transportFee" value="${yv(a.transportFee)}"></label>
+      <label class="oc-f">結果<select data-k="result"><option value="">—</option><option${a.result === '流札' ? ' selected' : ''}>流札</option><option${a.result === '成約' ? ' selected' : ''}>成約</option></select></label>
+      <label class="oc-f">落札額<input class="yen" inputmode="numeric" data-k="price" value="${yv(a.price)}"></label></div></div>`;
+    const showAA = o.route === 'AA' || o.route === '商品→AA' || aas.length;
+    dlModal(`<div class="dl-modal-h">成果の入力：NO ${no} ${ocEsc(c.car || '')}（${ocEsc(c.assignee || '担当なし')}）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div id="oc-form" oninput="ocRecalc(${no})" onchange="ocRecalc(${no})">
+      <div class="oc-row">
+        <label class="oc-f">出口<select id="oc-route" onchange="openOutcome(${no}, ocCollect())">${OC_ROUTES.map(r => `<option${r === o.route ? ' selected' : ''}>${r}</option>`).join('')}</select></label>
+        <div class="oc-f">買取額（成約額）<div style="height:32px;display:flex;align-items:center;font-size:14px;color:var(--ink);font-weight:700;">${c.deal > 0 ? '¥' + c.deal.toLocaleString('ja-JP') : '<span style="color:#d93025;">未入力（案件の詳細で入力）</span>'}</div></div>
+      </div>
+      <div class="oc-sec">原価</div>
+      <div class="oc-row">
+        <label class="oc-f">原価（整備・仕上げ等）<input id="oc-cost" class="yen" inputmode="numeric" value="${yv(o.cost_yen)}"></label>
+        <label class="oc-f" style="flex:1 1 220px;">内訳メモ<input id="oc-costmemo" type="text" value="${ocEsc(o.cost_memo || '')}" placeholder="例：板金 8万 / タイヤ 4万"></label>
+      </div>
+      ${showAA ? `<div class="oc-sec">AA出品（5回まで）</div><div id="oc-aas">${aas.map(aaBlock).join('')}</div>
+        ${aas.length < 5 ? `<button class="dl-btn ghost" onclick="ocAddAA(${no})">＋ 出品を追加</button>` : ''}` : ''}
+      <div class="oc-sec">売却（入れると利益が確定）</div>
+      <div class="oc-row">
+        <label class="oc-f">売却日<input id="oc-sold-on" type="date" value="${ocEsc(o.sold_on || '')}"></label>
+        <label class="oc-f">売却額<input id="oc-sold-yen" class="yen" inputmode="numeric" value="${yv(o.sold_yen)}"></label>
+        <label class="oc-f" style="flex:1 1 180px;">売却先<input id="oc-sold-to" type="text" value="${ocEsc(o.sold_to || '')}" placeholder="お客様名・AA会場・解体業者"></label>
+      </div>
+      <div id="oc-fill"></div>
+      <label class="oc-f" style="margin-top:12px;">メモ<input id="oc-memo" type="text" value="${ocEsc(o.memo || '')}"></label>
+      <div class="oc-calc" id="oc-calc"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;"><button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="ocSave(${no})">保存</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span>
+      ${o.updated_at ? `<span style="font-size:11.5px;color:var(--ink-3);margin-left:auto;">最終更新 ${new Date(o.updated_at).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} ${ocEsc(o.updated_by || '')}</span>` : ''}</div>`);
+    ocRecalc(no);
+  };
+  window.ocCollect = function () {
+    const g = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+    const auctions = [...document.querySelectorAll('#oc-aas .oc-aa')].map(b => { const a = {}; b.querySelectorAll('[data-k]').forEach(i => { const k = i.dataset.k; a[k] = ['listingFee', 'successFee', 'transportFee', 'price'].includes(k) ? ocYen(i.value) : i.value.trim(); }); return a; });
+    return { route: g('oc-route') || '未定', cost_yen: ocYen(g('oc-cost')), cost_memo: g('oc-costmemo'), auctions, sold_on: g('oc-sold-on'), sold_yen: ocYen(g('oc-sold-yen')), sold_to: g('oc-sold-to'), memo: g('oc-memo') };
+  };
+  window.ocAddAA = function (no) { const st = ocCollect(); if (st.auctions.length < 5) st.auctions.push({}); openOutcome(no, st); };
+  window.ocRemoveAA = function (no, i) { const st = ocCollect(); st.auctions.splice(i, 1); openOutcome(no, st); };
+  window.ocFillFromAA = function (no) {
+    const st = ocCollect(); const w = st.auctions.filter(a => a.result === '成約' && a.price != null).pop(); if (!w) return;
+    st.sold_on = w.date || st.sold_on; st.sold_yen = w.price; st.sold_to = st.sold_to || w.venue || ''; openOutcome(no, st);
+  };
+  window.ocRecalc = function (no) {
+    const c = (allCases || []).find(x => x.no === no); const box = document.getElementById('oc-calc'); if (!c || !box) return;
+    const st = ocCollect(); const fees = ocFees(st), yenS = n => (n < 0 ? '−¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+    const sold = st.sold_on && st.sold_yen != null;
+    const pf = sold && c.deal > 0 ? st.sold_yen - c.deal - (st.cost_yen || 0) - fees : null;
+    const warn = [];
+    if (ocOdd(pf)) warn.push(`利益が${PROFIT_LOW / 10000}万円未満または${PROFIT_HIGH / 10000}万円超です。入力ミスでないか確認してください`);
+    const dd = dealDateOf(c);
+    if (st.sold_on && dd && new Date(st.sold_on + 'T00:00:00') < dd) warn.push('売却日が成約日より前になっています');
+    if (st.auctions.filter(a => a.result === '成約').length > 1) warn.push('AAの「成約」が2回以上あります');
+    if ((st.sold_on && st.sold_yen == null) || (!st.sold_on && st.sold_yen != null)) warn.push('売却日と売却額は両方入れると利益が確定します');
+    box.innerHTML = `売却額 <b>${st.sold_yen != null ? yenS(st.sold_yen) : '—'}</b> − 買取額 <b>${c.deal > 0 ? yenS(c.deal) : '未入力'}</b> − 原価 <b>${yenS(st.cost_yen || 0)}</b> − AA費用 <b>${yenS(fees)}</b>
+      ＝ 利益 <b style="font-size:16px;" class="${pf < 0 ? 'neg' : ''}">${pf != null ? yenS(pf) : '未確定'}</b>
+      ${warn.map(w => `<div style="color:#b06000;font-weight:700;">⚠ ${w}</div>`).join('')}`;
+    const f = document.getElementById('oc-fill'), won = st.auctions.filter(a => a.result === '成約' && a.price != null).pop();
+    if (f) f.innerHTML = won && st.sold_yen == null ? `<div style="margin-top:6px;"><button class="dl-btn ghost" onclick="ocFillFromAA(${no})">AAの落札結果（${yenS(won.price)}）を売却に入れる</button></div>` : '';
+  };
+  window.ocSave = async function (no) {
+    const st = ocCollect(); const m = document.getElementById('dl-modal-msg');
+    if (m) { m.style.color = 'var(--ink-3)'; m.textContent = '保存中...'; }
+    const r = await postWebhook('set_outcome', { no, route: st.route, cost: st.cost_yen ?? '', costMemo: st.cost_memo, auctions: st.auctions, soldOn: st.sold_on, soldYen: st.sold_yen ?? '', soldTo: st.sold_to, memo: st.memo }, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') {
+      const keep = st.auctions.filter(a => Object.values(a).some(v => v != null && v !== ''));
+      outcomes.set(String(no), { ...st, auctions: keep, sold_on: st.sold_on || null, updated_at: new Date().toISOString(), updated_by: 'あなた' });
+      const o = document.getElementById('dl-modal'); if (o) o.remove(); renderDealsPage(); alertBar(`NO ${no} の成果を保存しました`);
+    } else if (m) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; }
+  };
   function renderDealsPage() {
     const host = document.getElementById('deals-body'); if (!host) return;
     const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -4842,7 +4982,7 @@
     window.__dlSingles = singles.filter(x => candCount[x.cand[0].car_id] === 1);
     const yenS = n => '¥' + Math.round(n).toLocaleString('ja-JP');
     const tile = (label, val, sub) => `<div class="dl-tile"><div class="l">${label}</div><div class="v">${val}</div><div class="s">${sub || ''}</div></div>`;
-    const body = rows.map(c => { const e = dealExtra(c); const dOn = e.dealOn ? e.dealOn.replace(/-/g, '/') : '';
+    const body = rows.map(c => { const e = dealExtra(c); const o = ocOf(c), st = ocState(o), pf = ocProfit(c, o); const dOn = e.dealOn ? e.dealOn.replace(/-/g, '/') : '';
       return `<tr>
         <td onclick="openCaseById('${c.no}')" style="cursor:pointer;">${dOn ? esc(dOn) : `<span style="color:var(--ink-3);" title="成約日が未確定のため受信日を表示">${esc(c.date || '—')}（受信）</span>`}</td>
         <td onclick="openCaseById('${c.no}')" style="cursor:pointer;">${c.no}</td>
@@ -4851,6 +4991,8 @@
         <td style="text-align:left;">${esc(c.car || '—')}</td>
         <td style="text-align:left;">${esc(c.assignee || '—')}</td>
         <td style="font-weight:700;">${c.deal > 0 ? yenS(c.deal) + (odd(c) ? ' <span title="金額が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : '<span style="color:var(--ink-3);font-weight:400;">未入力</span>'}</td>
+        <td style="text-align:left;cursor:pointer;" onclick="openOutcome(${c.no})"><span class="oc-tag ${st.cls}">${st.label}</span></td>
+        <td style="font-weight:700;cursor:pointer;" onclick="openOutcome(${c.no})" class="${pf < 0 ? 'neg' : ''}">${pf != null ? (pf < 0 ? '−¥' : '¥') + Math.abs(pf).toLocaleString('ja-JP') + (ocOdd(pf) ? ' <span title="利益が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : `<button class="dl-btn ghost" onclick="event.stopPropagation();openOutcome(${c.no})">入力</button>`}</td>
         <td style="text-align:left;">${e.insmartCarId ? `<span style="font-family:Arial,monospace;font-size:11.5px;">${esc(e.vin)}</span> <button class="dl-btn ghost" onclick="openInsmartLink(${c.no})">変更</button>` : `<button class="dl-btn" onclick="openInsmartLink(${c.no})">insmartと紐づけ</button>`}</td>
       </tr>`; }).join('');
     host.innerHTML = `
@@ -4862,10 +5004,12 @@
       </div>
       ${window.__dlSingles.length ? `<div style="font-size:12.5px;background:#e8f0fe;border:1px solid #aecbfa;border-radius:7px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">insmartの候補が1件に決まる成約が <b>${window.__dlSingles.length}件</b> あります。<button class="dl-btn" onclick="openInsmartBulk()">確認してまとめて紐づけ</button></div>` : ''}
       ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
+      ${rows.length ? ocMonthTable(rows) : ''}
+      <div class="rep-sec-title" style="font-size:13px;margin-top:14px;">成約車の一覧 <span style="font-weight:400;color:var(--ink-3);font-size:12px;">「出口・状況」か「確定利益」を押すと、原価・AA出品・売却を入力できます</span></div>
       <div class="tg-note">期間は<b>成約日</b>で絞り込みます。insmartと未紐づけの成約は、成約日が分からないため受信日で代用しています。紐づけると車台番号・成約日が入り、成約額が空ならinsmartの成約金額で埋まります。</div>
       <div class="tg-wrap"><table class="tg" style="min-width:100%;">
-        <thead><tr><th>成約日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>成約額</th><th style="text-align:left;">車台番号（insmart）</th></tr></thead>
-        <tbody>${body || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">該当する成約はありません</td></tr>'}</tbody>
+        <thead><tr><th>成約日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>成約額</th><th style="text-align:left;">出口・状況</th><th>確定利益</th><th style="text-align:left;">車台番号（insmart）</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="10" style="color:var(--ink-3);font-weight:400;">該当する成約はありません</td></tr>'}</tbody>
       </table></div>`;
   }
   // 紐づけモーダル
@@ -6065,17 +6209,20 @@
     return out;
   }
   function isoToSheetDate(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${+y}/${+m}/${+d}`; }
-  let caseExtra = new Map(), insmartCars = [];
+  let caseExtra = new Map(), insmartCars = [], outcomes = new Map();
   async function loadRowsFromDB() {
-    const [cs, calls, ins] = await Promise.all([
+    const [cs, calls, ins, ocs] = await Promise.all([
       selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,insmart_car_id,deal_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
       selectAll('kaimax_insmart_cars', 'car_id,vin,maker,car,grade,first_reg,mileage,assessor,status,registered_at,deal_on,deal_yen').catch(() => []),
+      selectAll('kaimax_outcomes', 'case_id,route,cost_yen,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
     ]);
     // シート形に載らない項目（車台番号・insmart紐づけ・成約日）は案件NOで引けるように別に持つ
     caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', insmartCarId: c.insmart_car_id || '', dealOn: c.deal_on || '' }]));
     insmartCars = ins || [];
+    const noById = new Map(cs.map(c => [c.id, c.case_no]));
+    outcomes = new Map((ocs || []).filter(o => noById.has(o.case_id)).map(o => [String(noById.get(o.case_id)), o]));
     const byCase = new Map();
     calls.forEach(k => { if (!byCase.has(k.case_id)) byCase.set(k.case_id, []); byCase.get(k.case_id).push(k); });
     const v = x => x == null ? '' : String(x);
