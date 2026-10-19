@@ -310,6 +310,7 @@
     padding-left: calc(max(0px, (100% - 1240px) / 2) + 32px) !important;
     padding-right: calc(max(0px, (100% - 1240px) / 2) + 32px) !important;
   }
+  #top-hero:not(:empty) { padding: 20px 32px 0; }
   #priority-section, .page-section {
     max-width: 1240px;
     margin-left: auto;
@@ -1838,6 +1839,7 @@
     /* 横余白を詰める */
     .container { padding: 12px 8px; }
     #priority-section { padding: 14px 10px 0 !important; }
+    #top-hero:not(:empty) { padding: 14px 10px 0 !important; }
     .filters { padding: 12px !important; gap: 10px; }
     .filter-group { flex-wrap: wrap; }
 
@@ -2472,6 +2474,9 @@
     <button id="kx-logout" class="sb-action" style="display:none;" title="ログアウト"><svg class="ic"><use href="#ic-external"/></svg><span>ログアウト</span></button>
   </div>
 </aside>
+
+<!-- 実績ステータス（目標・実績・進捗率）。ダッシュボードの一番上に置く。中身は renderMediaView('all') が入れる -->
+<div id="top-hero"></div>
 
 <!-- 今日のバナー (常時表示) -->
 <div class="today-banner">
@@ -3648,8 +3653,6 @@
     const maxCount = Math.max(...allMedias.map(m => mediaKPIs[m].total), 1);
     
     return `
-      ${renderMonthHero()}
-
       ${renderKpiTiles(k)}
 
       ${renderAssigneePerformance()}
@@ -3787,6 +3790,8 @@
     const container = document.getElementById('view-container');
     if (!container) return;
     
+    const topHero = document.getElementById('top-hero');
+    if (topHero) topHero.innerHTML = media === 'all' ? renderMonthHero() : '';
     if (media === 'all') {
       container.innerHTML = renderAllView();
     } else if (media === 'mota') {
@@ -4210,7 +4215,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v1'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v2'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5318,6 +5323,8 @@
       if (prioritySection) {
         prioritySection.style.display = (t.dataset.page === 'dashboard') ? 'block' : 'none';
       }
+      const topHero = document.getElementById('top-hero');
+      if (topHero) topHero.style.display = (t.dataset.page === 'dashboard') ? 'block' : 'none';
       // 案件一覧タブを開いたら、既定で入札日の降順(新しい順)に並べ替えてから再描画
       if (t.dataset.page === 'cases') {
         caseSort = { key: 'date', dir: 'desc' };
