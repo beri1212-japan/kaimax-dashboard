@@ -40,6 +40,7 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_cases')) return j(DB_CASES);
     if (u.includes('.supabase.co/rest/v1/kaimax_calls')) return j(DB_CALLS);
     if (u.includes('.supabase.co/rest/v1/kaimax_replies')) return j([]);
+    if (u.includes('.supabase.co/rest/v1/kaimax_targets')) return j([{ ym: '2026-10', assignee: '前田', target: 16 }, { ym: '2026-10', assignee: '高木', target: 2 }]);
     if (u.includes('.supabase.co/functions/'))  return j({ status: 'success', message: 'stub' });
     if (u.includes('.supabase.co/auth/'))       return j({});
     if (u.includes('docs.google.com'))   return r.fulfill({ status:200, contentType:'text/csv; charset=utf-8', body: '' });
