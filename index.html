@@ -311,6 +311,11 @@
     padding-right: calc(max(0px, (100% - 1240px) / 2) + 32px) !important;
   }
   #top-hero:not(:empty) { padding: 20px 32px 0; }
+  /* 成約一覧は横に長い表なので、中央列（1240px）に閉じ込めず画面幅いっぱいに使う */
+  #page-deals.page-section { max-width:none; padding-left:24px; padding-right:24px; }
+  @media (max-width:720px) { #page-deals.page-section { padding-left:0; padding-right:0; } }
+  #page-deals .tg-wrap { display:inline-block; max-width:100%; vertical-align:top; }
+  .dl-car { display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
   #priority-section, .page-section {
     max-width: 1240px;
     margin-left: auto;
@@ -4263,7 +4268,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v5'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v6'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4988,7 +4993,7 @@
         <td onclick="openCaseById('${c.no}')" style="cursor:pointer;">${c.no}</td>
         <td><span class="m-tag ${c.media}">${mediaLabels[c.media] || esc(c.media)}</span></td>
         <td onclick="openCaseById('${c.no}')" style="cursor:pointer;text-align:left;font-weight:700;color:var(--ink);">${esc(c.customer || '—')}</td>
-        <td style="text-align:left;">${esc(c.car || '—')}</td>
+        <td style="text-align:left;"><span class="dl-car" title="${esc(c.car || '')}">${esc(c.car || '—')}</span></td>
         <td style="text-align:left;">${esc(c.assignee || '—')}</td>
         <td style="font-weight:700;">${c.deal > 0 ? yenS(c.deal) + (odd(c) ? ' <span title="金額が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : '<span style="color:var(--ink-3);font-weight:400;">未入力</span>'}</td>
         <td style="text-align:left;cursor:pointer;" onclick="openOutcome(${c.no})"><span class="oc-tag ${st.cls}">${st.label}</span></td>

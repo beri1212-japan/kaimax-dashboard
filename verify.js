@@ -66,7 +66,7 @@ const stub = async (p) => {
   const url = 'file://' + path.join(__dirname, 'index.html');
 
   // --- PC ---
-  const pc = await browser.newPage({ viewport:{width:1300,height:1000}, deviceScaleFactor:2 });
+  const pc = await browser.newPage({ viewport:{width:+(process.env.PC_W||1300),height:1000}, deviceScaleFactor:(process.env.PC_W?1:2) });
   pc.on('pageerror', e => errs.push('PC: ' + e.message));
   await stub(pc);
   await pc.goto(url); await pc.waitForTimeout(2600);
