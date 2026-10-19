@@ -4253,7 +4253,7 @@
           body,
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           // 通話復帰/画面遷移の直後でも送信が中断されにくくする。ただし keepalive は本文64KBまでなので、契約取込など大きい送信では使わない
-          keepalive: body.length < 30000,
+          keepalive: body.length < 15000, // 文字数×3バイト（日本語）でも64KB未満に収まる範囲
         });
         if (res.ok) {
           const txt = await res.text();
