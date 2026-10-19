@@ -430,6 +430,14 @@
   .month-hero .mh-sec { margin-top:13px; font-size:12.5px; color:var(--ink-2); font-weight:600; display:flex; gap:18px; flex-wrap:wrap; }
   .month-hero .mh-sec b { color:var(--ink); font-family:Arial,inherit; }
   @media (max-width:720px) { .month-hero .mh-grid { grid-template-columns:1fr 1fr; } }
+  /* 成約一覧の集計タイル */
+  .dl-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:12px 0 14px; }
+  .dl-tile { background:var(--bg-panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; }
+  .dl-tile .l { font-size:12px; color:var(--ink-3); font-weight:700; margin-bottom:3px; }
+  .dl-tile .v { font-size:24px; font-weight:800; line-height:1.15; color:var(--ink); font-family:Arial,inherit; }
+  .dl-tile .v span { font-size:13px; font-weight:700; color:var(--ink-3); margin-left:3px; }
+  .dl-tile .s { font-size:11.5px; color:var(--ink-3); margin-top:2px; }
+  @media (max-width:720px) { .dl-grid { grid-template-columns:1fr 1fr; gap:8px; } .dl-tile .v { font-size:20px; } }
 
   /* ========== 架電クイック記録（電話タップ時） ========== */
   .qc-overlay { position:fixed; inset:0; background:rgba(20,15,15,.45); z-index:100000; display:none; align-items:flex-end; justify-content:center; }
@@ -2457,6 +2465,7 @@
   <nav class="page-tabs">
     <div class="page-tab active" data-page="dashboard"><svg class="ic"><use href="#ic-dashboard"/></svg><span>ダッシュボード</span></div>
     <div class="page-tab" data-page="cases"><svg class="ic"><use href="#ic-list"/></svg><span>案件一覧</span><span class="badge">14</span></div>
+    <div class="page-tab" data-page="deals"><svg class="ic"><use href="#ic-car"/></svg><span>成約一覧</span></div>
     <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
     <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標・コスト</span></div>
   </nav>
@@ -2758,6 +2767,21 @@
       <input type="text" id="new-assignee" placeholder="新しい担当者名" onkeydown="if(event.key==='Enter'){event.preventDefault();addAssignee();}" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);">
       <button onclick="addAssignee()" style="padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-weight:700;cursor:pointer;">＋ 追加</button>
     </div>
+  </div>
+</div>
+
+<!-- 成約一覧ページ -->
+<div class="page-section" id="page-deals">
+  <h2 class="section-title" style="margin-top:20px;">成約一覧 <span class="ja">結果が「成約」「入庫済み」の案件</span></h2>
+  <div class="panel">
+    <div class="fy-bar" style="gap:8px;">
+      <select id="dl-fy" onchange="renderDealsPage()"></select>
+      <select id="dl-month" onchange="renderDealsPage()"></select>
+      <select id="dl-assignee" onchange="renderDealsPage()"></select>
+      <select id="dl-media" onchange="renderDealsPage()"></select>
+      <input type="search" id="dl-q" placeholder="お客様名・車名・NO" oninput="renderDealsPage()" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);min-width:170px;">
+    </div>
+    <div id="deals-body"></div>
   </div>
 </div>
 
@@ -4215,7 +4239,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v2'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v3'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4749,6 +4773,73 @@
   }
   window.renderReport = renderReport;
 
+  // ===== 成約一覧（結果が 成約 / 入庫済み）。期間は受信日で絞る（成約日はデータに無いため） =====
+  const DEAL_AMT_LOW = 50000, DEAL_AMT_HIGH = 10000000; // この範囲外の成約額は入力ミスの可能性として ⚠ を付ける
+  function renderDealsPage() {
+    const host = document.getElementById('deals-body'); if (!host) return;
+    const esc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const all = (allCases || []).filter(isDeal);
+    const fySel = document.getElementById('dl-fy'), mSel = document.getElementById('dl-month');
+    const aSel = document.getElementById('dl-assignee'), mdSel = document.getElementById('dl-media'), qIn = document.getElementById('dl-q');
+    // 選択肢（初回だけ組み立てて、以後は選択を保持）
+    if (fySel && !fySel.options.length) {
+      const nowFy = fyOfDate(new Date(TODAY));
+      const fys = new Set([nowFy]); all.forEach(c => { const d = parseDateFlexible(c.date); if (d) fys.add(fyOfDate(d)); });
+      fySel.innerHTML = '<option value="all">全期間</option>' + [...fys].sort((a, b) => b - a).map(y => `<option value="${y}"${y === nowFy ? ' selected' : ''}>${y}年度（${y}/6〜${y + 1}/5）</option>`).join('');
+      aSel.innerHTML = '<option value="all">担当者：全員</option>' + allAssignees().map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') + '<option value="">（未割当）</option>';
+      mdSel.innerHTML = '<option value="all">媒体：すべて</option>' + Object.keys(mediaLabels).map(m => `<option value="${m}">${mediaLabels[m]}</option>`).join('');
+    }
+    const fy = fySel ? fySel.value : 'all';
+    if (mSel) {
+      const keep = mSel.value;
+      const opts = fy === 'all' ? [] : fyMonths(+fy);
+      mSel.innerHTML = '<option value="all">全月</option>' + opts.map(ym => `<option value="${ym}">${+ym.slice(5)}月</option>`).join('');
+      mSel.value = opts.includes(keep) ? keep : 'all';
+      mSel.style.display = fy === 'all' ? 'none' : '';
+    }
+    const ym = mSel ? mSel.value : 'all', who = aSel ? aSel.value : 'all', md = mdSel ? mdSel.value : 'all';
+    const q = (qIn ? qIn.value : '').trim().toLowerCase();
+    const rows = all.filter(c => {
+      const d = parseDateFlexible(c.date);
+      if (fy !== 'all') { if (!d || fyOfDate(d) !== +fy) return false; if (ym !== 'all' && ymKeyOf(d) !== ym) return false; }
+      if (who !== 'all' && (c.assignee || '') !== who) return false;
+      if (md !== 'all' && c.media !== md) return false;
+      if (q && !(`${c.no} ${c.customer || ''} ${c.car || ''}`.toLowerCase().includes(q))) return false;
+      return true;
+    }).sort((a, b) => { const da = parseDateFlexible(a.date), db = parseDateFlexible(b.date); return (db ? db.getTime() : 0) - (da ? da.getTime() : 0) || b.no - a.no; });
+    const withAmt = rows.filter(c => c.deal > 0);
+    const sum = withAmt.reduce((s, c) => s + c.deal, 0);
+    const odd = c => c.deal > 0 && (c.deal < DEAL_AMT_LOW || c.deal > DEAL_AMT_HIGH);
+    const oddN = rows.filter(odd).length;
+    const yenS = n => '¥' + Math.round(n).toLocaleString('ja-JP');
+    const tile = (label, val, sub) => `<div class="dl-tile"><div class="l">${label}</div><div class="v">${val}</div><div class="s">${sub || ''}</div></div>`;
+    const body = rows.map(c => `<tr onclick="openCaseById('${c.no}')" style="cursor:pointer;">
+        <td>${esc(c.date || '—')}</td>
+        <td>${c.no}</td>
+        <td><span class="m-tag ${c.media}">${mediaLabels[c.media] || esc(c.media)}</span></td>
+        <td style="text-align:left;font-weight:700;color:var(--ink);">${esc(c.customer || '—')}</td>
+        <td style="text-align:left;">${esc(c.car || '—')}</td>
+        <td style="text-align:left;">${esc(c.assignee || '—')}</td>
+        <td>${c.offered > 0 ? yenS(c.offered) : '<span style="color:var(--ink-3);">—</span>'}</td>
+        <td style="font-weight:700;">${c.deal > 0 ? yenS(c.deal) + (odd(c) ? ' <span title="金額が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : '<span style="color:var(--ink-3);font-weight:400;">未入力</span>'}</td>
+        <td style="text-align:left;">${esc(c.result)}</td>
+      </tr>`).join('');
+    host.innerHTML = `
+      <div class="dl-grid">
+        ${tile('成約件数', rows.length + '<span>件</span>', fy === 'all' ? '全期間' : (ym === 'all' ? fy + '年度' : (+ym.slice(5)) + '月受信分'))}
+        ${tile('成約額 合計', withAmt.length ? yenS(sum) : '—', `金額入力あり ${withAmt.length}件`)}
+        ${tile('平均成約額', withAmt.length ? yenS(sum / withAmt.length) : '—', '入力ありの件数で平均')}
+        ${tile('成約額 未入力', (rows.length - withAmt.length) + '<span>件</span>', rows.length - withAmt.length ? '詳細を開いて成約額を入力' : 'すべて入力済み')}
+      </div>
+      ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
+      <div class="tg-note">期間は<b>受信日</b>で絞り込みます（成約した日付はデータに記録されていないため）。行を押すと案件の詳細が開きます。</div>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;">
+        <thead><tr><th>受信日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>査定提示額</th><th>成約額</th><th style="text-align:left;">状態</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="9" style="color:var(--ink-3);font-weight:400;">該当する成約はありません</td></tr>'}</tbody>
+      </table></div>`;
+  }
+  window.renderDealsPage = renderDealsPage;
+
   // ===== 事業責任者アクションボード（現状分析→日次/週次でやるべきこと） =====
   window.jumpToPreset = function (name) {
     const tab = [...document.querySelectorAll('.page-tab')].find(t => t.dataset.page === 'cases');
@@ -5281,7 +5372,7 @@
   })();
   // ヘッダーのページ名を現在のタブに追従させる
   function updatePageTitle(key) {
-    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', report: '実績集計', targets: '目標・コスト' };
+    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', deals: '成約一覧', report: '実績集計', targets: '目標・コスト' };
     const el = document.getElementById('pageTitle');
     if (el && names[key]) el.textContent = names[key];
   }
@@ -5337,6 +5428,9 @@
       // 実績集計タブを開いたら集計＆グラフを生成
       if (t.dataset.page === 'report') {
         renderReport();
+      }
+      if (t.dataset.page === 'deals') {
+        renderDealsPage();
       }
     });
   });
