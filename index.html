@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="kaimax">
 <meta name="mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
   // サービスワーカー登録（インストール可能化。キャッシュはしない=常に最新）
   // ★sw.jsは毎回update()を呼んで、古い版を掴んだままにならないようにする。
@@ -2393,7 +2394,7 @@
   <button class="nav-toggle" id="navToggle" aria-label="メニュー"><svg class="ic"><use href="#ic-menu"/></svg></button>
   <div class="page-title" id="pageTitle">ダッシュボード</div>
   <div class="header-meta">
-    <div class="source-badge"><span class="dot"></span>スプレッドシート連携</div>
+    <div class="source-badge"><span class="dot"></span>データベース連携</div>
     <span class="hm-updated">更新 <span id="last-update">読み込み中...</span></span>
     <span id="outbox-badge" style="display:none;"></span>
     <span id="app-build" class="hm-ver">ver —</span>
@@ -2429,7 +2430,7 @@
   <!-- 外部リンク。URLを変えたいときは下の href だけ書き換えればOK -->
   <div class="sb-links">
     <div class="sb-links-ttl">リンク</div>
-    <a class="sb-action sb-link" href="https://docs.google.com/spreadsheets/d/1V1xWTjdin_zbEjyjOJh-3TymkOreFzaN18_iCZnCinI/edit" target="_blank" rel="noopener" title="買取案件管理表（元データ）を開く"><svg class="ic"><use href="#ic-sheet"/></svg><span>スプレッドシート</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
+    <a class="sb-action sb-link" href="https://docs.google.com/spreadsheets/d/1V1xWTjdin_zbEjyjOJh-3TymkOreFzaN18_iCZnCinI/edit" target="_blank" rel="noopener" title="旧スプレッドシート（月別目標はここで編集。案件データはデータベースへ移行済み）"><svg class="ic"><use href="#ic-sheet"/></svg><span>スプレッドシート</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
     <a class="sb-action sb-link" href="https://www.u-car.co.jp/" target="_blank" rel="noopener" title="ユーズドカーハイパー"><svg class="ic"><use href="#ic-car"/></svg><span>ユーズドカーハイパー</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
     <a class="sb-action sb-link" href="https://www.iauc.co.jp/" target="_blank" rel="noopener" title="アイオーク"><svg class="ic"><use href="#ic-search"/></svg><span>アイオーク</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
     <a class="sb-action sb-link" href="https://dlpro.proto-dataline.com/" target="_blank" rel="noopener" title="データラインPRO（相場検索）"><svg class="ic"><use href="#ic-db"/></svg><span>データラインPRO</span><svg class="ic ic-ext"><use href="#ic-external"/></svg></a>
@@ -2437,6 +2438,7 @@
   <div class="sb-foot">
     <button onclick="openReplies()" class="sb-action" title="お客様からの回答一覧"><svg class="ic"><use href="#ic-mail"/></svg><span>顧客回答</span><span id="replies-count" style="display:none;"></span></button>
     <button onclick="initDashboard()" class="sb-action" title="データを再読込"><svg class="ic"><use href="#ic-refresh"/></svg><span>更新</span></button>
+    <button id="kx-logout" class="sb-action" style="display:none;" title="ログアウト"><svg class="ic"><use href="#ic-external"/></svg><span>ログアウト</span></button>
   </div>
 </aside>
 
@@ -2766,9 +2768,20 @@
   // ============================================================
   // データソース設定
   // ============================================================
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?output=csv';
-  const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyfvacDa_So-347Il4KpSPEDjQjWwdD5wuEw6Un8v9MAyxJX_i0XQUW_onu_Fs1oEQU/exec';
-  const SECRET_KEY = 'indio9700';
+  // 2026/10 Supabase（問合せHUBと同じプロジェクト indio-hub）へ移行。
+  //  読み: kaimax_cases / kaimax_calls / kaimax_replies を直接 select（RLS: 車両販売部門＋admin のみ）
+  //  書き: kaimax-api（Edge Function）に旧GASと同じ { action, payload } を送る。認証はログイン中のトークン
+  //  ※公開CSV・SECRET_KEY は廃止。ここに秘密情報は置かない（publishable key は公開前提の鍵）
+  const SUPABASE_URL = 'https://artkjsyyrmwagmqitiaz.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_D9b_W9t5F9RX-C-S6yRW7g_Cdn9YsXi';
+  const KAIMAX_API_URL = SUPABASE_URL + '/functions/v1/kaimax-api';
+  const sbc = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kaimax-auth' }
+  });
+  async function getAccessToken() {
+    const { data } = await sbc.auth.getSession();
+    return data && data.session ? data.session.access_token : null;
+  }
 
   // ネットワークが無応答のまま止まるのを防ぐ。指定ミリ秒で必ず打ち切る。
   // （公開CSVが応答を返さず「読み込み中...」で固まる事故があったため）
@@ -4046,11 +4059,12 @@
     let lastStatus = 0, lastKind = '';
     for (let a = 0; a < tries; a++) {
       try {
-        const res = await fetch(WEBHOOK_URL, {
+        const token = await getAccessToken();
+        if (!token) { lastKind = 'auth'; break; } // 未ログイン（期限切れ）→再送は復帰時に
+        const res = await fetch(KAIMAX_API_URL, {
           method: 'POST',
-          body: JSON.stringify({ secret: SECRET_KEY, action, payload }),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          redirect: 'follow',
+          body: JSON.stringify({ action, payload }),
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           keepalive: true, // 通話復帰/画面遷移の直後でも送信が中断されにくくする
         });
         if (res.ok) {
@@ -4070,7 +4084,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 0818a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019db'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4278,7 +4292,6 @@
   };
 
   // ===== 顧客回答一覧（お客様がreply.htmlから返した内容） =====
-  const REPLY_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSwy7oSY_ZZ3iRCGgl2QskHOp8I2Z2vANfIgpt9sUP3hNpBF747--dXcV8XRm_UohoGTODJeszHV6w7/pub?gid=1266986413&single=true&output=csv';
   function replyStatusClass(s) { return /売却済み|売却中止|売却をやめた|すでに売却/.test(s) ? 'off' : ''; }
   window.openReplies = async function () {
     let o = document.getElementById('replies-overlay');
@@ -4286,14 +4299,16 @@
     o.innerHTML = `<div class="qc-modal rep-modal"><div class="qc-head"><svg class="ic"><use href="#ic-mail"/></svg> 顧客回答一覧 <button class="qc-x" data-rc="close">×</button></div><div class="rep-list"><div style="padding:20px;text-align:center;color:var(--ink-3);">読み込み中…</div></div></div>`;
     o.classList.add('show');
     o.onclick = function (ev) { const t = ev.target; if (t && t.closest && (t.closest('[data-rc="close"]') || !t.closest('.qc-modal'))) o.classList.remove('show'); };
-    let text = null;
-    for (let a = 0; a < 3 && text == null; a++) {
-      try { const r = await fetch(REPLY_CSV_URL + '&_=' + Date.now() + '_' + a); if (r.ok) { const t = await r.text(); if (t && !/^\s*</.test(t)) text = t; } } catch (e) {}
-      if (text == null) await new Promise(r => setTimeout(r, 500 * (a + 1)));
-    }
+    // 顧客回答はデータベース(kaimax_replies)から。旧シートと同じ見出しの表に組み立てて以下の描画をそのまま使う
+    let rows = null;
+    try {
+      const reps = await selectAll('kaimax_replies', 'received_at,received_raw,case_no,customer_name,car_name,status,method,wish_date,time_slot,contact,email,memo,tel', q => q.order('received_at', { ascending: true }));
+      const fmt = (iso) => { if (!iso) return ''; const d = new Date(iso); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+      rows = [['受信日時', '案件ID', '顧客名', '車種', '状況', '査定方法', '希望日', '時間帯', '連絡方法', 'メール', 'ご要望', 'TEL']]
+        .concat(reps.map(x => [x.received_raw || fmt(x.received_at), x.case_no == null ? '' : String(x.case_no), x.customer_name || '', x.car_name || '', x.status || '', x.method || '', x.wish_date || '', x.time_slot || '', x.contact || '', x.email || '', x.memo || '', x.tel || '']));
+    } catch (e) { rows = null; }
     const listEl = o.querySelector('.rep-list');
-    if (text == null) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">読み込みに失敗しました。もう一度お試しください。</div>'; return; }
-    const rows = parseCSV(text);
+    if (rows == null) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">読み込みに失敗しました。もう一度お試しください。</div>'; return; }
     if (rows.length < 2) { listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-3);">まだ回答はありません。</div>'; return; }
     const H = rows[0].map(x => String(x || '').trim());
     const col = (name) => H.indexOf(name);
@@ -4694,16 +4709,8 @@
   //   - MOTA以外 OR
   //   - MOTAかつ入札結果=〇(落札済み)
   function renderNewCases() {
-    const newCases = (allCases || []).filter(c => {
-      if (c.calls.length > 0) return false;
-      // 結果欄が「他社売却」「売却しない」「自社代替」「他社結果待ち」は除外
-      if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
-      if (c.media === 'mota') {
-        // MOTAは落札済みのみ
-        return c.bidResult === '〇' || c.bidResult === '落札';
-      }
-      return true;
-    });
+    // ★「今日やること」の件数(isNewCase)と同じ条件に統一（以前は権利獲得のMOTAが一覧に出なかった）
+    const newCases = (allCases || []).filter(isNewCase);
     const newList = document.getElementById('newList');
     if (!newList) return;
     newList.innerHTML = '';
@@ -4766,7 +4773,8 @@
   // 新着案件の判定(他箇所で使う共通ロジック)
   function isNewCase(c) {
     if (c.calls.length > 0) return false;
-    if (['他社売却', '売却しない', '自社代替'].includes(c.result)) return false;
+    // ★結果・査定が入っている案件は接触済み（来店・店頭成約など）＝未コールに出さない
+    if (c.result || c.assess) return false;
     if (c.media === 'mota') {
       // MOTAは「入札〇 かつ 入札結果が権獲(〇/落札/権利獲得)」のみ
       const bidOK = (c.bid === '〇' || c.bid === '入札');
@@ -5701,30 +5709,105 @@
     }
   }
   
+
   // ============================================================
-  // 初期化:CSVを読み込んでダッシュボードを描画
+  // Supabase からの読み込み（シートと同じ列並びの表を組み立てて rowsToCases に渡す）
+  //   rowsToCases 以降の約5,000行はシート時代のまま動かすための互換層。
+  //   列: A=0案件NO … AF=31通話メモ / 32=回答 / 33〜38=⑥〜⑧（見出し名で探されるので名前を合わせる）
+  // ============================================================
+  const SHEET_HEADER = ['案件NO','媒体','受信日','顧客名','TEL番号','車名','入札','入札結果','','①TEL結果','②TEL結果','②日付','③TEL結果','③日付','④TEL結果','④日付','⑤TEL結果','⑤日付','査定','結果','次回後追日','担当者','備考','顧客希望額','査定提示額','成約額','住所','メール','年式','走行距離','','通話メモ','回答','⑥結果','⑥日付','⑦結果','⑦日付','⑧結果','⑧日付'];
+  // 架電の位置(seq) → [結果列, 日付列]
+  const CALL_POS = { 1: [9, -1], 2: [10, 11], 3: [12, 13], 4: [14, 15], 5: [16, 17], 6: [33, 34], 7: [35, 36], 8: [37, 38] };
+  async function selectAll(table, cols, build) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      let q = sbc.from(table).select(cols).range(from, from + 999);
+      if (build) q = build(q);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      out.push(...(data || []));
+      if (!data || data.length < 1000) break;
+    }
+    return out;
+  }
+  function isoToSheetDate(iso) { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${+y}/${+m}/${+d}`; }
+  async function loadRowsFromDB() {
+    const [cs, calls] = await Promise.all([
+      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status',
+        q => q.is('deleted_at', null).order('case_no')),
+      selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
+    ]);
+    const byCase = new Map();
+    calls.forEach(k => { if (!byCase.has(k.case_id)) byCase.set(k.case_id, []); byCase.get(k.case_id).push(k); });
+    const v = x => x == null ? '' : String(x);
+    const rows = [SHEET_HEADER.slice()];
+    cs.forEach(c => {
+      const r = new Array(SHEET_HEADER.length).fill('');
+      r[0] = v(c.case_no); r[1] = v(c.media); r[2] = c.received_raw || isoToSheetDate(c.received_on);
+      r[3] = v(c.customer_name); r[4] = v(c.tel); r[5] = v(c.car_name); r[6] = v(c.bid); r[7] = v(c.bid_result); r[8] = v(c.rival_memo);
+      r[18] = v(c.assess); r[19] = v(c.result); r[20] = v(c.followup_raw); r[21] = v(c.assignee); r[22] = v(c.note);
+      r[23] = v(c.desired_raw); r[24] = v(c.offered_raw); r[25] = v(c.deal_raw);
+      r[26] = v(c.address); r[27] = v(c.email); r[28] = v(c.model_year); r[29] = v(c.mileage);
+      r[31] = v(c.call_memo); r[32] = v(c.reply_status);
+      (byCase.get(c.id) || []).forEach(k => { const pos = CALL_POS[k.seq]; if (!pos) return; r[pos[0]] = v(k.result); if (pos[1] >= 0) r[pos[1]] = v(k.called_raw); });
+      rows.push(r);
+    });
+    return rows;
+  }
+
+  // ============================================================
+  // ログイン（Google / Supabase Auth）。社員名簿(team_members)の車両販売部門・admin だけ閲覧可
+  // ============================================================
+  function showLoginScreen(msg, canRetry) {
+    let o = document.getElementById('kx-login');
+    if (!o) {
+      o = document.createElement('div'); o.id = 'kx-login';
+      o.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#f8f9fa;display:flex;align-items:center;justify-content:center;padding:16px;';
+      document.body.appendChild(o);
+    }
+    o.innerHTML = `<div style="background:#fff;border:1px solid #dadce0;border-radius:8px;padding:32px 28px;max-width:360px;width:100%;text-align:center;">
+      <div style="font-size:20px;font-weight:700;color:#202124;margin-bottom:6px;">kaimax 買取案件管理</div>
+      <div style="font-size:13px;color:#5f6368;margin-bottom:22px;line-height:1.7;">${msg || 'お客様の情報を扱うため、社内のGoogleアカウントでログインしてください。'}</div>
+      ${canRetry === 'logout'
+        ? '<button id="kx-login-out" style="width:100%;padding:11px;border:1px solid #dadce0;background:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">別のアカウントでログイン</button>'
+        : '<button id="kx-login-btn" style="width:100%;padding:11px;border:0;background:#1a73e8;color:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Googleでログイン</button>'}
+    </div>`;
+    const b = document.getElementById('kx-login-btn');
+    if (b) b.onclick = () => sbc.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } });
+    const lo = document.getElementById('kx-login-out');
+    if (lo) lo.onclick = async () => { await sbc.auth.signOut(); showLoginScreen(); };
+    hideLoading();
+  }
+  async function ensureLoggedIn() {
+    const { data } = await sbc.auth.getSession();
+    if (!data || !data.session) { showLoginScreen(); return false; }
+    const { data: ok, error } = await sbc.rpc('kaimax_can_access');
+    if (error) { showLoginScreen('権限の確認に失敗しました: ' + error.message, 'logout'); return false; }
+    if (!ok) { showLoginScreen((data.session.user.email || '') + ' は kaimax の閲覧権限がありません。社員名簿（車両販売部門）への登録が必要です。', 'logout'); return false; }
+    const lb = document.getElementById('kx-logout');
+    if (lb) { lb.style.display = ''; lb.title = data.session.user.email || ''; lb.onclick = async () => { await sbc.auth.signOut(); location.reload(); }; }
+    const lg = document.getElementById('kx-login'); if (lg) lg.remove();
+    return true;
+  }
+
+  // ============================================================
+  // 初期化: データベースを読み込んでダッシュボードを描画
   // ============================================================
   async function initDashboard() {
+    if (!(await ensureLoggedIn())) return;
     { const bv = document.getElementById('app-build'); if (bv) bv.textContent = APP_BUILD; }
     updateOutboxBadge();
     outboxFlush(); // 前回未送信の架電記録があれば起動時に再送
     showLoading();
     try {
-      // 公開CSVはGoogle側が一時的に500/302を返すことがあるため、数回リトライして確実に読む
-      let text = null, lastErr = '';
-      for (let a = 0; a < 3; a++) {
+      // データベースから読む（一時的な失敗に備えて3回まで再試行。1回8秒で打ち切り）
+      let rows = null, lastErr = '';
+      for (let a = 0; a < 3 && !rows; a++) {
         try {
-          const res = await fetchWithTimeout(CSV_URL + '&_=' + Date.now() + '_' + a, 8000, { redirect: 'follow', cache: 'no-store' });
-          if (res.ok) {
-            const t = await res.text();
-            if (t && t.length > 20 && !/^\s*</.test(t)) { text = t; break; }
-            lastErr = 'データが空/不正';
-          } else { lastErr = 'HTTP ' + res.status; }
-        } catch (e) { lastErr = (e && e.name === 'AbortError') ? '応答がありません(8秒でタイムアウト)' : e.message; }
-        if (a < 2) await new Promise(r => setTimeout(r, 600 * (a + 1)));
+          rows = await Promise.race([loadRowsFromDB(), new Promise((_, rj) => setTimeout(() => rj(new Error('応答がありません(15秒でタイムアウト)')), 15000))]);
+        } catch (e) { lastErr = e.message; if (a < 2) await new Promise(r => setTimeout(r, 600 * (a + 1))); }
       }
-      if (text == null) throw new Error(lastErr || '読み込み失敗');
-      const rows = parseCSV(text);
+      if (!rows) throw new Error(lastErr || '読み込み失敗');
       const loaded = rowsToCases(rows);
       
       if (loaded.length === 0) {
@@ -5777,7 +5860,7 @@
       const banner = document.createElement('div');
       banner.id = 'load-error-banner';
       banner.style.cssText = 'position:sticky;top:0;z-index:9999;background:#fce8e6;border-bottom:1px solid #d93025;padding:10px 20px;font-size:13px;color:#a50e0e;display:flex;gap:12px;align-items:center;flex-wrap:wrap;';
-      banner.innerHTML = `<b>スプレッドシートを読み込めませんでした。いま表示中の数字はサンプルデータです。</b>`
+      banner.innerHTML = `<b>データベースを読み込めませんでした。いま表示中の数字はサンプルデータです。</b>`
         + `<span style="color:#5f6368;">エラー: ${err.message}</span>`
         + `<button id="load-retry-btn" style="margin-left:auto;background:#d93025;color:#fff;border:0;border-radius:4px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;">再読み込み</button>`;
       document.body.insertBefore(banner, document.body.children[1]);
