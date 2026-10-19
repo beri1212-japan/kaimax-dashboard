@@ -1,6 +1,15 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="ja"><head><script>
+  // 2026/10/19 Vercel へ移転。旧URL（GitHub Pages）で開かれたら、同じページ・同じ引数のまま新URLへ転送する
+  (function () {
+    if (/\.github\.io$/.test(location.hostname)) {
+      var p = location.pathname.replace(/^\/kaimax-dashboard/, '') || '/';
+      location.replace('https://kaimax-indio.vercel.app' + p + location.search + location.hash);
+    }
+  })();
+</script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>kaimax</title>
-<meta http-equiv="refresh" content="0; url=../">
+<meta http-equiv="refresh" content="0; url=https://kaimax-indio.vercel.app/">
 <style>body{font-family:sans-serif;background:#f8f9fa;color:#202124;padding:24px}a{color:#1a73e8}</style></head>
-<body><p>プレビュー版は終了しました。<a href="../">本番のkaimaxへ移動</a>します。</p></body></html>
+<body><p>プレビュー版は終了しました。<a href="https://kaimax-indio.vercel.app/">本番のkaimaxへ移動</a>します。</p></body></html>
