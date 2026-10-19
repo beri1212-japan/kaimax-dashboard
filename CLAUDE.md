@@ -23,10 +23,10 @@
 テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
 `kaimax_targets`（月別目標）/ `kaimax_costs`（月別コスト: kind=media|other）/ `kaimax_staff`（担当者名簿・退職）/
 `kaimax_audit`（全書き込みの記録）/ `kaimax_worker_keys` / `kaimax_allowed_emails` /
-`kaimax_contracts`（**smart-sign 買取契約＝成約の正本**。契約番号がキー。生年月日・住所・所有者は取り込まない）/ `kaimax_insmart_cars`（旧: insmart車輌。ステータスが「交渉中」のまま契約される車が多く成約判定に使えないため**使用停止**）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
+`kaimax_contracts`（**smart-sign 買取契約＝成約の正本**。契約番号がキー。生年月日・住所・所有者は取り込まない。下取り充当/リース充当/所有者がリース会社 → auto_kind で自動的に「成果の対象外」、excluded で手動上書き）/ `kaimax_insmart_cars`（旧: insmart車輌。ステータスが「交渉中」のまま契約される車が多く成約判定に使えないため**使用停止**）/ `kaimax_outcomes`（成約車のその後: 出口・原価・AA出品最大5回・売却。case_id 1件1行）
 
 kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_won` `mota_refill` `GET list_assess_nos` /
-スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_contract` `unlink_contract` `set_outcome` `create_from_contract`(契約→成約案件を新規作成。source=smart-sign) `import_contracts`(smart-sign契約一覧Excelの取込) /
+スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_contract` `unlink_contract` `set_outcome` `create_from_contract`(契約→成約案件を新規作成。source=smart-sign) `import_contracts`(smart-sign契約一覧Excelの取込。ワーカー鍵でも可) `set_contract_scope`(契約を成果に含める/含めない) /
 お客様 `reply`（認証なし・状況は固定リストのみ）
 
 画面側の要点:

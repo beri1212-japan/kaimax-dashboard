@@ -317,6 +317,7 @@
   #page-deals .tg-wrap { display:inline-block; max-width:100%; vertical-align:top; }
   .dl-two { display:flex; gap:16px 28px; flex-wrap:wrap; align-items:flex-start; }
   .dl-two > div { max-width:100%; }
+  .ct-scope { height:26px; border:1px solid var(--line); border-radius:6px; font-size:12px; color:var(--ink-2); background:var(--bg-panel); }
   .dl-car { display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
   #priority-section, .page-section {
     max-width: 1240px;
@@ -4272,7 +4273,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v9'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v10'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4959,23 +4960,38 @@
   };
 
   // ===== smart-sign の契約から成約案件を新規作成（店頭即決など、kaimaxに案件が無いもの） =====
-  function ctUnlinked() { const used = linkedCarIds(); return ssContracts.filter(i => i.status === '成約' && !used.has(i.car_id)).sort((a, b) => String(b.deal_on || '').localeCompare(String(a.deal_on || ''))); }
+  function ctUnlinked(out = false) { const used = linkedCarIds(); return ssContracts.filter(i => i.status === '成約' && !used.has(i.car_id) && !!i.out === out).sort((a, b) => String(b.deal_on || '').localeCompare(String(a.deal_on || ''))); }
   function ctAssigneeOf(i) { const a = String(i.assessor || '').replace(/\s/g, ''); return allAssignees().filter(n => n && a.startsWith(n)).sort((x, y) => y.length - x.length)[0] || ''; }
   window.openContractCreate = function () {
-    const list = ctUnlinked();
+    const list = ctUnlinked(), outs = ctUnlinked(true);
     // 未紐づけの成約案件のうち、この車を候補に持つもの（重複作成を防ぐため先に見せる）
     const candOf = new Map();
     (allCases || []).filter(c => isDeal(c) && !dealExtra(c).contractNo).forEach(c => contractCandidates(c).forEach(i => { if (!candOf.has(i.car_id)) candOf.set(i.car_id, []); candOf.get(i.car_id).push(c); }));
     const yen = n => n ? '¥' + Number(n).toLocaleString('ja-JP') : '—';
     dlModal(`<div class="dl-modal-h">smart-signの契約から追加（kaimaxに未登録 ${list.length}台）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
-      <div class="tg-note">店頭即決など、kaimaxに案件が無い成約を smart-sign の買取契約から作れます。「kaimaxの候補」に案件NOが出ているものは、すでに案件があるかもしれません。その場合は新規で作らず「紐づけ」を押してください。</div>
+      <div class="tg-note">店頭即決など、kaimaxに案件が無い成約を smart-sign の買取契約から作れます。下取りやリース満了の手続きなど、買取の成果に含めない契約は「対象外にする」で外してください。「kaimaxの候補」に案件NOが出ているものは、すでに案件があるかもしれません。その場合は新規で作らず「紐づけ」を押してください。</div>
       <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th>契約日</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th>初度</th><th>走行</th><th style="text-align:left;">契約担当</th><th>契約金額</th><th style="text-align:left;">kaimaxの候補</th><th></th></tr></thead><tbody>
       ${list.map(i => { const cs = candOf.get(i.car_id) || [];
         return `<tr><td>${String(i.deal_on || '').replace(/-/g, '/') || '—'}</td><td style="text-align:left;">${ocEsc(i.customer || '—')}</td><td style="text-align:left;"><span class="dl-car" style="max-width:240px;" title="${ocEsc((i.maker || '') + ' ' + (i.car || '') + ' ' + (i.grade || ''))}">${ocEsc(i.maker || '')} ${ocEsc(i.car || '')} <span style="color:var(--ink-3);">${ocEsc(i.grade || '')}</span></span>${i.tradeIn ? ' <span class="oc-tag stock" title="下取り充当あり">下取り</span>' : ''}</td>
           <td>${String(i.first_reg || '').slice(0, 4)}</td><td>${i.mileage ? Number(i.mileage).toLocaleString() + 'km' : '—'}</td><td style="text-align:left;">${ocEsc((i.assessor || '').split(' ')[0])}</td><td>${yen(i.deal_yen)}</td>
           <td style="text-align:left;">${cs.slice(0, 3).map(c => `<button class="dl-btn ghost" title="${ocEsc(c.car || '')}（${ocEsc(c.assignee || '')}・受信 ${ocEsc(c.date || '')}）" onclick="ctLinkFromCreate(${c.no},'${i.car_id}')">NO ${c.no} と紐づけ</button>`).join(' ') || '<span style="color:var(--ink-3);">なし</span>'}</td>
-          <td><button class="dl-btn" onclick="openContractCreateForm('${i.car_id}')">新規で追加</button></td></tr>`; }).join('') || '<tr><td colspan="9" style="color:var(--ink-3);font-weight:400;">契約はすべてkaimaxに登録済みです</td></tr>'}
-      </tbody></table></div><div id="dl-modal-msg" style="font-size:12.5px;font-weight:700;margin-top:8px;"></div>`);
+          <td style="white-space:nowrap;"><button class="dl-btn" onclick="openContractCreateForm('${i.car_id}')">新規で追加</button> <select class="ct-scope" title="買取事業の成果に含めない契約にする" onchange="setContractScope('${i.car_id}', true, this.value)"><option value="">対象外にする…</option><option>下取り</option><option>リース満了</option><option>その他</option></select></td></tr>`; }).join('') || '<tr><td colspan="9" style="color:var(--ink-3);font-weight:400;">契約はすべてkaimaxに登録済みです</td></tr>'}
+      </tbody></table></div><div id="dl-modal-msg" style="font-size:12.5px;font-weight:700;margin-top:8px;"></div>
+      ${outs.length ? `<details style="margin-top:12px;"><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--ink-2);">成果に含めない契約 ${outs.length}件（下取り・リース満了など）</summary>
+        <div class="tg-note">下取り充当額・リース充当額がある契約、所有者がリース会社の契約は、自動でここに入ります。買取として扱うものは「成果に含める」を押してください。</div>
+        <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th>契約日</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">契約担当</th><th>契約金額</th><th style="text-align:left;">理由</th><th></th></tr></thead><tbody>
+        ${outs.map(i => `<tr><td>${String(i.deal_on || '').replace(/-/g, '/')}</td><td style="text-align:left;">${ocEsc(i.customer || '—')}</td><td style="text-align:left;"><span class="dl-car">${ocEsc(i.maker || '')} ${ocEsc(i.car || '')}</span></td><td style="text-align:left;">${ocEsc((i.assessor || '').split(' ')[0])}</td><td>${yen(i.deal_yen)}</td>
+          <td style="text-align:left;">${ocEsc(i.outReason)}${i.manual ? '' : '<span style="color:var(--ink-3);">（自動）</span>'}</td><td><button class="dl-btn ghost" onclick="setContractScope('${i.car_id}', false)">成果に含める</button></td></tr>`).join('')}
+        </tbody></table></div></details>` : ''}`);
+  };
+  window.setContractScope = async function (contractNo, excluded, reason) {
+    if (excluded && !reason) return;
+    const r = await postWebhook('set_contract_scope', { contractNo, excluded, reason: reason || '' }, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') {
+      const k = ssContracts.find(x => x.car_id === contractNo);
+      if (k) { k.out = !!excluded; k.outReason = excluded ? reason : ''; k.manual = true; }
+      renderDealsPage(); openContractCreate();
+    } else { const m = document.getElementById('dl-modal-msg'); if (m) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + ((r && r.data && r.data.message) || '通信エラー') + '）'; } }
   };
   window.ctLinkFromCreate = async function (no, carId) {
     const r = await postWebhook('link_contract', { no, contractNo: carId }, 3);
@@ -5016,7 +5032,11 @@
       const COL = { contract_no: '契約番号', contract_on: '契約日', status: 'ステータス', cancel_on: 'キャンセル日', customer_name: '顧客名', maker: 'メーカー', car: '車名', grade: 'グレード', vin: '車台番号',
         first_reg: '初度登録', mileage: '走行距離', insmart_car_id: 'insmart車両ID', amount: '契約金額', trade_in_yen: '下取り充当額', assignee: '担当者', car_received_on: '車両受領日', paid_on: '支払日' };
       if (!rows.length || !('契約番号' in rows[0]) || !('車台番号' in rows[0])) { alertBar('smart-signの「買取契約一覧」のファイルではないようです（契約番号・車台番号の列がありません）', true); return; }
-      const out = rows.map(r => { const o = {}; Object.entries(COL).forEach(([k, h]) => { o[k] = String(r[h] == null ? '' : r[h]).trim(); }); return o; }).filter(o => o.contract_no);
+      const num = v => Number(String(v == null ? '' : v).replace(/[^\d-]/g, '')) || 0;
+      const out = rows.map(r => { const o = {}; Object.entries(COL).forEach(([k, h]) => { o[k] = String(r[h] == null ? '' : r[h]).trim(); });
+        // 成果に含めない契約の自動判定（所有者名そのものは送らない）
+        o.auto_kind = num(r['下取り充当額']) > 0 ? '下取り' : (num(r['リース充当額']) > 0 || /リース|ﾘｰｽ|カーソリューションズ/.test(String(r['所有者名'] || ''))) ? 'リース' : '';
+        return o; }).filter(o => o.contract_no);
       alertBar(`取り込み中...（${out.length}件）`);
       const res = await postWebhook('import_contracts', { rows: out }, 3);
       if (res && res.ok && res.data && res.data.status === 'success') { await initDashboard(); renderDealsPage(); alertBar(res.data.message + '。ダウンロードしたファイルは削除してください'); }
@@ -6302,14 +6322,15 @@
       selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
-      selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee').catch(() => []),
+      selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason').catch(() => []),
       selectAll('kaimax_outcomes', 'case_id,route,cost_yen,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
     ]);
     // シート形に載らない項目（車台番号・契約番号・成約日）は案件NOで引けるように別に持つ
     caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '' }]));
     // smart-sign の買取契約（成約の正本）。画面側では car_id=契約番号・status=成約(契約済のとき) の形にそろえて使う
     ssContracts = (ins || []).map(k => ({ car_id: k.contract_no, vin: k.vin, maker: k.maker, car: k.car, grade: k.grade, first_reg: k.first_reg, mileage: k.mileage,
-      assessor: k.assignee, status: k.status === '契約済' ? '成約' : k.status, registered_at: k.contract_on, deal_on: k.contract_on, deal_yen: k.amount, customer: k.customer_name || '', tradeIn: k.trade_in_yen || 0 }));
+      assessor: k.assignee, status: k.status === '契約済' ? '成約' : k.status, registered_at: k.contract_on, deal_on: k.contract_on, deal_yen: k.amount, customer: k.customer_name || '', tradeIn: k.trade_in_yen || 0,
+      autoKind: k.auto_kind || '', out: k.excluded === true || (k.excluded == null && !!k.auto_kind), outReason: k.exclude_reason || k.auto_kind || '', manual: k.excluded != null }));
     const noById = new Map(cs.map(c => [c.id, c.case_no]));
     outcomes = new Map((ocs || []).filter(o => noById.has(o.case_id)).map(o => [String(noById.get(o.case_id)), o]));
     const byCase = new Map();

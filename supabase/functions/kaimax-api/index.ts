@@ -3,7 +3,7 @@
 //      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
-//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み)
+//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -16,9 +16,9 @@ const cors = {
 };
 const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, headers: { ...cors, "content-type": "application/json; charset=utf-8" } });
 
-const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill"]);
+const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill", "import_contracts"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
-const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts"]);
+const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts", "set_contract_scope"]);
 
 // ---------- 共通ユーティリティ ----------
 const t = (v: unknown) => String(v ?? "").trim();
@@ -253,7 +253,8 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
       if (!/^\d{6,20}$/.test(no) || !on || !st) continue;
       recs.push({ contract_no: no, contract_on: on, status: st, cancel_on: day(r.cancel_on), customer_name: s100(r.customer_name), maker: s100(r.maker), car: s100(r.car), grade: s100(r.grade),
         vin: s100(r.vin), first_reg: s100(r.first_reg), mileage: int(r.mileage), insmart_car_id: s100(r.insmart_car_id), amount: int(r.amount), trade_in_yen: int(r.trade_in_yen),
-        assignee: s100(r.assignee), car_received_on: day(r.car_received_on), paid_on: day(r.paid_on), source: "smart-sign", synced_at: new Date().toISOString() });
+        assignee: s100(r.assignee), car_received_on: day(r.car_received_on), paid_on: day(r.paid_on),
+        auto_kind: ["下取り", "リース"].includes(t(r.auto_kind)) ? t(r.auto_kind) : null, source: "smart-sign", synced_at: new Date().toISOString() });
     }
     if (!recs.length) return { status: "error", message: "契約番号・契約日・ステータスが読めませんでした（smart-signの買取契約一覧のファイルか確認してください）" };
     const nos = recs.map((r) => r.contract_no);
@@ -263,6 +264,17 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     const added = recs.length - (before?.length ?? 0);
     await audit(actor, "import_contracts", null, { rows: recs.length, added, from: recs.reduce((m, r) => r.contract_on < m ? r.contract_on : m, "9999"), to: recs.reduce((m, r) => r.contract_on > m ? r.contract_on : m, "0000") });
     return { status: "success", message: `契約 ${recs.length}件を取り込みました（新規 ${added}件・更新 ${recs.length - added}件）`, rows: recs.length, added };
+  }
+  if (action === "set_contract_scope") {
+    // 契約を買取事業の成果に含めるか（下取り・リース満了の手続き上の契約などを外す）。excluded=null で自動判定に戻す
+    const contractNo = t(p.contractNo), reason = t(p.reason).slice(0, 50);
+    const ex = p.excluded === true ? true : p.excluded === false ? false : null;
+    const { data: k } = await sb.from("kaimax_contracts").select("contract_no, excluded, exclude_reason").eq("contract_no", contractNo).maybeSingle();
+    if (!k) return { status: "error", message: "契約が見つかりません" };
+    const { error } = await sb.from("kaimax_contracts").update({ excluded: ex, exclude_reason: ex ? (reason || "その他") : null, scope_by: actor, scope_at: new Date().toISOString() }).eq("contract_no", contractNo);
+    if (error) return { status: "error", message: error.message };
+    await audit(actor, "set_contract_scope", null, { contractNo, excluded: ex, reason, prev: { excluded: k.excluded, reason: k.exclude_reason } });
+    return { status: "success", message: ex ? `契約 ${contractNo} を成果の対象外にしました` : `契約 ${contractNo} を成果の対象に戻しました` };
   }
   if (action === "create_from_contract") {
     // 店頭即決などで kaimax に案件が無い成約を、smart-sign の契約から作る（結果=成約・紐づけ済みで作成）
@@ -440,11 +452,16 @@ Deno.serve(async (req) => {
     try { body = JSON.parse(await req.text()); } catch { return json({ status: "error", message: "JSONが不正です" }); }
     const action = t(body.action), p = body.payload || {};
     if (WORKER_ACTIONS.has(action)) {
-      if (!(await isWorker(decodeURIComponent(pathKey) || t(body.secret)))) return json({ status: "error", message: "認証エラー" });
-      if (action === "mota_create") return json(await motaCreate(p));
-      if (action === "mota_result") return json(await motaResult(p));
-      if (action === "mota_won") return json(await motaWon(p));
-      return json(await motaRefill(p));
+      if (!(await isWorker(decodeURIComponent(pathKey) || t(body.secret)))) {
+        // import_contracts はスタッフ（画面からの取込）も使うので、ワーカー鍵が無ければスタッフ認証へ回す
+        if (!STAFF_ACTIONS.has(action)) return json({ status: "error", message: "認証エラー" });
+      } else {
+        if (action === "mota_create") return json(await motaCreate(p));
+        if (action === "mota_result") return json(await motaResult(p));
+        if (action === "mota_won") return json(await motaWon(p));
+        if (action === "import_contracts") return json(await staffAction("import_contracts", p, "worker")); // 夜間の自動取込（smart-sign）
+        return json(await motaRefill(p));
+      }
     }
     if (action === "reply") return json(await customerReply(p));
     if (STAFF_ACTIONS.has(action)) {
