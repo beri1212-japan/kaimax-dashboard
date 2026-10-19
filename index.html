@@ -4273,7 +4273,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v10'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1019v11'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4960,6 +4960,13 @@
   };
 
   // ===== smart-sign の契約から成約案件を新規作成（店頭即決など、kaimaxに案件が無いもの） =====
+  // 最終取り込み時刻（毎晩2時の自動取り込みが止まっていないかの目安。36時間以上空いたら赤）
+  function ctLastSync() {
+    const t = ssContracts.reduce((m, k) => k.syncedAt > m ? k.syncedAt : m, ''); if (!t) return '';
+    const d = new Date(t), old = (Date.now() - d) / 3600000 > 36;
+    const s = d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `・最終取り込み <span style="${old ? 'color:#d93025;font-weight:700;' : ''}">${s}${old ? '（自動取り込みが止まっている可能性があります）' : ''}</span>`;
+  }
   function ctUnlinked(out = false) { const used = linkedCarIds(); return ssContracts.filter(i => i.status === '成約' && !used.has(i.car_id) && !!i.out === out).sort((a, b) => String(b.deal_on || '').localeCompare(String(a.deal_on || ''))); }
   function ctAssigneeOf(i) { const a = String(i.assessor || '').replace(/\s/g, ''); return allAssignees().filter(n => n && a.startsWith(n)).sort((x, y) => y.length - x.length)[0] || ''; }
   window.openContractCreate = function () {
@@ -5106,7 +5113,7 @@
         ${tile('契約 紐づけ', linkedN + '<span>/ ' + rows.length + '件</span>', rows.length - linkedN ? `未紐づけ ${rows.length - linkedN}件` : 'すべて紐づけ済み')}
       </div>
       <div style="font-size:12.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><label class="dl-btn ghost" style="display:inline-flex;align-items:center;">smart-signの契約ファイルを取り込む<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="importContractsFile(this)"></label>
-        <span style="color:var(--ink-3);">${ssContracts.length ? `取り込み済み ${ssContracts.length}件（契約日 ${ssContracts.reduce((m, k) => k.deal_on < m ? k.deal_on : m, '9999').replace(/-/g, '/')}〜${ssContracts.reduce((m, k) => k.deal_on > m ? k.deal_on : m, '').replace(/-/g, '/')}）` : 'まだ取り込まれていません'}</span></div>
+        <span style="color:var(--ink-3);">${ssContracts.length ? `取り込み済み ${ssContracts.length}件（契約日 ${ssContracts.reduce((m, k) => k.deal_on < m ? k.deal_on : m, '9999').replace(/-/g, '/')}〜${ssContracts.reduce((m, k) => k.deal_on > m ? k.deal_on : m, '').replace(/-/g, '/')}）${ctLastSync()}` : 'まだ取り込まれていません'}</span></div>
       ${ssContracts.length ? `<div style="font-size:12.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><button class="dl-btn ghost" onclick="openContractCreate()">＋ smart-signの契約から追加</button><span style="color:var(--ink-3);">kaimaxに未登録の契約 ${ctUnlinked().length}台（店頭即決など）</span></div>` : ''}
       ${window.__dlSingles.length ? `<div style="font-size:12.5px;background:#e8f0fe;border:1px solid #aecbfa;border-radius:7px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">smart-signの契約の候補が1件に決まる成約が <b>${window.__dlSingles.length}件</b> あります。<button class="dl-btn" onclick="openContractBulk()">確認してまとめて紐づけ</button></div>` : ''}
       ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
@@ -6322,7 +6329,7 @@
       selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
-      selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason').catch(() => []),
+      selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason,synced_at').catch(() => []),
       selectAll('kaimax_outcomes', 'case_id,route,cost_yen,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
     ]);
     // シート形に載らない項目（車台番号・契約番号・成約日）は案件NOで引けるように別に持つ
@@ -6330,7 +6337,7 @@
     // smart-sign の買取契約（成約の正本）。画面側では car_id=契約番号・status=成約(契約済のとき) の形にそろえて使う
     ssContracts = (ins || []).map(k => ({ car_id: k.contract_no, vin: k.vin, maker: k.maker, car: k.car, grade: k.grade, first_reg: k.first_reg, mileage: k.mileage,
       assessor: k.assignee, status: k.status === '契約済' ? '成約' : k.status, registered_at: k.contract_on, deal_on: k.contract_on, deal_yen: k.amount, customer: k.customer_name || '', tradeIn: k.trade_in_yen || 0,
-      autoKind: k.auto_kind || '', out: k.excluded === true || (k.excluded == null && !!k.auto_kind), outReason: k.exclude_reason || k.auto_kind || '', manual: k.excluded != null }));
+      autoKind: k.auto_kind || '', syncedAt: k.synced_at || '', out: k.excluded === true || (k.excluded == null && !!k.auto_kind), outReason: k.exclude_reason || k.auto_kind || '', manual: k.excluded != null }));
     const noById = new Map(cs.map(c => [c.id, c.case_no]));
     outcomes = new Map((ocs || []).filter(o => noById.has(o.case_id)).map(o => [String(noById.get(o.case_id)), o]));
     const byCase = new Map();

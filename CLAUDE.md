@@ -19,6 +19,7 @@
 | ログイン | Google（Supabase Auth）。許可は HUB の team_members（admin または vehicle_sales）＋ `kaimax_allowed_emails`（cs@ / morota@） |
 | ワーカー | AIPC の `.env.local` が `kaimax-api/w/<鍵>` を向く。鍵は `.env.supabase` にあり SHA-256 を `kaimax_worker_keys` に登録。旧設定は `.env.local.bak-20261019-gas` |
 | 生存確認 | ワーカーが登録済み一覧を取るたびに `kaimax_audit`（actor=worker, action=list_assess_nos）に1行残る。毎時無ければ止まっている |
+| 契約の自動取込 | AIPC `worker/smartsign-contracts.mjs`。run.bat（毎時）の最後で呼ばれ、**午前2時以降・当日未成功のときだけ**実行（成功日は `worker/.smartsign-last-ok.txt`）。AppField→エントランス→smart-sign、契約日 直近60日を全ステータスでDL→`import_contracts`。ID/PWは `.env.local` の `SMARTSIGN_ID`/`SMARTSIGN_PW`（本人が記入）。画面の「最終取り込み」が36時間超で赤 |
 
 テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
 `kaimax_targets`（月別目標）/ `kaimax_costs`（月別コスト: kind=media|other）/ `kaimax_staff`（担当者名簿・退職）/
