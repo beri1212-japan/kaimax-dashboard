@@ -5,6 +5,40 @@
 
 ---
 
+## ★ 2026/10/19 移行後の構成（この節が最新。下の「最初に読むこと」以降はスプレッドシート時代の記述を含む）
+
+**正本はスプレッドシートではなく Supabase。公開CSV・SECRET_KEY・GAS は使っていない。**
+
+| 項目 | 内容 |
+|---|---|
+| 公開URL | **https://kaimax-indio.vercel.app**（Vercel プロジェクト `kaimax` / チーム beri1212-japans-projects、`main` への push で自動デプロイ） |
+| 旧URL | GitHub Pages（github.io）は各HTML先頭のスクリプトで新URLへ転送するだけ。Pages の設定は残している |
+| DB | Supabase `indio-hub`（id `artkjsyyrmwagmqitiaz`、問合せHUBと共用）。テーブルは `kaimax_` 接頭辞 |
+| 書き込み | Edge Function `kaimax-api`（verify_jwt=false・独自認証）。ソースはこのリポジトリに無い → 移行セッションの scratchpad。**書き戻しが課題** |
+| 読み込み | supabase-js で RLS 経由（`kaimax_can_access()`） |
+| ログイン | Google（Supabase Auth）。許可は HUB の team_members（admin または vehicle_sales）＋ `kaimax_allowed_emails`（cs@ / morota@） |
+| ワーカー | AIPC の `.env.local` が `kaimax-api/w/<鍵>` を向く。鍵は `.env.supabase` にあり SHA-256 を `kaimax_worker_keys` に登録。旧設定は `.env.local.bak-20261019-gas` |
+| 生存確認 | ワーカーが登録済み一覧を取るたびに `kaimax_audit`（actor=worker, action=list_assess_nos）に1行残る。毎時無ければ止まっている |
+
+テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
+`kaimax_targets`（月別目標）/ `kaimax_costs`（月別コスト: kind=media|other）/ `kaimax_staff`（担当者名簿・退職）/
+`kaimax_audit`（全書き込みの記録）/ `kaimax_worker_keys` / `kaimax_allowed_emails`
+
+kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_won` `mota_refill` `GET list_assess_nos` /
+スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` /
+お客様 `reply`（認証なし・状況は固定リストのみ）
+
+画面側の要点:
+- `loadRowsFromDB()` が DB をシート形の行に組み直し、既存の `rowsToCases()` をそのまま通す（下流5,000行は無改修）
+- 目標・コストタブは年度＝**6月始まり**。獲得単価は**受信月**で数える
+- `kaimax-import`（シート→DB取込）は**無効化済み**。再実行すると本番データを上書きするので戻さない
+- スプレッドシート「買取案件管理表」は 2026/10/19 13:34 時点で凍結（参照用）。ウェブ公開は全シート解除済み
+
+旧記述のうち**今は当てはまらないもの**: 公開CSV（4本）・`SECRET_KEY`・`WEBHOOK_URL`・GAS アクション・`postWebhook()` が GAS に書く話・
+「テスト環境が無い」の GAS 部分・セキュリティ表の #1 #2 #4（解決）。リリース確認は Vercel のデプロイ状態で行う。
+
+---
+
 ## ⚠ 最初に読むこと
 
 ### 1. テスト環境が無い。書き込みは即本番
