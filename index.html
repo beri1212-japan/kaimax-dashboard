@@ -4296,7 +4296,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1020a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1020b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5608,7 +5608,7 @@
     catch (e) { siteMsg('追加できませんでした（' + e.message + '）', true); }
   };
 
-  // ===== 案件詳細：サイトの査定依頼でお客様が送った写真（非公開バケット。署名付きURLで1時間だけ見られる） =====
+  // ===== 案件詳細：サイトの査定依頼でお客様が送った写真（非公開バケット。署名付きURLで24時間だけ見られる） =====
   window.loadCaseSitePhotos = async function (no) {
     const box = document.getElementById('dp-site-photos'); if (!box) return;
     try {
@@ -5616,7 +5616,7 @@
       if (error) throw error;
       const paths = (data || []).flatMap(r => r.photo_paths || []);
       if (!paths.length) { box.closest('.detail-section').style.display = 'none'; return; }
-      const { data: urls, error: e2 } = await sbc.storage.from('kaitori-photos').createSignedUrls(paths, 3600);
+      const { data: urls, error: e2 } = await sbc.storage.from('kaitori-photos').createSignedUrls(paths, 86400);
       if (e2) throw e2;
       box.innerHTML = urls.map(u => u.signedUrl ? `<a href="${u.signedUrl}" target="_blank" rel="noopener"><img src="${u.signedUrl}" style="width:104px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);"></a>` : '').join('');
     } catch (e) { box.innerHTML = `<span style="color:#d93025;font-size:12px;">写真を読み込めませんでした（${se(e.message || e)}）</span>`; }
