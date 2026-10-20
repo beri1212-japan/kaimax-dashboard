@@ -4,6 +4,7 @@
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
 //      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
+//      自社サイト買取ページ: voice_save・voice_flags(お客様の声) / model_save・model_flags(車種ページ) / news_save(買取ニュース) / faq_save(よくある質問) / carmaster_save(査定フォームの車種マスタ)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -18,7 +19,8 @@ const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, head
 
 const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill", "import_contracts"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
-const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts", "set_contract_scope"]);
+const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts", "set_contract_scope",
+  "voice_save", "voice_flags", "model_save", "model_flags", "news_save", "faq_save", "carmaster_save"]);
 
 // ---------- 共通ユーティリティ ----------
 const t = (v: unknown) => String(v ?? "").trim();
@@ -265,6 +267,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     await audit(actor, "import_contracts", null, { rows: recs.length, added, from: recs.reduce((m, r) => r.contract_on < m ? r.contract_on : m, "9999"), to: recs.reduce((m, r) => r.contract_on > m ? r.contract_on : m, "0000") });
     return { status: "success", message: `契約 ${recs.length}件を取り込みました（新規 ${added}件・更新 ${recs.length - added}件）`, rows: recs.length, added };
   }
+  if (["voice_save", "voice_flags", "model_save", "model_flags", "news_save", "faq_save", "carmaster_save"].includes(action)) return await siteAction(action, p, actor);
   if (action === "set_contract_scope") {
     // 契約を買取事業の成果に含めるか（下取り・リース満了の手続き上の契約などを外す）。excluded=null で自動判定に戻す
     const contractNo = t(p.contractNo), reason = t(p.reason).slice(0, 50);
@@ -389,6 +392,175 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
   return { status: "error", message: "不明なアクション: " + action };
 }
 
+
+// ---------- 自社サイト買取ページ（indio.co.jp/satei/）の掲載内容 ----------
+// 画像は公開バケット kaitori-public に置く。画面側で縮小・EXIF除去（Canvasで描き直し）済みの WebP/JPEG/PNG を base64 で受け取る
+const SITE_BUCKET = "kaitori-public";
+const RESERVED_SLUGS = new Set(["news", "form", "thanks", "page", "feed", "jisseki"]);
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const BODY_TYPES = new Set(["kei", "compact", "minivan", "suv", "sedan", "wagon", "sports", "truck", "import", "other"]);
+const NEWS_KINDS = new Set(["相場情報", "強化買取", "お知らせ", "コラム"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function siteDay(v: unknown): string | null { const r = t(v); return /^\d{4}-\d{2}-\d{2}$/.test(r) && !isNaN(Date.parse(r)) ? r : null; }
+function siteTxt(v: unknown, max: number): string | null { const r = t(v); return r ? r.slice(0, max) : null; }
+function siteBool(v: unknown, def: boolean): boolean { return v === true ? true : v === false ? false : def; }
+function siteInt(v: unknown): number | null { const r = t(v); return /^-?\d+$/.test(r) ? Number(r) : null; }
+async function siteUpload(b64: unknown, mime: unknown, base: string): Promise<{ path?: string; error?: string }> {
+  const m = t(mime);
+  const ext = m === "image/webp" ? "webp" : m === "image/jpeg" ? "jpg" : m === "image/png" ? "png" : "";
+  if (!ext) return { error: "画像の形式が不正です（WebP/JPEG/PNG）" };
+  let bytes: Uint8Array;
+  try { bytes = Uint8Array.from(atob(t(b64).replace(/^data:[^,]+,/, "")), (c) => c.charCodeAt(0)); } catch { return { error: "画像データが読めません" }; }
+  if (bytes.length < 1000 || bytes.length > 5 * 1024 * 1024) return { error: "画像の大きさが不正です（5MBまで）" };
+  const path = `${base}.${ext}`;
+  const { error } = await sb.storage.from(SITE_BUCKET).upload(path, bytes, { contentType: m, upsert: true, cacheControl: "604800" });
+  return error ? { error: "画像を保存できませんでした: " + error.message } : { path };
+}
+const stamp = () => new Date(Date.now() + 9 * 3600000).toISOString().replace(/[-:T]/g, "").slice(0, 14);
+
+async function siteAction(action: string, p: Record<string, unknown>, actor: string) {
+  const now = new Date().toISOString();
+  if (action === "voice_save") {
+    // お客様の声。顧客名はイニシャル＋様のみ、金額は「◯万円台」などの目安のみ（正確な金額・フルネームは保存しない）
+    const id = siteInt(p.id);
+    const dealOn = siteDay(p.dealOn), maker = siteTxt(p.maker, 30), car = siteTxt(p.car, 40);
+    if (!dealOn || !maker || !car) return { status: "error", message: "お引き渡し日・メーカー・車名は必須です" };
+    const label = t(p.customerLabel).normalize("NFKC").replace(/\s/g, "");
+    if (label && !/^[A-Za-z](\.?[A-Za-z])?\.?様$/.test(label)) return { status: "error", message: "お客様の表記はイニシャル＋様にしてください（例：T様）" };
+    const price = t(p.priceLabel).normalize("NFKC").replace(/\s/g, "");
+    if (price && (/\d{1,3},\d{3}/.test(price) || /\d{5,}/.test(price) || !/万円/.test(price))) return { status: "error", message: "金額は「45万円台」のような目安にしてください（正確な金額は載せない）" };
+    const year = siteInt(p.modelYear);
+    if (year != null && (year < 1950 || year > 2100)) return { status: "error", message: "年式が不正です" };
+    let caseId: number | null = null;
+    const caseNo = siteInt(p.caseNo);
+    if (caseNo) { const c = await byNo(caseNo); if (!c) return { status: "error", message: `案件NO ${caseNo} が見つかりません` }; caseId = c.id; }
+    const rec: Record<string, unknown> = { deal_on: dealOn, maker, car, grade: siteTxt(p.grade, 60),
+      model_year: year, city: siteTxt(p.city, 20), customer_label: label || null, price_label: price || null,
+      consent: siteBool(p.consent, false), visible: siteBool(p.visible, true), updated_by: actor, updated_at: now };
+    // 案件・契約番号は、指定があるとき（と新規のとき）だけ入れる。編集で空のまま保存しても消さない
+    if (caseId || !id) rec.case_id = caseId;
+    if (t(p.contractNo) || !id) rec.contract_no = siteTxt(p.contractNo, 30);
+    if (p.photoB64) {
+      const up = await siteUpload(p.photoB64, p.photoMime, `voices/${dealOn.slice(0, 7)}/${crypto.randomUUID()}`);
+      if (up.error) return { status: "error", message: up.error };
+      rec.photo_path = up.path;
+    } else if (!id) return { status: "error", message: "写真を選んでください" };
+    if (id) {
+      const { data: prev } = await sb.from("kaitori_voices").select("*").eq("id", id).is("deleted_at", null).maybeSingle();
+      if (!prev) return { status: "error", message: "お客様の声が見つかりません" };
+      const { error } = await sb.from("kaitori_voices").update(rec).eq("id", id);
+      if (error) return { status: "error", message: error.message };
+      await audit(actor, "voice_save", caseNo, { id, prev, next: rec });
+      return { status: "success", message: "お客様の声を更新しました", id };
+    }
+    const { data, error } = await sb.from("kaitori_voices").insert({ ...rec, created_by: actor }).select("id").single();
+    if (error) return { status: "error", message: error.message };
+    await audit(actor, "voice_save", caseNo, { id: data.id, next: rec });
+    return { status: "success", message: rec.consent ? "お客様の声を登録しました（最大10分でサイトに出ます）" : "登録しました（掲載同意が無いのでサイトには出ません）", id: data.id };
+  }
+  if (action === "voice_flags") {
+    // 表示のオン/オフ・掲載同意・削除（論理削除）
+    const id = siteInt(p.id); if (!id) return { status: "error", message: "IDが不正です" };
+    const upd: Record<string, unknown> = { updated_by: actor, updated_at: now };
+    if ("visible" in p) upd.visible = siteBool(p.visible, true);
+    if ("consent" in p) upd.consent = siteBool(p.consent, false);
+    if (p.delete === true) upd.deleted_at = now;
+    const { error } = await sb.from("kaitori_voices").update(upd).eq("id", id).is("deleted_at", null);
+    if (error) return { status: "error", message: error.message };
+    await audit(actor, "voice_flags", null, { id, ...upd });
+    return { status: "success", message: p.delete === true ? "削除しました" : "保存しました" };
+  }
+  if (action === "model_save" || action === "model_flags") {
+    const id = t(p.id);
+    if (id && !UUID_RE.test(id)) return { status: "error", message: "IDが不正です" };
+    const upd: Record<string, unknown> = { updated_by: actor, updated_at: now };
+    if ("visible" in p) upd.visible = siteBool(p.visible, false);
+    if ("isFeatured" in p) upd.is_featured = siteBool(p.isFeatured, false);
+    if (action === "model_save") {
+      if ("headline" in p) upd.headline = siteTxt(p.headline, 120);
+      if ("intro" in p) upd.intro = siteTxt(p.intro, 20000);
+      if ("sort" in p) upd.sort = siteInt(p.sort) ?? 100;
+      if ("seoTitle" in p) upd.seo_title = siteTxt(p.seoTitle, 120);
+      if ("seoDesc" in p) upd.seo_desc = siteTxt(p.seoDesc, 300);
+      if ("matchKeys" in p) upd.match_keys = [...new Set(t(p.matchKeys).split(/[,、\n]/).map((x) => x.trim()).filter(Boolean))].slice(0, 30);
+    }
+    let slug = "";
+    if (!id) {
+      if (action !== "model_save") return { status: "error", message: "IDが不正です" };
+      slug = t(p.slug);
+      if (!SLUG_RE.test(slug) || RESERVED_SLUGS.has(slug)) return { status: "error", message: "URL（slug）は英小文字・数字・ハイフンで。news / form / jisseki などは使えません" };
+      const maker = siteTxt(p.maker, 30), name = siteTxt(p.name, 40), bt = t(p.bodyType) || "other";
+      if (!maker || !name) return { status: "error", message: "メーカーと車名は必須です" };
+      if (!BODY_TYPES.has(bt)) return { status: "error", message: "ボディタイプが不正です" };
+      Object.assign(upd, { slug, maker, name, body_type: bt });
+    } else {
+      const { data: m } = await sb.from("kaitori_models").select("slug").eq("id", id).maybeSingle();
+      if (!m) return { status: "error", message: "車種が見つかりません" };
+      slug = m.slug;
+    }
+    if (action === "model_save" && p.imageB64) {
+      const up = await siteUpload(p.imageB64, p.imageMime, `models/${slug}-${stamp()}`);
+      if (up.error) return { status: "error", message: up.error };
+      upd.image_path = up.path;
+    }
+    const q = id ? sb.from("kaitori_models").update(upd).eq("id", id).select("id").single() : sb.from("kaitori_models").insert(upd).select("id").single();
+    const { data, error } = await q;
+    if (error) return { status: "error", message: /duplicate|unique/i.test(error.message) ? "そのURL（slug）はもう使われています" : error.message };
+    await audit(actor, action, null, { id: data.id, ...upd, intro: upd.intro ? `(${String(upd.intro).length}字)` : undefined });
+    return { status: "success", message: "車種を保存しました（最大10分でサイトに反映）", id: data.id };
+  }
+  if (action === "news_save") {
+    const id = t(p.id);
+    if (id && !UUID_RE.test(id)) return { status: "error", message: "IDが不正です" };
+    const kind = t(p.kind), title = siteTxt(p.title, 120), slug = t(p.slug), pub = siteDay(p.publishedOn);
+    if (!NEWS_KINDS.has(kind)) return { status: "error", message: "種類が不正です" };
+    if (!title) return { status: "error", message: "見出しは必須です" };
+    if (!SLUG_RE.test(slug)) return { status: "error", message: "URL（slug）は英小文字・数字・ハイフンで入力してください" };
+    if (!pub) return { status: "error", message: "公開日が不正です" };
+    const ids = (Array.isArray(p.modelIds) ? p.modelIds : []).map((x) => t(x)).filter((x) => UUID_RE.test(x)).slice(0, 30);
+    const upd: Record<string, unknown> = { kind, title, slug, lead: siteTxt(p.lead, 200), body: siteTxt(p.body, 50000), model_ids: ids, published_on: pub,
+      visible: siteBool(p.visible, false), updated_by: actor, updated_at: now };
+    if (p.imageB64) {
+      const up = await siteUpload(p.imageB64, p.imageMime, `news/${slug}-${stamp()}`);
+      if (up.error) return { status: "error", message: up.error };
+      upd.image_path = up.path;
+    } else if (p.removeImage === true) upd.image_path = null;
+    const q = id ? sb.from("kaitori_news").update(upd).eq("id", id).select("id").single() : sb.from("kaitori_news").insert(upd).select("id").single();
+    const { data, error } = await q;
+    if (error) return { status: "error", message: /duplicate|unique/i.test(error.message) ? "そのURL（slug）はもう使われています" : error.message };
+    await audit(actor, "news_save", null, { id: data.id, kind, title, slug, published_on: pub, visible: upd.visible });
+    return { status: "success", message: "ニュースを保存しました", id: data.id };
+  }
+  if (action === "faq_save") {
+    const id = t(p.id);
+    if (id && !UUID_RE.test(id)) return { status: "error", message: "IDが不正です" };
+    const scope = t(p.scope) || "all", q = siteTxt(p.q, 300), a = siteTxt(p.a, 5000);
+    if (scope !== "all" && !SLUG_RE.test(scope)) return { status: "error", message: "表示する場所が不正です" };
+    if (!q || !a) return { status: "error", message: "質問と回答は必須です" };
+    const upd = { scope, q, a, sort: siteInt(p.sort) ?? 100, visible: siteBool(p.visible, true), updated_at: now };
+    const r = id ? await sb.from("kaitori_faqs").update(upd).eq("id", id).select("id").single() : await sb.from("kaitori_faqs").insert(upd).select("id").single();
+    if (r.error) return { status: "error", message: r.error.message };
+    await audit(actor, "faq_save", null, { id: r.data.id, ...upd, a: `(${a.length}字)` });
+    return { status: "success", message: "よくある質問を保存しました", id: r.data.id };
+  }
+  if (action === "carmaster_save") {
+    const id = siteInt(p.id);
+    const upd: Record<string, unknown> = {};
+    if ("sort" in p) upd.sort = siteInt(p.sort) ?? 100;
+    if ("makerSort" in p) upd.maker_sort = siteInt(p.makerSort) ?? 100;
+    if ("visible" in p) upd.visible = siteBool(p.visible, true);
+    if (!id) {
+      const maker = siteTxt(p.maker, 30), name = siteTxt(p.name, 40);
+      if (!maker || !name) return { status: "error", message: "メーカーと車名は必須です" };
+      Object.assign(upd, { maker, name });
+    } else if ("name" in p) { const name = siteTxt(p.name, 40); if (!name) return { status: "error", message: "車名は必須です" }; upd.name = name; }
+    const r = id ? await sb.from("kaitori_car_master").update(upd).eq("id", id).select("id").single() : await sb.from("kaitori_car_master").insert(upd).select("id").single();
+    if (r.error) return { status: "error", message: /duplicate|unique/i.test(r.error.message) ? "同じメーカー・車名がもうあります" : r.error.message };
+    await audit(actor, "carmaster_save", null, { id: r.data.id, ...upd });
+    return { status: "success", message: "車種マスタを保存しました", id: r.data.id };
+  }
+  return { status: "error", message: "不明なアクション: " + action };
+}
 
 // ---------- お客様（reply.html）用：認証なし。受け付けるのは決まった状況だけ ----------
 const REPLY_STATUSES = new Set(["査定を行いたい", "まだ検討中", "すでに売却した", "売却をやめた", "検討中", "他社商談中", "売却済み", "売却中止"]);

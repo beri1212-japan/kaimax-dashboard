@@ -312,8 +312,13 @@
   }
   #top-hero:not(:empty) { padding: 20px 32px 0; }
   /* 成約一覧は横に長い表なので、中央列（1240px）に閉じ込めず画面幅いっぱいに使う */
-  #page-deals.page-section { max-width:none; padding-left:24px; padding-right:24px; }
-  @media (max-width:720px) { #page-deals.page-section { padding-left:0; padding-right:0; } }
+  #page-deals.page-section, #page-site.page-section { max-width:none; padding-left:24px; padding-right:24px; }
+  #page-site .tg-wrap { display:inline-block; max-width:100%; vertical-align:top; }
+  .site-tabs { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:10px; }
+  .site-tab { height:30px; padding:0 14px; border:1px solid var(--line); background:var(--bg-panel); border-radius:15px; font-size:13px; font-weight:700; color:var(--ink-2); cursor:pointer; }
+  .site-tab.active { background:#e8f0fe; border-color:var(--accent); color:var(--accent-dark, #1557b0); }
+  .site-sw { font-size:12px; font-weight:400; color:var(--ink-2); white-space:nowrap; cursor:pointer; }
+  @media (max-width:720px) { #page-deals.page-section, #page-site.page-section { padding-left:0; padding-right:0; } }
   #page-deals .tg-wrap { display:inline-block; max-width:100%; vertical-align:top; }
   .dl-two { display:flex; gap:16px 28px; flex-wrap:wrap; align-items:flex-start; }
   .dl-two > div { max-width:100%; }
@@ -2459,6 +2464,7 @@
     <symbol id="ic-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></symbol>
     <symbol id="ic-car" viewBox="0 0 24 24"><path d="M5 17h14"/><path d="M6 17v2"/><path d="M18 17v2"/><path d="M3 13l2-5a2 2 0 012-1.4h10A2 2 0 0119 8l2 5v4H3z"/><circle cx="7.5" cy="14.5" r="1"/><circle cx="16.5" cy="14.5" r="1"/></symbol>
     <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></symbol>
     <symbol id="ic-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
   </defs>
 </svg>
@@ -2498,6 +2504,7 @@
     <div class="page-tab active" data-page="dashboard"><svg class="ic"><use href="#ic-dashboard"/></svg><span>ダッシュボード</span></div>
     <div class="page-tab" data-page="cases"><svg class="ic"><use href="#ic-list"/></svg><span>案件一覧</span><span class="badge">14</span></div>
     <div class="page-tab" data-page="deals"><svg class="ic"><use href="#ic-car"/></svg><span>成約一覧</span></div>
+    <div class="page-tab" data-page="site"><svg class="ic"><use href="#ic-globe"/></svg><span>サイト掲載</span></div>
     <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
     <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標・コスト</span></div>
   </nav>
@@ -2814,6 +2821,22 @@
       <input type="search" id="dl-q" placeholder="お客様名・車名・NO" oninput="renderDealsPage()" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);min-width:170px;">
     </div>
     <div id="deals-body"></div>
+  </div>
+</div>
+
+<!-- サイト掲載ページ（自社サイト買取ページ indio.co.jp/satei/ の内容） -->
+<div class="page-section" id="page-site">
+  <h2 class="section-title" style="margin-top:20px;">サイト掲載 <span class="ja">自社サイトの買取ページ（indio.co.jp/satei/）に載せる内容。保存から最大10分でサイトに反映</span></h2>
+  <div class="panel">
+    <div class="site-tabs">
+      <button class="site-tab" data-tab="voices" onclick="siteTab('voices')">お客様の声</button>
+      <button class="site-tab" data-tab="models" onclick="siteTab('models')">車種ページ・強化買取</button>
+      <button class="site-tab" data-tab="news" onclick="siteTab('news')">買取ニュース</button>
+      <button class="site-tab" data-tab="faqs" onclick="siteTab('faqs')">よくある質問</button>
+      <button class="site-tab" data-tab="cars" onclick="siteTab('cars')">車種マスタ</button>
+      <button class="dl-btn ghost" style="margin-left:auto;" onclick="renderSitePage(true)">再読み込み</button>
+    </div>
+    <div id="site-body"></div>
   </div>
 </div>
 
@@ -4273,7 +4296,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1019v11'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1020a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5198,6 +5221,407 @@
   }
   window.renderDealsPage = renderDealsPage;
 
+  // ===== 自社サイト買取ページ（indio.co.jp/satei/）の掲載内容 =====
+  // お客様の声 / 車種ページ / 買取ニュース / よくある質問 / 車種マスタ。保存は kaimax-api（voice_save など）、読み込みは RLS 経由
+  // サイト側（WordPress プラグイン indio-kaitori）は anon で読み、10分キャッシュ。保存から最大10分で反映
+  const SITE_IMG = p => p ? `${SUPABASE_URL}/storage/v1/object/public/kaitori-public/${p}` : '';
+  const BODY_TYPE_LABEL = { kei: '軽', compact: 'コンパクト', minivan: 'ミニバン', suv: 'SUV', sedan: 'セダン', wagon: 'ワゴン', sports: 'スポーツ', truck: 'トラック・商用', import: '輸入車', other: 'その他' };
+  const NEWS_KIND = ['相場情報', '強化買取', 'お知らせ', 'コラム'];
+  let site = { tab: 'voices', voices: [], models: [], news: [], faqs: [], cars: [], loaded: false, cmMaker: '' };
+  const se = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const todayIso = () => new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+
+  async function siteLoad() {
+    const q = (t, cols, f) => { let x = sbc.from(t).select(cols); if (f) x = f(x); return x.then(r => { if (r.error) throw new Error(t + ': ' + r.error.message); return r.data || []; }); };
+    const [v, m, n, f, c] = await Promise.all([
+      q('kaitori_voices', 'id,case_id,contract_no,photo_path,deal_on,maker,car,grade,model_year,city,customer_label,price_label,consent,visible,deleted_at,created_by,updated_at', x => x.is('deleted_at', null).order('deal_on', { ascending: false }).order('id', { ascending: false }).limit(1000)),
+      q('kaitori_models', '*', x => x.order('sort').order('maker').order('name')),
+      q('kaitori_news', '*', x => x.order('published_on', { ascending: false })),
+      q('kaitori_faqs', '*', x => x.order('scope').order('sort')),
+      selectAll('kaitori_car_master', 'id,maker,name,maker_sort,sort,visible', x => x.order('maker_sort').order('maker').order('sort').order('name')),
+    ]);
+    Object.assign(site, { voices: v, models: m, news: n, faqs: f, cars: c, loaded: true });
+  }
+  window.renderSitePage = async function (force) {
+    const host = document.getElementById('site-body'); if (!host) return;
+    if (!site.loaded || force) {
+      host.innerHTML = '<div class="tg-note">読み込み中...</div>';
+      try { await siteLoad(); } catch (e) { host.innerHTML = `<div class="tg-note" style="color:#d93025;">読み込めませんでした（${se(e.message)}）</div>`; return; }
+    }
+    document.querySelectorAll('.site-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === site.tab));
+    const R = { voices: siteVoices, models: siteModels, news: siteNews, faqs: siteFaqs, cars: siteCars }[site.tab];
+    host.innerHTML = R();
+  };
+  window.siteTab = function (t) { site.tab = t; renderSitePage(); };
+  function siteMsg(t, err) {
+    const h = document.getElementById('site-body'); if (!h) return;
+    const d = document.createElement('div'); d.textContent = t;
+    d.style.cssText = `font-size:12.5px;font-weight:700;padding:7px 10px;border-radius:7px;margin-bottom:10px;${err ? 'color:#d93025;background:#fce8e6;' : 'color:#137333;background:#e6f4ea;'}`;
+    h.prepend(d); setTimeout(() => d.remove(), 6000);
+  }
+  async function siteCall(action, payload) {
+    const r = await postWebhook(action, payload, 3);
+    if (r && r.ok && r.data && r.data.status === 'success') return r.data;
+    throw new Error((r && r.data && r.data.message) || '通信エラー');
+  }
+
+  // ---- 画像: 長辺を縮小して Canvas で描き直す（位置情報などの撮影情報＝EXIF はここで消える） ----
+  function siteImage(file, maxSide, keepAlpha) {
+    return new Promise((ok, ng) => {
+      if (!file || !/^image\//.test(file.type || 'image/')) return ng(new Error('画像ファイルを選んでください'));
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        if (!keepAlpha) { cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); }
+        cx.drawImage(img, 0, 0, w, h); URL.revokeObjectURL(url);
+        const done = (blob, mime) => { const fr = new FileReader(); fr.onload = () => ok({ b64: String(fr.result).split(',')[1], mime, url: String(fr.result), w, h, kb: Math.round(blob.size / 1024) }); fr.readAsDataURL(blob); };
+        cv.toBlob(b => {
+          if (b && b.type === 'image/webp') return done(b, 'image/webp');
+          // WebP に書き出せないブラウザ（古いSafari）は、透過が要るならPNG、要らなければJPEG
+          const m = keepAlpha ? 'image/png' : 'image/jpeg';
+          cv.toBlob(b2 => b2 ? done(b2, m) : ng(new Error('画像を変換できませんでした')), m, 0.85);
+        }, 'image/webp', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); ng(new Error('画像を読み込めませんでした（HEICの場合はJPEGで保存し直してください）')); };
+      img.src = url;
+    });
+  }
+  window.sitePickImage = async function (input, key, maxSide, keepAlpha) {
+    const f = input.files && input.files[0]; if (!f) return;
+    const box = document.getElementById(key + '-prev');
+    try {
+      const r = await siteImage(f, maxSide, keepAlpha);
+      window['__img_' + key] = r;
+      if (box) box.innerHTML = `<img src="${r.url}" style="max-width:100%;max-height:220px;border-radius:6px;border:1px solid var(--line);${keepAlpha ? 'background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/16px 16px;' : ''}"><div class="tg-note">${r.w}×${r.h}px・${r.kb}KB・${r.mime.replace('image/', '')}（撮影情報は削除済み）</div>`;
+    } catch (e) { window['__img_' + key] = null; if (box) box.innerHTML = `<div class="tg-note" style="color:#d93025;">${se(e.message)}</div>`; }
+  };
+
+  // ---- 本文の書き方（空行で段落、「## 」見出し、「・」箇条書き）のプレビュー ----
+  function siteRender(text) {
+    const out = [];
+    String(text || '').replace(/\r/g, '').split(/\n{2,}/).forEach(block => {
+      let ul = [], para = [];
+      const flushUl = () => { if (ul.length) { out.push(`<ul style="margin:6px 0 6px 18px;">${ul.join('')}</ul>`); ul = []; } };
+      const flushP = () => { if (para.length) { out.push(`<p style="margin:6px 0;line-height:1.8;">${para.join('<br>')}</p>`); para = []; } };
+      block.split('\n').filter(l => l.trim() !== '').forEach(l => {
+        if (/^##\s/.test(l)) { flushUl(); flushP(); out.push(`<h3 style="font-size:15px;margin:14px 0 6px;">${se(l.replace(/^##\s+/, ''))}</h3>`); }
+        else if (/^・/.test(l)) { flushP(); ul.push(`<li>${se(l.slice(1))}</li>`); }
+        else { flushUl(); para.push(se(l)); }
+      });
+      flushUl(); flushP();
+    });
+    return out.join('');
+  }
+  // オークション落札価格をそのまま書いていないかの目安（各オークションの規約で禁止が多い）
+  function siteAuctionWarn(text) {
+    const s = String(text || '').normalize('NFKC');
+    const hits = [];
+    if (/\d{1,3}(,\d{3})+円|\d{5,}円|\d+万\d+千円|\d+\.\d+万円/.test(s)) hits.push('具体的な金額（例：1,234,000円）');
+    if (/落札|オークション|AA|USS|TAA|CAA|JU/.test(s) && /\d/.test(s)) hits.push('オークションと数字の組み合わせ');
+    return hits.length ? `⚠ ${hits.join('・')}が含まれています。落札価格をそのまま載せず、「◯〜◯万円台」程度の目安にしてください。` : '';
+  }
+
+  // ===== お客様の声 =====
+  function siteVoices() {
+    const v = site.voices;
+    const rows = v.map(x => `<tr>
+      <td><img src="${SITE_IMG(x.photo_path)}" loading="lazy" style="width:72px;height:54px;object-fit:cover;border-radius:4px;vertical-align:middle;"></td>
+      <td>${se(String(x.deal_on).replace(/-/g, '/'))}</td>
+      <td style="text-align:left;">${se(x.maker)} ${se(x.car)} <span style="color:var(--ink-3);">${se(x.grade || '')}</span>${x.model_year ? ` <span style="color:var(--ink-3);">${x.model_year}年式</span>` : ''}</td>
+      <td style="text-align:left;">${se(x.city || '—')}・${se(x.customer_label || '—')}</td>
+      <td>${x.consent ? '<span class="oc-tag sold">同意あり</span>' : '<span class="oc-tag" style="background:#fce8e6;color:#c5221f;">同意なし</span>'}</td>
+      <td><label class="site-sw"><input type="checkbox" ${x.visible ? 'checked' : ''} onchange="siteVoiceFlag(${x.id},{visible:this.checked})"> ${x.visible ? '表示' : '非表示'}</label></td>
+      <td>${x.consent && x.visible ? '<span style="color:#137333;font-weight:700;">サイトに出ています</span>' : '<span style="color:var(--ink-3);">出ていません</span>'}</td>
+      <td style="white-space:nowrap;"><button class="dl-btn ghost" onclick="openVoiceForm({id:${x.id}})">編集</button></td></tr>`).join('');
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;"><button class="dl-btn" onclick="openVoiceForm({})">＋ お客様の声を登録</button>
+        <span class="tg-note" style="margin:0;">サイトに出るのは「掲載同意あり」かつ「表示」のものだけです（トップに最新4件・車種ページに4件・実績ページに全件）。成約一覧の各案件からも登録できます。</span></div>
+      <div class="tg-wrap"><table class="tg"><thead><tr><th></th><th>お引き渡し日</th><th style="text-align:left;">車</th><th style="text-align:left;">地域・お客様</th><th>掲載同意</th><th>表示</th><th>サイト</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="8" style="color:var(--ink-3);font-weight:400;">まだ登録がありません</td></tr>'}</tbody></table></div>`;
+  }
+  window.siteVoiceFlag = async function (id, flags) {
+    try { await siteCall('voice_flags', { id, ...flags }); const x = site.voices.find(v => v.id === id); if (flags.delete) site.voices = site.voices.filter(v => v.id !== id); else if (x) Object.assign(x, flags); renderSitePage(); siteMsg(flags.delete ? '削除しました' : '保存しました（最大10分でサイトに反映）'); }
+    catch (e) { renderSitePage(); siteMsg('保存できませんでした（' + e.message + '）', true); }
+  };
+  // 案件からの初期値（車名→メーカー・車種マスタ表記、年式、市町村、お客様のイニシャル）
+  const KANA_INITIAL = (() => { const m = {}; const rows = [['アイウエオ', 'A,I,U,E,O'], ['カキクケコ', 'K'], ['ガギグゲゴ', 'G'], ['サシスセソ', 'S'], ['ザジズゼゾ', 'Z'], ['タチツテト', 'T'], ['ダヂヅデド', 'D'], ['ナニヌネノ', 'N'], ['ハヒフヘホ', 'H'], ['バビブベボ', 'B'], ['パピプペポ', 'P'], ['マミムメモ', 'M'], ['ヤユヨ', 'Y'], ['ラリルレロ', 'R'], ['ワヲ', 'W']];
+    rows.forEach(([k, r]) => [...k].forEach((ch, i) => { m[ch] = r.includes(',') ? r.split(',')[i] : r; })); m['シ'] = 'S'; m['チ'] = 'T'; m['ツ'] = 'T'; m['フ'] = 'F'; m['ジ'] = 'J'; return m; })();
+  function guessFromCase(c) {
+    const out = { maker: '', car: '', grade: '', year: '', city: '', label: '' };
+    const raw = String(c.car || '').normalize('NFKC').replace(/\s+/g, ' ').trim();
+    const makers = [...new Set(site.cars.map(x => x.maker))].sort((a, b) => b.length - a.length);
+    const norm = s => s.normalize('NFKC').toUpperCase().replace(/[\s\-・]/g, '');
+    let rest = raw, mk = makers.find(m => raw.startsWith(m)) || '';
+    if (mk) rest = raw.slice(mk.length).trim();
+    const pool = site.cars.filter(x => !mk || x.maker === mk).sort((a, b) => b.name.length - a.name.length);
+    const hit = pool.find(x => norm(rest).startsWith(norm(x.name))) || pool.find(x => norm(rest).includes(norm(x.name)));
+    if (hit) { out.maker = hit.maker; out.car = hit.name; const idx = norm(rest).indexOf(norm(hit.name)); out.grade = idx === 0 ? rest.slice(hit.name.length).trim().slice(0, 60) : ''; }
+    else { out.maker = mk; out.car = rest; }
+    const y = String(c.year || ''), m4 = y.match(/(19|20)\d{2}/);
+    if (m4) out.year = m4[0];
+    else { const w = y.normalize('NFKC').match(/([HRS])\s*(\d{1,2})/i); if (w) out.year = String({ H: 1988, R: 2018, S: 1925 }[w[1].toUpperCase()] + +w[2]); }
+    const a = String(c.address || '').normalize('NFKC').replace(/^.{2,3}?[都道府県]/, '');
+    const cm = a.match(/^(?:.+?郡)?(.+?[市町村])/); if (cm) out.city = cm[1];
+    const first = String(c.customer || '').normalize('NFKC').trim()[0] || '';
+    if (/[A-Za-z]/.test(first)) out.label = first.toUpperCase() + '様';
+    else if (KANA_INITIAL[first]) out.label = KANA_INITIAL[first] + '様';
+    return out;
+  }
+  window.openVoiceForm = async function ({ id, caseNo }) {
+    if (!site.loaded) { try { await siteLoad(); } catch (e) { alertBar('読み込めませんでした（' + e.message + '）', true); return; } }
+    const v = id ? site.voices.find(x => x.id === id) : null;
+    const c = caseNo ? (allCases || []).find(x => x.no === caseNo) : null;
+    const g = c ? guessFromCase(c) : {};
+    const ex = c ? dealExtra(c) : {};
+    const val = v ? { dealOn: v.deal_on, maker: v.maker, car: v.car, grade: v.grade, year: v.model_year, city: v.city, label: v.customer_label, price: v.price_label, consent: v.consent, visible: v.visible, contractNo: v.contract_no }
+      : { dealOn: ex.dealOn || todayIso(), maker: g.maker, car: g.car, grade: g.grade, year: g.year, city: g.city, label: g.label, price: '', consent: false, visible: true, contractNo: ex.contractNo || '' };
+    const makers = [...new Set(site.cars.map(x => x.maker))];
+    window.__img_vf = null;
+    dlModal(`<div class="dl-modal-h">${v ? 'お客様の声を編集' : 'お客様の声を登録'}${c ? `：NO ${c.no} ${se(c.car || '')}（担当 ${se(c.assignee || '—')}）` : ''}<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="tg-note">サイトに出るのは写真・車種・年式・市町村・お客様のイニシャル・金額の目安だけです。<b>フルネームや正確な金額は入れないでください</b>（入れると保存できません）。</div>
+      <div class="oc-row" style="align-items:flex-start;">
+        <div class="oc-f" style="flex:1 1 260px;">写真（お引き渡しの記念写真）<input type="file" accept="image/*" onchange="sitePickImage(this,'vf',1600,false)" style="height:auto;padding:6px;">
+          <div id="vf-prev">${v ? `<img src="${SITE_IMG(v.photo_path)}" style="max-width:100%;max-height:220px;border-radius:6px;border:1px solid var(--line);"><div class="tg-note">変えるときだけ選び直してください</div>` : '<div class="tg-note">長辺1600pxに縮小し、位置情報などの撮影情報を消してから保存します</div>'}</div></div>
+        <div style="flex:1 1 300px;display:flex;flex-direction:column;gap:8px;">
+          <div class="oc-row">
+            <label class="oc-f">お引き渡し日<input type="date" id="vf-deal" value="${se(val.dealOn || '')}"></label>
+            <label class="oc-f">年式（西暦）<input id="vf-year" inputmode="numeric" value="${se(val.year || '')}" placeholder="2018" style="width:90px;"></label>
+          </div>
+          <div class="oc-row">
+            <label class="oc-f">メーカー<input id="vf-maker" list="vf-makers" value="${se(val.maker || '')}" oninput="siteCarList()" style="width:130px;"><datalist id="vf-makers">${makers.map(m => `<option value="${se(m)}">`).join('')}</datalist></label>
+            <label class="oc-f" style="flex:1 1 160px;">車名（車種マスタの表記）<input id="vf-car" list="vf-cars" value="${se(val.car || '')}"><datalist id="vf-cars"></datalist></label>
+          </div>
+          <label class="oc-f">グレード<input id="vf-grade" value="${se(val.grade || '')}"></label>
+          <div class="oc-row">
+            <label class="oc-f">市町村<input id="vf-city" value="${se(val.city || '')}" placeholder="富山市" style="width:120px;"></label>
+            <label class="oc-f">お客様（イニシャル）<input id="vf-label" value="${se(val.label || '')}" placeholder="T様" style="width:80px;"></label>
+            <label class="oc-f">金額の目安（任意）<input id="vf-price" value="${se(val.price || '')}" placeholder="45万円台" style="width:110px;"></label>
+          </div>
+          <label style="font-size:13px;font-weight:700;color:var(--ink);display:flex;gap:6px;align-items:center;"><input type="checkbox" id="vf-consent" ${val.consent ? 'checked' : ''}> お客様から掲載の同意を得た</label>
+          <label style="font-size:13px;color:var(--ink-2);display:flex;gap:6px;align-items:center;"><input type="checkbox" id="vf-visible" ${val.visible ? 'checked' : ''}> サイトに表示する</label>
+          <div class="tg-note" style="margin:0;">同意のチェックが無いと、保存してもサイトには出ません。</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;">
+        <button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="saveVoice(${v ? v.id : 'null'}, ${c ? c.no : (v && v.case_no ? v.case_no : 'null')}, '${se(val.contractNo || '')}')">保存</button>
+        <span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span>
+        ${v ? `<button class="dl-btn ghost" style="margin-left:auto;color:#d93025;border-color:#d93025;" onclick="if(document.getElementById('vf-del').checked){document.getElementById('dl-modal').remove();siteVoiceFlag(${v.id},{delete:true})}">削除</button><label style="font-size:12px;color:var(--ink-3);"><input type="checkbox" id="vf-del"> 削除する</label>` : ''}
+      </div>`);
+    siteCarList();
+  };
+  window.siteCarList = function () {
+    const mk = (document.getElementById('vf-maker') || {}).value || '';
+    const dl = document.getElementById('vf-cars'); if (!dl) return;
+    dl.innerHTML = site.cars.filter(x => !mk || x.maker === mk).map(x => `<option value="${se(x.name)}">`).join('');
+  };
+  window.saveVoice = async function (id, caseNo, contractNo) {
+    const g = k => (document.getElementById(k) || {}).value || '';
+    const m = document.getElementById('dl-modal-msg');
+    const img = window.__img_vf;
+    if (!id && !img) { m.style.color = '#d93025'; m.textContent = '写真を選んでください'; return; }
+    const consent = document.getElementById('vf-consent').checked;
+    m.style.color = 'var(--ink-3)'; m.textContent = '保存中...';
+    try {
+      const r = await siteCall('voice_save', { id, caseNo, contractNo, dealOn: g('vf-deal'), maker: g('vf-maker').trim(), car: g('vf-car').trim(), grade: g('vf-grade').trim(), modelYear: g('vf-year').trim(),
+        city: g('vf-city').trim(), customerLabel: g('vf-label').trim(), priceLabel: g('vf-price').trim(), consent, visible: document.getElementById('vf-visible').checked,
+        photoB64: img ? img.b64 : undefined, photoMime: img ? img.mime : undefined });
+      document.getElementById('dl-modal').remove();
+      await siteLoad(); if (document.getElementById('page-site').classList.contains('active')) renderSitePage(); else renderDealsPage();
+      (document.getElementById('page-site').classList.contains('active') ? siteMsg : alertBar)(r.message);
+    } catch (e) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + e.message + '）'; }
+  };
+
+  // ===== 車種ページ（kaitori_models） =====
+  function siteModels() {
+    const fe = site.models.filter(x => x.is_featured).length;
+    const rows = site.models.map(x => `<tr>
+      <td>${x.image_path ? `<img src="${SITE_IMG(x.image_path)}" loading="lazy" style="width:72px;height:48px;object-fit:contain;vertical-align:middle;">` : '<span style="color:var(--ink-3);font-weight:400;">写真なし</span>'}</td>
+      <td style="text-align:left;">${se(x.maker)} <b>${se(x.name)}</b><div style="color:var(--ink-3);font-size:11px;font-weight:400;">/satei/${se(x.slug)}/・${BODY_TYPE_LABEL[x.body_type] || x.body_type}</div></td>
+      <td><label class="site-sw"><input type="checkbox" ${x.visible ? 'checked' : ''} onchange="siteModelFlag('${x.id}',{visible:this.checked})"> 表示</label></td>
+      <td><label class="site-sw"><input type="checkbox" ${x.is_featured ? 'checked' : ''} onchange="siteModelFlag('${x.id}',{isFeatured:this.checked})"> 強化買取</label></td>
+      <td>${x.sort}</td>
+      <td style="text-align:left;max-width:260px;white-space:normal;font-weight:400;color:var(--ink-2);">${se(x.headline || '')}</td>
+      <td><button class="dl-btn ghost" onclick="openModelForm('${x.id}')">編集</button></td></tr>`).join('');
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;"><button class="dl-btn" onclick="openModelForm('')">＋ 車種を追加</button>
+        <span class="tg-note" style="margin:0;">「表示」で車種ページがサイトに出ます。「強化買取」はトップの「いま強化買取中の車種」に出ます（いま ${fe} 車種${fe > 6 ? '。<b style="color:#b06000;">6車種を超えると見づらくなります</b>' : fe && fe < 3 ? '。3〜6車種が見やすいです' : ''}）。</span></div>
+      <div class="tg-wrap"><table class="tg"><thead><tr><th>写真</th><th style="text-align:left;">車種</th><th>表示</th><th>強化買取</th><th>並び順</th><th style="text-align:left;">ひとこと</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="7">車種がありません</td></tr>'}</tbody></table></div>`;
+  }
+  window.siteModelFlag = async function (id, flags) {
+    try { await siteCall('model_flags', { id, ...flags }); const x = site.models.find(m => m.id === id); if (x) { if ('visible' in flags) x.visible = flags.visible; if ('isFeatured' in flags) x.is_featured = flags.isFeatured; } renderSitePage(); siteMsg('保存しました（最大10分でサイトに反映）'); }
+    catch (e) { renderSitePage(); siteMsg('保存できませんでした（' + e.message + '）', true); }
+  };
+  window.openModelForm = function (id) {
+    const x = id ? site.models.find(m => m.id === id) : null;
+    window.__img_mf = null;
+    dlModal(`<div class="dl-modal-h">${x ? `車種ページを編集：${se(x.maker)} ${se(x.name)}` : '車種を追加'}<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      ${x ? '' : `<div class="oc-row" style="margin-bottom:8px;">
+        <label class="oc-f">URL（slug）<input id="mf-slug" placeholder="n-box" style="width:130px;"></label>
+        <label class="oc-f">メーカー<input id="mf-maker" style="width:110px;"></label>
+        <label class="oc-f">車名<input id="mf-name" style="width:140px;"></label>
+        <label class="oc-f">ボディタイプ<select id="mf-bt">${Object.entries(BODY_TYPE_LABEL).map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></label></div>
+        <div class="tg-note">URLは英小文字・数字・ハイフン（例：n-box）。news / form / jisseki などは使えません。追加した後は変えられません。</div>`}
+      <div class="oc-row" style="align-items:flex-start;">
+        <div style="flex:1 1 320px;display:flex;flex-direction:column;gap:8px;">
+          <label class="oc-f">ひとこと（カードと車種ページの冒頭。80字程度まで）<input id="mf-head" value="${se(x ? x.headline || '' : '')}" maxlength="120" oninput="document.getElementById('mf-hc').textContent=this.value.length"><span class="tg-note" style="margin:0;font-weight:400;"><span id="mf-hc">${x && x.headline ? x.headline.length : 0}</span>字</span></label>
+          <label class="oc-f">紹介文（空行で段落、「## 」で見出し、「・」で箇条書き）<textarea id="mf-intro" rows="10" oninput="document.getElementById('mf-pv').innerHTML=siteRenderPub(this.value)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.6;font-family:inherit;">${se(x ? x.intro || '' : '')}</textarea></label>
+          <div class="oc-row">
+            <label class="oc-f">並び順<input id="mf-sort" inputmode="numeric" value="${x ? x.sort : 100}" style="width:70px;"></label>
+            <label class="oc-f" style="flex:1 1 200px;">表記ゆれ（お客様の声と結びつける車名。カンマ区切り）<input id="mf-keys" value="${se(x ? (x.match_keys || []).join(', ') : '')}" placeholder="N BOX, N-BOX"></label>
+          </div>
+          <details><summary style="cursor:pointer;font-size:12.5px;color:var(--ink-2);">SEO（通常は空でよい。空なら自動で作ります）</summary>
+            <label class="oc-f" style="margin-top:6px;">タイトル<input id="mf-seot" value="${se(x ? x.seo_title || '' : '')}"></label>
+            <label class="oc-f" style="margin-top:6px;">説明文<input id="mf-seod" value="${se(x ? x.seo_desc || '' : '')}"></label></details>
+        </div>
+        <div style="flex:1 1 260px;">
+          <div class="oc-f">車の写真（白背景を切り抜いた透過PNGが一番きれい）<input type="file" accept="image/*" onchange="sitePickImage(this,'mf',1200,true)" style="height:auto;padding:6px;"></div>
+          <div id="mf-prev">${x && x.image_path ? `<img src="${SITE_IMG(x.image_path)}" style="max-width:100%;max-height:200px;">` : ''}</div>
+          <div class="oc-sec" style="margin-top:10px;">紹介文のプレビュー</div>
+          <div id="mf-pv" style="border:1px solid var(--line);border-radius:8px;padding:8px 12px;max-height:260px;overflow:auto;font-size:13px;color:var(--ink);">${siteRender(x ? x.intro : '')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;">
+        <button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="saveModel('${x ? x.id : ''}')">保存</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span></div>`);
+  };
+  window.siteRenderPub = siteRender;
+  window.saveModel = async function (id) {
+    const g = k => (document.getElementById(k) || {}).value || '';
+    const m = document.getElementById('dl-modal-msg'); m.style.color = 'var(--ink-3)'; m.textContent = '保存中...';
+    const img = window.__img_mf;
+    const p = { id, headline: g('mf-head').trim(), intro: g('mf-intro'), sort: g('mf-sort').trim(), matchKeys: g('mf-keys'), seoTitle: g('mf-seot').trim(), seoDesc: g('mf-seod').trim(),
+      imageB64: img ? img.b64 : undefined, imageMime: img ? img.mime : undefined };
+    if (!id) Object.assign(p, { slug: g('mf-slug').trim(), maker: g('mf-maker').trim(), name: g('mf-name').trim(), bodyType: g('mf-bt'), visible: false, isFeatured: false });
+    try { const r = await siteCall('model_save', p); document.getElementById('dl-modal').remove(); await siteLoad(); renderSitePage(); siteMsg(r.message); }
+    catch (e) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + e.message + '）'; }
+  };
+
+  // ===== 買取ニュース（kaitori_news） =====
+  function siteNews() {
+    const td = todayIso();
+    const st = x => !x.visible ? '<span class="oc-tag">下書き</span>' : x.published_on > td ? `<span class="oc-tag aa">予約（${String(x.published_on).slice(5).replace('-', '/')}から）</span>` : '<span class="oc-tag sold">公開中</span>';
+    const rows = site.news.map(x => `<tr><td>${String(x.published_on).replace(/-/g, '/')}</td><td>${se(x.kind)}</td>
+      <td style="text-align:left;"><b>${se(x.title)}</b><div style="color:var(--ink-3);font-size:11px;font-weight:400;">/satei/news/${se(x.slug)}/</div></td><td>${st(x)}</td>
+      <td><button class="dl-btn ghost" onclick="openNewsForm('${x.id}')">編集</button></td></tr>`).join('');
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;"><button class="dl-btn" onclick="openNewsForm('')">＋ ニュースを書く</button>
+        <span class="tg-note" style="margin:0;">公開日を未来にすると、その日まで出ません（予約投稿）。相場の記事は、オークションの落札価格をそのまま載せず「◯〜◯万円台」程度の目安にしてください。</span></div>
+      <div class="tg-wrap"><table class="tg"><thead><tr><th>公開日</th><th>種類</th><th style="text-align:left;">タイトル</th><th>状態</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="5" style="color:var(--ink-3);font-weight:400;">まだ記事がありません</td></tr>'}</tbody></table></div>`;
+  }
+  window.openNewsForm = function (id) {
+    const x = id ? site.news.find(n => n.id === id) : null;
+    window.__img_nf = null;
+    const sel = new Set(x ? x.model_ids || [] : []);
+    dlModal(`<div class="dl-modal-h">${x ? 'ニュースを編集' : 'ニュースを書く'}<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="oc-row" style="align-items:flex-start;">
+        <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:8px;" oninput="siteNewsPreview()">
+          <div class="oc-row">
+            <label class="oc-f">種類<select id="nf-kind">${NEWS_KIND.map(k => `<option${x && x.kind === k ? ' selected' : ''}>${k}</option>`).join('')}</select></label>
+            <label class="oc-f">公開日<input type="date" id="nf-pub" value="${se(x ? x.published_on : todayIso())}"></label>
+            <label class="oc-f">URL（slug）<input id="nf-slug" value="${se(x ? x.slug : '')}" placeholder="2026-11-4wd-kei" style="width:170px;"></label>
+          </div>
+          <label class="oc-f">見出し<input id="nf-title" value="${se(x ? x.title : '')}"></label>
+          <label class="oc-f">一覧に出る1行の要約<input id="nf-lead" value="${se(x ? x.lead || '' : '')}"></label>
+          <label class="oc-f">本文（空行で段落、「## 」で見出し、「・」で箇条書き）<textarea id="nf-body" rows="12" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.6;font-family:inherit;">${se(x ? x.body || '' : '')}</textarea></label>
+          <div class="oc-f">関係する車種（その車種ページにも記事が出ます）<div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-weight:400;color:var(--ink-2);">${site.models.map(m => `<label style="font-size:12.5px;"><input type="checkbox" class="nf-model" value="${m.id}" ${sel.has(m.id) ? 'checked' : ''}> ${se(m.name)}</label>`).join('')}</div></div>
+          <div class="oc-row">
+            <div class="oc-f" style="flex:1 1 200px;">アイキャッチ（任意）<input type="file" accept="image/*" onchange="sitePickImage(this,'nf',1600,false)" style="height:auto;padding:6px;"><div id="nf-prev">${x && x.image_path ? `<img src="${SITE_IMG(x.image_path)}" style="max-width:100%;max-height:120px;border-radius:6px;"><label style="font-size:12px;font-weight:400;"><input type="checkbox" id="nf-rmimg"> 画像を外す</label>` : ''}</div></div>
+            <label style="font-size:13px;font-weight:700;color:var(--ink);display:flex;gap:6px;align-items:center;"><input type="checkbox" id="nf-visible" ${x && x.visible ? 'checked' : ''}> 公開する（外すと下書き）</label>
+          </div>
+        </div>
+        <div style="flex:1 1 300px;">
+          <div class="oc-sec" style="margin-top:0;">プレビュー</div>
+          <div id="nf-warn" style="font-size:12px;color:#b06000;font-weight:700;margin-bottom:6px;"></div>
+          <div id="nf-pv" style="border:1px solid var(--line);border-radius:8px;padding:10px 14px;max-height:520px;overflow:auto;font-size:13px;color:var(--ink);"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap;">
+        <button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="saveNews('${x ? x.id : ''}')">保存</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span></div>`);
+    siteNewsPreview();
+  };
+  window.siteNewsPreview = function () {
+    const g = k => (document.getElementById(k) || {}).value || '';
+    const pv = document.getElementById('nf-pv'); if (!pv) return;
+    pv.innerHTML = `<div style="font-size:11px;color:var(--ink-3);">${se(g('nf-kind'))}・${se(g('nf-pub').replace(/-/g, '/'))}</div><h2 style="font-size:18px;margin:4px 0 6px;">${se(g('nf-title')) || '<span style="color:var(--ink-3);">（見出し）</span>'}</h2><div style="color:var(--ink-2);margin-bottom:8px;">${se(g('nf-lead'))}</div>${siteRender(g('nf-body'))}`;
+    document.getElementById('nf-warn').textContent = siteAuctionWarn(g('nf-title') + '\n' + g('nf-lead') + '\n' + g('nf-body'));
+  };
+  window.saveNews = async function (id) {
+    const g = k => (document.getElementById(k) || {}).value || '';
+    const m = document.getElementById('dl-modal-msg'); m.style.color = 'var(--ink-3)'; m.textContent = '保存中...';
+    const img = window.__img_nf;
+    try {
+      const r = await siteCall('news_save', { id, kind: g('nf-kind'), publishedOn: g('nf-pub'), slug: g('nf-slug').trim(), title: g('nf-title').trim(), lead: g('nf-lead').trim(), body: g('nf-body'),
+        modelIds: [...document.querySelectorAll('.nf-model:checked')].map(b => b.value), visible: document.getElementById('nf-visible').checked,
+        imageB64: img ? img.b64 : undefined, imageMime: img ? img.mime : undefined, removeImage: !!(document.getElementById('nf-rmimg') || {}).checked });
+      document.getElementById('dl-modal').remove(); await siteLoad(); renderSitePage(); siteMsg(r.message);
+    } catch (e) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + e.message + '）'; }
+  };
+
+  // ===== よくある質問（kaitori_faqs） =====
+  function siteFaqs() {
+    const scopeName = s => s === 'all' ? '全ページ' : ((site.models.find(m => m.slug === s) || {}).name || s) + 'のページ';
+    const rows = site.faqs.map(x => `<tr><td style="text-align:left;">${se(scopeName(x.scope))}</td><td>${x.sort}</td>
+      <td style="text-align:left;white-space:normal;max-width:520px;"><b>Q. ${se(x.q)}</b><div style="font-weight:400;color:var(--ink-2);">A. ${se(String(x.a).slice(0, 120))}${String(x.a).length > 120 ? '…' : ''}</div></td>
+      <td>${x.visible ? '<span class="oc-tag sold">表示</span>' : '<span class="oc-tag">非表示</span>'}</td><td><button class="dl-btn ghost" onclick="openFaqForm('${x.id}')">編集</button></td></tr>`).join('');
+    return `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;"><button class="dl-btn" onclick="openFaqForm('')">＋ 質問を追加</button></div>
+      <div class="tg-wrap"><table class="tg"><thead><tr><th style="text-align:left;">出す場所</th><th>並び順</th><th style="text-align:left;">質問と回答</th><th>表示</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="5">まだありません</td></tr>'}</tbody></table></div>`;
+  }
+  window.openFaqForm = function (id) {
+    const x = id ? site.faqs.find(f => f.id === id) : null;
+    dlModal(`<div class="dl-modal-h">${x ? 'よくある質問を編集' : '質問を追加'}<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
+      <div class="oc-row"><label class="oc-f">出す場所<select id="ff-scope"><option value="all">全ページ</option>${site.models.map(m => `<option value="${m.slug}"${x && x.scope === m.slug ? ' selected' : ''}>${se(m.name)}のページだけ</option>`).join('')}</select></label>
+        <label class="oc-f">並び順<input id="ff-sort" inputmode="numeric" value="${x ? x.sort : 100}" style="width:70px;"></label>
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center;"><input type="checkbox" id="ff-visible" ${!x || x.visible ? 'checked' : ''}> 表示する</label></div>
+      <label class="oc-f" style="margin-top:8px;">質問<input id="ff-q" value="${se(x ? x.q : '')}"></label>
+      <label class="oc-f" style="margin-top:8px;">回答<textarea id="ff-a" rows="6" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.6;font-family:inherit;">${se(x ? x.a : '')}</textarea></label>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;"><button class="dl-btn" style="height:32px;padding:0 18px;font-size:13px;" onclick="saveFaq('${x ? x.id : ''}')">保存</button><span id="dl-modal-msg" style="font-size:12.5px;font-weight:700;"></span></div>`);
+    if (x && x.scope === 'all') document.getElementById('ff-scope').value = 'all';
+  };
+  window.saveFaq = async function (id) {
+    const g = k => (document.getElementById(k) || {}).value || '';
+    const m = document.getElementById('dl-modal-msg'); m.style.color = 'var(--ink-3)'; m.textContent = '保存中...';
+    try { const r = await siteCall('faq_save', { id, scope: g('ff-scope'), sort: g('ff-sort'), q: g('ff-q').trim(), a: g('ff-a').trim(), visible: document.getElementById('ff-visible').checked });
+      document.getElementById('dl-modal').remove(); await siteLoad(); renderSitePage(); siteMsg(r.message); }
+    catch (e) { m.style.color = '#d93025'; m.textContent = '保存できませんでした（' + e.message + '）'; }
+  };
+
+  // ===== 車種マスタ（査定フォームの「メーカー→車種」の選択肢） =====
+  function siteCars() {
+    const makers = [...new Map(site.cars.map(x => [x.maker, x.maker_sort])).entries()].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], 'ja'));
+    if (!site.cmMaker && makers.length) site.cmMaker = makers[0][0];
+    const list = site.cars.filter(x => x.maker === site.cmMaker);
+    const rows = list.map(x => `<tr><td style="text-align:left;">${se(x.name)}</td>
+      <td><input class="tg-in" value="${x.sort}" inputmode="numeric" style="width:60px;" onchange="siteCarSave(${x.id},{sort:this.value})"></td>
+      <td><label class="site-sw"><input type="checkbox" ${x.visible ? 'checked' : ''} onchange="siteCarSave(${x.id},{visible:this.checked})"> ${x.visible ? '表示' : '非表示'}</label></td></tr>`).join('');
+    return `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+        <select onchange="site.cmMaker=this.value;renderSitePage()" style="height:30px;border:1px solid var(--line);border-radius:6px;padding:0 8px;">${makers.map(([m]) => `<option${m === site.cmMaker ? ' selected' : ''}>${se(m)}</option>`).join('')}</select>
+        <span class="tg-note" style="margin:0;">査定フォームの「メーカー→車種」の選択肢です。並び順は小さいほど上。全 ${site.cars.length} 車種</span></div>
+      <div class="tg-wrap"><table class="tg"><thead><tr><th style="text-align:left;">車種（${se(site.cmMaker)}・${list.length}）</th><th>並び順</th><th>表示</th></tr></thead><tbody>${rows}
+        <tr><td style="text-align:left;"><input id="cm-new" placeholder="車種を追加" class="tg-in" style="width:160px;text-align:left;"></td><td colspan="2"><button class="dl-btn ghost" onclick="siteCarAdd()">追加</button></td></tr></tbody></table></div>`;
+  }
+  window.siteCarSave = async function (id, f) {
+    try { await siteCall('carmaster_save', { id, ...f }); const x = site.cars.find(c => c.id === id); if (x) { if ('sort' in f) x.sort = +f.sort || 100; if ('visible' in f) x.visible = f.visible; } siteMsg('保存しました'); if ('visible' in f) renderSitePage(); }
+    catch (e) { siteMsg('保存できませんでした（' + e.message + '）', true); }
+  };
+  window.siteCarAdd = async function () {
+    const name = (document.getElementById('cm-new') || {}).value.trim(); if (!name) return;
+    try { await siteCall('carmaster_save', { maker: site.cmMaker, name, sort: 100, visible: true }); await siteLoad(); renderSitePage(); siteMsg(`「${name}」を追加しました`); }
+    catch (e) { siteMsg('追加できませんでした（' + e.message + '）', true); }
+  };
+
+  // ===== 案件詳細：サイトの査定依頼でお客様が送った写真（非公開バケット。署名付きURLで1時間だけ見られる） =====
+  window.loadCaseSitePhotos = async function (no) {
+    const box = document.getElementById('dp-site-photos'); if (!box) return;
+    try {
+      const { data, error } = await sbc.from('kaitori_requests').select('photo_paths,created_at').eq('case_no', no);
+      if (error) throw error;
+      const paths = (data || []).flatMap(r => r.photo_paths || []);
+      if (!paths.length) { box.closest('.detail-section').style.display = 'none'; return; }
+      const { data: urls, error: e2 } = await sbc.storage.from('kaitori-photos').createSignedUrls(paths, 3600);
+      if (e2) throw e2;
+      box.innerHTML = urls.map(u => u.signedUrl ? `<a href="${u.signedUrl}" target="_blank" rel="noopener"><img src="${u.signedUrl}" style="width:104px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);"></a>` : '').join('');
+    } catch (e) { box.innerHTML = `<span style="color:#d93025;font-size:12px;">写真を読み込めませんでした（${se(e.message || e)}）</span>`; }
+  };
+
   // ===== 事業責任者アクションボード（現状分析→日次/週次でやるべきこと） =====
   window.jumpToPreset = function (name) {
     const tab = [...document.querySelectorAll('.page-tab')].find(t => t.dataset.page === 'cases');
@@ -5592,6 +6016,11 @@
 
       ${replyUrlBlock}
 
+      ${isNew ? '' : `<div class="detail-section"><h3>サイトの査定依頼で届いた写真</h3><div id="dp-site-photos" style="display:flex;gap:8px;flex-wrap:wrap;"><span style="color:var(--ink-3);font-size:12px;">読み込み中...</span></div></div>`}
+      ${!isNew && isDeal(c) ? `<div class="detail-section"><h3>自社サイト（お客様の声）</h3>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><button class="url-copy-btn" onclick="openVoiceForm({caseNo:${c.no}})"><svg class="ic"><use href="#ic-plus"/></svg> お客様の声を登録</button>
+        <span style="font-size:12px;color:var(--ink-3);">お引き渡しの記念写真をサイトの買取実績に載せます（掲載同意が必要）</span></div></div>` : ''}
+
       <div class="detail-section" id="dp-actions">
         <div class="edit-status" id="detail-status"></div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
@@ -5608,6 +6037,7 @@
     if (delBtn) delBtn.addEventListener('click', deleteFromDetail);
 
     document.getElementById('detail-body').scrollTop = 0;
+    if (!isNew) loadCaseSitePhotos(c.no);
     overlay.classList.add('show');
     panel.classList.add('show');
   }
@@ -5730,7 +6160,7 @@
   })();
   // ヘッダーのページ名を現在のタブに追従させる
   function updatePageTitle(key) {
-    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', deals: '成約一覧', report: '実績集計', targets: '目標・コスト' };
+    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', deals: '成約一覧', site: 'サイト掲載', report: '実績集計', targets: '目標・コスト' };
     const el = document.getElementById('pageTitle');
     if (el && names[key]) el.textContent = names[key];
   }
@@ -5790,6 +6220,7 @@
       if (t.dataset.page === 'deals') {
         renderDealsPage();
       }
+      if (t.dataset.page === 'site') renderSitePage();
     });
   });
 

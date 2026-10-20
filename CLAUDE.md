@@ -30,6 +30,13 @@ kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_wo
 スタッフ `create` `update` `delete`(論理削除) `update_calls` `update_memo` `update_meta` `set_target` `set_cost` `set_staff` `link_contract` `unlink_contract` `set_outcome` `create_from_contract`(契約→成約案件を新規作成。source=smart-sign) `import_contracts`(smart-sign契約一覧Excelの取込。ワーカー鍵でも可) `set_contract_scope`(契約を成果に含める/含めない) /
 お客様 `reply`（認証なし・状況は固定リストのみ）
 
+**自社サイト買取ページ（indio.co.jp/satei/）の掲載管理**（2026/10/20〜。画面「サイト掲載」タブ）:
+- テーブル: `kaitori_voices`（お客様の声。kaimax で新設。公開は visible かつ consent かつ未削除のみ・書込は API 経由のみ）/ 既存 `kaitori_models` `kaitori_news` `kaitori_faqs` `kaitori_car_master`（**表の作りは変えない。列を足すときはサイト側と事前相談**）
+- アクション: `voice_save` `voice_flags`(表示/同意/論理削除) `model_save` `model_flags` `news_save` `faq_save` `carmaster_save`
+- 画像は公開バケット `kaitori-public`（voices/YYYY-MM/uuid / models/{slug}-日時 / news/{slug}-日時）。画面側で Canvas 描き直し（長辺1600px・WebP・EXIF除去）してから base64 で送る
+- 案件詳細に「サイトの査定依頼で届いた写真」（非公開バケット `kaitori-photos` を署名付きURL 1時間）と「お客様の声を登録」（成約案件のみ）
+- サイト(WordPress)は anon で読み10分キャッシュ。voices の読み取りクエリ（photo_url:photo_path,…）は**変えない**
+
 画面側の要点:
 - `loadRowsFromDB()` が DB をシート形の行に組み直し、既存の `rowsToCases()` をそのまま通す（下流5,000行は無改修）
 - 目標・コストタブは年度＝**6月始まり**。獲得単価は**受信月**で数える

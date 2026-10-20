@@ -53,6 +53,16 @@ const stub = async (p) => {
       ds[3] && { case_id: ds[3].id, route: '商品→AA', auctions: [{ date: '2026-10-10', venue: 'TAA中部', listingFee: 9900, transportFee: 12000, result: '流札' }] },
       ds[4] && { case_id: ds[4].id, route: '廃車', auctions: [] },
     ].filter(Boolean)); }
+    if (u.includes('.supabase.co/rest/v1/kaitori_voices')) return j([
+      { id: 2, case_id: null, contract_no: null, photo_path: 'voices/2026-10/x.webp', deal_on: '2026-10-12', maker: 'ホンダ', car: 'N-BOX', grade: 'G Lパッケージ', model_year: 2018, city: '富山市', customer_label: 'T様', price_label: '45万円台', consent: true, visible: true },
+      { id: 1, case_id: null, contract_no: null, photo_path: 'voices/2026-10/y.webp', deal_on: '2026-10-05', maker: 'トヨタ', car: 'プリウス', grade: 'S', model_year: 2016, city: '高岡市', customer_label: 'K様', price_label: null, consent: false, visible: true }]);
+    if (u.includes('.supabase.co/rest/v1/kaitori_models')) return j([
+      { id: '11111111-1111-1111-1111-111111111111', slug: 'n-box', maker: 'ホンダ', name: 'N-BOX', body_type: 'kei', visible: true, is_featured: true, headline: '軽の人気No.1。年式が古くても高く買い取ります', intro: '## N-BOXの買取について\nN-BOXは中古車でも人気です。\n\n・カスタムは特に高評価\n・走行10万km超えでもOK', match_keys: ['N BOX', 'N-BOX'], image_path: null, sort: 10 },
+      { id: '22222222-2222-2222-2222-222222222222', slug: 'tanto', maker: 'ダイハツ', name: 'タント', body_type: 'kei', visible: false, is_featured: false, headline: null, intro: null, match_keys: ['タント'], image_path: null, sort: 20 }]);
+    if (u.includes('.supabase.co/rest/v1/kaitori_news')) return j([{ id: '33333333-3333-3333-3333-333333333333', slug: '2026-11-4wd-kei', kind: '相場情報', title: '冬前は4WDの軽が高い', lead: '11月は4WDの軽自動車の相場が上がります', body: '## 相場の目安\nN-BOX 4WDは50〜70万円台が中心です。', image_path: null, model_ids: ['11111111-1111-1111-1111-111111111111'], published_on: '2026-11-01', visible: true }]);
+    if (u.includes('.supabase.co/rest/v1/kaitori_faqs')) return j([{ id: '44444444-4444-4444-4444-444444444444', scope: 'all', q: 'ローンが残っていても売れますか？', a: 'はい、残債の精算もこちらで手続きします。', sort: 10, visible: true }]);
+    if (u.includes('.supabase.co/rest/v1/kaitori_car_master')) return j([{ id: 1, maker: 'トヨタ', name: 'プリウス', maker_sort: 1, sort: 10, visible: true }, { id: 2, maker: 'トヨタ', name: 'アクア', maker_sort: 1, sort: 20, visible: true }, { id: 3, maker: 'マツダ', name: 'デミオ', maker_sort: 5, sort: 10, visible: true }, { id: 4, maker: 'ホンダ', name: 'N-BOX', maker_sort: 2, sort: 10, visible: true }]);
+    if (u.includes('.supabase.co/rest/v1/kaitori_requests')) return j([]);
     if (u.includes('.supabase.co/rest/v1/kaimax_staff')) return j([{ name: '前田', status: 'active' }, { name: '金木', status: 'archived' }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_costs')) return j([{ ym: '2026-07', kind: 'media', item: 'mota', amount: 150000 }, { ym: '2026-07', kind: 'media', item: 'carsensor', amount: 80000 }, { ym: '2026-07', kind: 'other', item: '人件費', amount: 300000 }, { ym: '2026-10', kind: 'media', item: 'mota', amount: 6000000 }]);
     if (u.includes('.supabase.co/rest/v1/kaimax_targets')) return j([{ ym: '2026-10', assignee: '前田', target: 16 }, { ym: '2026-10', assignee: '高木', target: 2 }]);
