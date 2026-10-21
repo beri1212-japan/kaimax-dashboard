@@ -3,7 +3,7 @@
 //      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
-//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理。AA暫定価格=est_aa_yen も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
+//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
 //      自社サイト買取ページ: voice_save・voice_flags(お客様の声) / model_save・model_flags(車種ページ) / news_save(買取ニュース) / faq_save(よくある質問) / carmaster_save(査定フォームの車種マスタ)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -336,8 +336,10 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     const amt = (v: unknown): number | null | "bad" => { const r = t(v).replace(/[,，円¥\s]/g, ""); if (r === "") return null; if (!/^\d+$/.test(r)) return "bad"; const n = Number(r); return n < 100_000_000 ? n : "bad"; };
     const day = (v: unknown): string | null | "bad" => { const r = t(v); if (!r) return null; return /^\d{4}-\d{2}-\d{2}$/.test(r) && !isNaN(Date.parse(r)) ? r : "bad"; };
     const txt = (v: unknown, max: number) => { const r = t(v); return r ? r.slice(0, max) : null; };
-    const cost = amt(p.cost), soldYen = amt(p.soldYen), soldOn = day(p.soldOn), estAa = amt(p.estAaYen);
-    if (cost === "bad" || soldYen === "bad" || soldOn === "bad" || estAa === "bad") return { status: "error", message: "原価・売却額・売却日・AA暫定価格の形式が不正です" };
+    const cost = amt(p.cost), soldYen = amt(p.soldYen), soldOn = day(p.soldOn);
+    // AA暫定: 本体（税別）・リサイクル料金・暫定AA経費（出品料・成約料・陸送費）
+    const est = { est_body_yen: amt(p.estBodyYen), est_recycle_yen: amt(p.estRecycleYen), est_listing_fee: amt(p.estListingFee), est_success_fee: amt(p.estSuccessFee), est_transport_fee: amt(p.estTransportFee) };
+    if (cost === "bad" || soldYen === "bad" || soldOn === "bad" || Object.values(est).includes("bad")) return { status: "error", message: "原価・売却額・売却日・AA暫定の金額の形式が不正です" };
     const src = Array.isArray(p.auctions) ? p.auctions : [];
     if (src.length > 5) return { status: "error", message: "AA出品は5回までです" };
     const auctions = [];
@@ -348,7 +350,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
       if (row.result && !["流札", "成約"].includes(row.result)) return { status: "error", message: "AAの結果が不正です" };
       if (row.date || row.venue || row.listingFee != null || row.successFee != null || row.transportFee != null || row.result || row.price != null) auctions.push(row);
     }
-    const rec = { case_id: c.id, route, cost_yen: cost, est_aa_yen: estAa, cost_memo: txt(p.costMemo, 300), auctions, sold_on: soldOn, sold_yen: soldYen, sold_to: txt(p.soldTo, 100), memo: txt(p.memo, 1000), updated_by: actor, updated_at: new Date().toISOString() };
+    const rec = { case_id: c.id, route, cost_yen: cost, ...est, cost_memo: txt(p.costMemo, 300), auctions, sold_on: soldOn, sold_yen: soldYen, sold_to: txt(p.soldTo, 100), memo: txt(p.memo, 1000), updated_by: actor, updated_at: new Date().toISOString() };
     const { data: prev } = await sb.from("kaimax_outcomes").select("*").eq("case_id", c.id).maybeSingle();
     const { error } = await sb.from("kaimax_outcomes").upsert(rec, { onConflict: "case_id" });
     if (error) return { status: "error", message: error.message };

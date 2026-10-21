@@ -4298,7 +4298,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1021a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1021b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4865,7 +4865,12 @@
   function ocProfit(c, o) { if (!ocSold(o) || !(c.deal > 0)) return null; return o.sold_yen - c.deal - (o.cost_yen || 0) - ocFees(o); }
   // 暫定粗利：まだ売れていない車（商品・AA）に「AA暫定価格」が入っていれば、それを売却額の代わりに使う
   const OC_EST_ROUTES = ['商品', '商品→AA', '商品→成約', 'AA'];
-  function ocEst(c, o) { if (!o || ocSold(o) || o.est_aa_yen == null || !(c.deal > 0) || !OC_EST_ROUTES.includes(o.route)) return null; return o.est_aa_yen - c.deal - (o.cost_yen || 0) - ocFees(o); }
+  // 本体は税別で入力（消費税10%・端数切捨てを足す）。リサイクル料金は非課税でそのまま足す。暫定AA経費は税込
+  const OC_EST_KEYS = [['est_body_yen', 'oc-est-body'], ['est_recycle_yen', 'oc-est-rec'], ['est_listing_fee', 'oc-est-lf'], ['est_success_fee', 'oc-est-sf'], ['est_transport_fee', 'oc-est-tf']];
+  function ocEstSales(o) { return o && o.est_body_yen != null ? Math.floor(o.est_body_yen * 1.1) + (o.est_recycle_yen || 0) : null; }
+  function ocEstFees(o) { return o ? (o.est_listing_fee || 0) + (o.est_success_fee || 0) + (o.est_transport_fee || 0) : 0; }
+  // 暫定AA出し粗利 = 暫定売上 − 買取額 − 原価 − それまでのAA費用（実績） − 暫定AA経費
+  function ocEst(c, o) { if (!o || ocSold(o) || !(c.deal > 0) || !OC_EST_ROUTES.includes(o.route)) return null; const sa = ocEstSales(o); if (sa == null) return null; return sa - c.deal - (o.cost_yen || 0) - ocFees(o) - ocEstFees(o); }
   function ocState(o) {
     if (ocSold(o)) return { key: 'sold', label: '売却済・' + o.route, cls: 'sold' };
     if (!o || o.route === '未定') return { key: 'none', label: '未定', cls: '' };
@@ -4903,7 +4908,7 @@
       <td style="font-weight:700;" class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit) : cell(0, '—')}</td><td class="${r.profit < 0 ? 'neg' : ''}">${r.pn ? yenS(r.profit / r.pn) : cell(0, '—')}</td><td>${r.hold ? yenS(r.hold) : cell(0, '—')}</td>
       <td class="oc-estc ${r.est < 0 ? 'neg' : ''}">${r.en ? yenS(r.est) + `<span style="font-weight:400;color:var(--ink-3);">（${r.en}台）</span>` : cell(0, '—')}</td></tr>`;
     return `<div class="rep-sec-title" style="font-size:13px;margin-top:4px;">${title}</div>
-      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th style="text-align:left;">${head}</th><th>台数</th><th>出口未定</th><th>商品・在庫</th><th>AA</th><th>廃車手配</th><th>売却済</th><th>確定利益</th><th>1台あたり</th><th>未売却の買取額</th><th>暫定粗利</th></tr></thead>
+      <div class="tg-wrap"><table class="tg" style="min-width:100%;"><thead><tr><th style="text-align:left;">${head}</th><th>台数</th><th>出口未定</th><th>商品・在庫</th><th>AA</th><th>廃車手配</th><th>売却済</th><th>確定利益</th><th>1台あたり</th><th>未売却の買取額</th><th>暫定AA出し粗利</th></tr></thead>
       <tbody>${keys.map((k, i) => line(ocEsc(labelOf(k)), tr[i])).join('')}${keys.length > 1 ? line('合計', T) : ''}</tbody></table></div>`;
   }
   // 成果の入力モーダル
@@ -4923,7 +4928,7 @@
       <label class="oc-f">落札額<input class="yen" inputmode="numeric" data-k="price" value="${yv(a.price)}"></label></div></div>`;
     const showAA = o.route === 'AA' || o.route === '商品→AA' || aas.length;
     dlModal(`<div class="dl-modal-h">成果の入力：NO ${no} ${ocEsc(c.car || '')}（${ocEsc(c.assignee || '担当なし')}）<button class="dl-x" onclick="document.getElementById('dl-modal').remove()">×</button></div>
-      <div class="tg-note" style="margin-top:-4px;">金額はすべて<b>税込</b>で入力してください。</div>
+      <div class="tg-note" style="margin-top:-4px;">金額はすべて<b>税込</b>で入力してください（AA暫定の車両本体だけは税別）。</div>
       <div id="oc-form" oninput="ocRecalc(${no})" onchange="ocRecalc(${no})">
       <div class="oc-row">
         <label class="oc-f">出口<select id="oc-route" onchange="openOutcome(${no}, ocCollect())">${OC_ROUTES.map(r => `<option${r === o.route ? ' selected' : ''}>${r}</option>`).join('')}</select></label>
@@ -4934,11 +4939,18 @@
         <label class="oc-f">原価（整備・仕上げ等）<input id="oc-cost" class="yen" inputmode="numeric" value="${yv(o.cost_yen)}"></label>
         <label class="oc-f" style="flex:1 1 220px;">内訳メモ<input id="oc-costmemo" type="text" value="${ocEsc(o.cost_memo || '')}" placeholder="例：板金 8万 / タイヤ 4万"></label>
       </div>
-      ${OC_EST_ROUTES.includes(o.route) && !ocSold(o) ? `<div class="oc-sec">AA暫定価格（売れる前の見込み）</div>
+      ${OC_EST_ROUTES.includes(o.route) && !ocSold(o) ? `<div class="oc-sec">AA暫定（売れる前の見込み）</div>
       <div class="oc-row">
-        <label class="oc-f">AA暫定価格<input id="oc-est" class="yen" inputmode="numeric" value="${yv(o.est_aa_yen)}"></label>
-        <div class="tg-note" style="flex:1 1 220px;margin:0;align-self:center;">今AAに出したらいくらで売れそうか（税込）。入れると「暫定粗利」が出ます。売却を入れたら確定利益に切り替わります。</div>
-      </div>` : `<input id="oc-est" type="hidden" value="${yv(o.est_aa_yen)}">`}
+        <label class="oc-f">車両本体（税別）<input id="oc-est-body" class="yen" inputmode="numeric" value="${yv(o.est_body_yen)}"></label>
+        <label class="oc-f">リサイクル料金<input id="oc-est-rec" class="yen" inputmode="numeric" value="${yv(o.est_recycle_yen)}"></label>
+        <div class="oc-f">暫定売上（税込）<div id="oc-est-sales" style="height:32px;display:flex;align-items:center;font-size:14px;color:var(--ink);font-weight:700;">—</div></div>
+      </div>
+      <div class="oc-row" style="margin-top:8px;">
+        <label class="oc-f">暫定 出品料<input id="oc-est-lf" class="yen" inputmode="numeric" value="${yv(o.est_listing_fee)}"></label>
+        <label class="oc-f">暫定 成約料<input id="oc-est-sf" class="yen" inputmode="numeric" value="${yv(o.est_success_fee)}"></label>
+        <label class="oc-f">暫定 陸送費用<input id="oc-est-tf" class="yen" inputmode="numeric" value="${yv(o.est_transport_fee)}"></label>
+      </div>
+      <div class="tg-note" style="margin-top:4px;">本体は<b>税別</b>で入力（消費税10%を足します）。リサイクル料金は非課税のためそのまま足します。暫定AA経費は税込。売却を入れたら確定利益に切り替わります。</div>` : OC_EST_KEYS.map(([k, id]) => `<input id="${id}" type="hidden" value="${yv(o[k])}">`).join('')}
       ${showAA ? `<div class="oc-sec">AA出品（5回まで）</div><div id="oc-aas">${aas.map(aaBlock).join('')}</div>
         ${aas.length < 5 ? `<button class="dl-btn ghost" onclick="ocAddAA(${no})">＋ 出品を追加</button>` : ''}` : ''}
       <div class="oc-sec">売却（入れると利益が確定）</div>
@@ -4958,7 +4970,7 @@
   window.ocCollect = function () {
     const g = id => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
     const auctions = [...document.querySelectorAll('#oc-aas .oc-aa')].map(b => { const a = {}; b.querySelectorAll('[data-k]').forEach(i => { const k = i.dataset.k; a[k] = ['listingFee', 'successFee', 'transportFee', 'price'].includes(k) ? ocYen(i.value) : i.value.trim(); }); return a; });
-    return { route: g('oc-route') || '未定', est_aa_yen: ocYen(g('oc-est')), cost_yen: ocYen(g('oc-cost')), cost_memo: g('oc-costmemo'), auctions, sold_on: g('oc-sold-on'), sold_yen: ocYen(g('oc-sold-yen')), sold_to: g('oc-sold-to'), memo: g('oc-memo') };
+    return { route: g('oc-route') || '未定', ...Object.fromEntries(OC_EST_KEYS.map(([k, id]) => [k, ocYen(g(id))])), cost_yen: ocYen(g('oc-cost')), cost_memo: g('oc-costmemo'), auctions, sold_on: g('oc-sold-on'), sold_yen: ocYen(g('oc-sold-yen')), sold_to: g('oc-sold-to'), memo: g('oc-memo') };
   };
   window.ocAddAA = function (no) { const st = ocCollect(); if (st.auctions.length < 5) st.auctions.push({}); openOutcome(no, st); };
   window.ocRemoveAA = function (no, i) { const st = ocCollect(); st.auctions.splice(i, 1); openOutcome(no, st); };
@@ -4971,9 +4983,10 @@
     const st = ocCollect(); const fees = ocFees(st), yenS = n => (n < 0 ? '−¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
     const sold = st.sold_on && st.sold_yen != null;
     const pf = sold && c.deal > 0 ? st.sold_yen - c.deal - (st.cost_yen || 0) - fees : null;
-    const ep = pf == null && OC_EST_ROUTES.includes(st.route) && st.est_aa_yen != null && c.deal > 0 ? st.est_aa_yen - c.deal - (st.cost_yen || 0) - fees : null;
+    const ep = pf == null ? ocEst(c, st) : null, esa = ocEstSales(st), efee = ocEstFees(st);
+    const se = document.getElementById('oc-est-sales'); if (se) se.innerHTML = esa != null ? yenS(esa) + `<span style="font-size:11.5px;font-weight:400;color:var(--ink-3);margin-left:6px;">（本体 ${yenS(Math.floor(st.est_body_yen * 1.1))} 税込 ＋ リサイクル ${yenS(st.est_recycle_yen || 0)}）</span>` : '—';
     const warn = [];
-    if (ocOdd(ep)) warn.push('暫定粗利が極端です。AA暫定価格・原価に入力ミスがないか確認してください');
+    if (ocOdd(ep)) warn.push('暫定AA出し粗利が極端です。本体価格（税別）・原価・暫定AA経費に入力ミスがないか確認してください');
     if (ocOdd(pf)) warn.push(`利益が${PROFIT_LOW / 10000}万円未満または${PROFIT_HIGH / 10000}万円超です。入力ミスでないか確認してください`);
     const dd = dealDateOf(c);
     if (st.sold_on && dd && new Date(st.sold_on + 'T00:00:00') < dd) warn.push('売却日が成約日より前になっています');
@@ -4981,7 +4994,7 @@
     if ((st.sold_on && st.sold_yen == null) || (!st.sold_on && st.sold_yen != null)) warn.push('売却日と売却額は両方入れると利益が確定します');
     box.innerHTML = `売却額 <b>${st.sold_yen != null ? yenS(st.sold_yen) : '—'}</b> − 買取額 <b>${c.deal > 0 ? yenS(c.deal) : '未入力'}</b> − 原価 <b>${yenS(st.cost_yen || 0)}</b> − AA費用 <b>${yenS(fees)}</b>
       ＝ 利益 <b style="font-size:16px;" class="${pf < 0 ? 'neg' : ''}">${pf != null ? yenS(pf) : '未確定'}</b>
-      ${ep != null ? `<div style="border-top:1px dashed var(--line);margin-top:6px;padding-top:6px;">AA暫定価格 <b>${yenS(st.est_aa_yen)}</b> − 買取額 <b>${yenS(c.deal)}</b> − 原価 <b>${yenS(st.cost_yen || 0)}</b> − AA費用 <b>${yenS(fees)}</b> ＝ 暫定粗利 <b style="font-size:16px;color:#8c6a00;" class="${ep < 0 ? 'neg' : ''}">${yenS(ep)}</b></div>` : ''}
+      ${ep != null ? `<div style="border-top:1px dashed var(--line);margin-top:6px;padding-top:6px;">暫定売上 <b>${yenS(esa)}</b> − 買取額 <b>${yenS(c.deal)}</b> − 原価 <b>${yenS(st.cost_yen || 0)}</b>${fees ? ` − AA費用（実績） <b>${yenS(fees)}</b>` : ''} − 暫定AA経費 <b>${yenS(efee)}</b> ＝ 暫定AA出し粗利 <b style="font-size:16px;color:#8c6a00;" class="${ep < 0 ? 'neg' : ''}">${yenS(ep)}</b></div>` : ''}
       ${warn.map(w => `<div style="color:#b06000;font-weight:700;">⚠ ${w}</div>`).join('')}`;
     const f = document.getElementById('oc-fill'), won = st.auctions.filter(a => a.result === '成約' && a.price != null).pop();
     if (f) f.innerHTML = won && st.sold_yen == null ? `<div style="margin-top:6px;"><button class="dl-btn ghost" onclick="ocFillFromAA(${no})">AAの落札結果（${yenS(won.price)}）を売却に入れる</button></div>` : '';
@@ -4989,7 +5002,7 @@
   window.ocSave = async function (no) {
     const st = ocCollect(); const m = document.getElementById('dl-modal-msg');
     if (m) { m.style.color = 'var(--ink-3)'; m.textContent = '保存中...'; }
-    const r = await postWebhook('set_outcome', { no, route: st.route, cost: st.cost_yen ?? '', estAaYen: st.est_aa_yen ?? '', costMemo: st.cost_memo, auctions: st.auctions, soldOn: st.sold_on, soldYen: st.sold_yen ?? '', soldTo: st.sold_to, memo: st.memo }, 3);
+    const r = await postWebhook('set_outcome', { no, route: st.route, cost: st.cost_yen ?? '', estBodyYen: st.est_body_yen ?? '', estRecycleYen: st.est_recycle_yen ?? '', estListingFee: st.est_listing_fee ?? '', estSuccessFee: st.est_success_fee ?? '', estTransportFee: st.est_transport_fee ?? '', costMemo: st.cost_memo, auctions: st.auctions, soldOn: st.sold_on, soldYen: st.sold_yen ?? '', soldTo: st.sold_to, memo: st.memo }, 3);
     if (r && r.ok && r.data && r.data.status === 'success') {
       const keep = st.auctions.filter(a => Object.values(a).some(v => v != null && v !== ''));
       outcomes.set(String(no), { ...st, auctions: keep, sold_on: st.sold_on || null, updated_at: new Date().toISOString(), updated_by: 'あなた' });
@@ -5140,7 +5153,7 @@
         <td style="text-align:left;">${esc(c.assignee || '—')}</td>
         <td style="font-weight:700;">${c.deal > 0 ? yenS(c.deal) + (odd(c) ? ' <span title="金額が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : '<span style="color:var(--ink-3);font-weight:400;">未入力</span>'}</td>
         <td style="text-align:left;cursor:pointer;" onclick="openOutcome(${c.no})"><span class="oc-tag ${st.cls}">${st.label}</span></td>
-        <td style="font-weight:700;cursor:pointer;" onclick="openOutcome(${c.no})" class="${pf < 0 ? 'neg' : ''}">${pf != null ? (pf < 0 ? '−¥' : '¥') + Math.abs(pf).toLocaleString('ja-JP') + (ocOdd(pf) ? ' <span title="利益が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : ep != null ? `<span class="oc-est ${ep < 0 ? 'neg' : ''}" title="AA暫定価格 ¥${o.est_aa_yen.toLocaleString('ja-JP')} で計算した見込み（売却前）">暫定 ${(ep < 0 ? '−¥' : '¥') + Math.abs(ep).toLocaleString('ja-JP')}</span>${ocOdd(ep) ? ' <span title="暫定粗利が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : ''}` : `<button class="dl-btn ghost" onclick="event.stopPropagation();openOutcome(${c.no})">入力</button>`}</td>
+        <td style="font-weight:700;cursor:pointer;" onclick="openOutcome(${c.no})" class="${pf < 0 ? 'neg' : ''}">${pf != null ? (pf < 0 ? '−¥' : '¥') + Math.abs(pf).toLocaleString('ja-JP') + (ocOdd(pf) ? ' <span title="利益が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : '') : ep != null ? `<span class="oc-est ${ep < 0 ? 'neg' : ''}" title="暫定AA出し粗利（暫定売上 ¥${ocEstSales(o).toLocaleString('ja-JP')} − 買取額 − 原価 − AA費用 − 暫定AA経費 ¥${ocEstFees(o).toLocaleString('ja-JP')}）">暫定 ${(ep < 0 ? '−¥' : '¥') + Math.abs(ep).toLocaleString('ja-JP')}</span>${ocOdd(ep) ? ' <span title="暫定粗利が極端なため入力ミスの可能性があります" style="color:#b06000;">⚠</span>' : ''}` : `<button class="dl-btn ghost" onclick="event.stopPropagation();openOutcome(${c.no})">入力</button>`}</td>
         <td style="text-align:left;">${e.contractNo ? `<span style="font-family:Arial,monospace;font-size:11.5px;">${esc(e.vin)}</span> <button class="dl-btn ghost" onclick="openContractLink(${c.no})">変更</button>` : `<button class="dl-btn" onclick="openContractLink(${c.no})">契約と紐づけ</button>`}</td>
       </tr>`; }).join('');
     host.innerHTML = `
@@ -5156,8 +5169,8 @@
       ${window.__dlSingles.length ? `<div style="font-size:12.5px;background:#e8f0fe;border:1px solid #aecbfa;border-radius:7px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">smart-signの契約の候補が1件に決まる成約が <b>${window.__dlSingles.length}件</b> あります。<button class="dl-btn" onclick="openContractBulk()">確認してまとめて紐づけ</button></div>` : ''}
       ${oddN ? `<div style="font-size:12.5px;color:#b06000;background:#fef7e0;border:1px solid #f9ab00;border-radius:7px;padding:7px 10px;margin-bottom:10px;">⚠ 成約額が ${(DEAL_AMT_LOW / 10000)}万円未満または${(DEAL_AMT_HIGH / 10000).toLocaleString()}万円超の案件が ${oddN}件あります。入力ミスでないか確認してください（廃車同然の車など、正しい場合もあります）。</div>` : ''}
       ${rows.length ? `<div class="dl-two"><div>${ocMonthTable(rows)}</div><div>${ocStaffTable(rows)}</div></div>
-      <div class="tg-note">買取月は成約日の月です。確定利益は「売却日・売却額」が入り、買取額（成約額）もある車だけで計算します（売却額 − 買取額 − 原価 − AA費用、すべて税込）。未売却の買取額は、まだ売れていない車の買取額の合計です。暫定粗利は、売れていない商品・AAの車のうち「AA暫定価格」を入れた車だけの見込み（AA暫定価格 − 買取額 − 原価 − それまでのAA費用）で、確定利益には含めません。</div>` : ''}
-      <div class="rep-sec-title" style="font-size:13px;margin-top:14px;">成約車の一覧 <span style="font-weight:400;color:var(--ink-3);font-size:12px;">「出口・状況」か「利益」を押すと、原価・AA暫定価格・AA出品・売却を入力できます</span></div>
+      <div class="tg-note">買取月は成約日の月です。確定利益は「売却日・売却額」が入り、買取額（成約額）もある車だけで計算します（売却額 − 買取額 − 原価 − AA費用、すべて税込）。未売却の買取額は、まだ売れていない車の買取額の合計です。暫定AA出し粗利は、売れていない商品・AAの車のうち「AA暫定」を入れた車だけの見込み（暫定売上［本体（税別）×1.1＋リサイクル料金］ − 買取額 − 原価 − それまでのAA費用 − 暫定AA経費）で、確定利益には含めません。</div>` : ''}
+      <div class="rep-sec-title" style="font-size:13px;margin-top:14px;">成約車の一覧 <span style="font-weight:400;color:var(--ink-3);font-size:12px;">「出口・状況」か「利益」を押すと、原価・AA暫定・AA出品・売却を入力できます</span></div>
       <div class="tg-note">期間は<b>成約日</b>で絞り込みます。契約と未紐づけの成約は、成約日が分からないため受信日で代用しています。紐づけると車台番号・成約日が入り、成約額が空なら契約金額で埋まります。</div>
       <div class="tg-wrap"><table class="tg" style="min-width:100%;">
         <thead><tr><th>成約日</th><th>NO</th><th>媒体</th><th style="text-align:left;">お客様</th><th style="text-align:left;">車名</th><th style="text-align:left;">担当</th><th>成約額</th><th style="text-align:left;">出口・状況</th><th>利益（確定／暫定）</th><th style="text-align:left;">車台番号（契約）</th></tr></thead>
@@ -6776,7 +6789,7 @@
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
       selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason,synced_at').catch(() => []),
-      selectAll('kaimax_outcomes', 'case_id,route,cost_yen,est_aa_yen,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
+      selectAll('kaimax_outcomes', 'case_id,route,cost_yen,est_body_yen,est_recycle_yen,est_listing_fee,est_success_fee,est_transport_fee,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
     ]);
     // シート形に載らない項目（車台番号・契約番号・成約日）は案件NOで引けるように別に持つ
     caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '' }]));
