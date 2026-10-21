@@ -49,8 +49,8 @@ const stub = async (p) => {
     if (u.includes('.supabase.co/rest/v1/kaimax_outcomes')) { const ds = DB_CASES.filter(c => /成約|入庫/.test(c.result || '')); return j([
       ds[0] && { case_id: ds[0].id, route: '商品→成約', cost_yen: 80000, cost_memo: '板金 5万 / タイヤ 3万', auctions: [], sold_on: '2026-08-20', sold_yen: 980000, sold_to: '山田様', memo: '', updated_by: 'cs@indio.co.jp', updated_at: '2026-10-19T07:00:00Z' },
       ds[1] && { case_id: ds[1].id, route: 'AA', cost_yen: null, auctions: [{ date: '2026-08-05', venue: 'USS名古屋', listingFee: 11000, successFee: null, transportFee: 15000, result: '流札', price: null }, { date: '2026-08-12', venue: 'USS名古屋', listingFee: 11000, successFee: 16500, transportFee: null, result: '成約', price: 520000 }], sold_on: '2026-08-12', sold_yen: 520000, sold_to: 'USS名古屋', memo: '' },
-      ds[2] && { case_id: ds[2].id, route: '商品', cost_yen: 120000, auctions: [] },
-      ds[3] && { case_id: ds[3].id, route: '商品→AA', auctions: [{ date: '2026-10-10', venue: 'TAA中部', listingFee: 9900, transportFee: 12000, result: '流札' }] },
+      ds[2] && { case_id: ds[2].id, route: '商品', cost_yen: 120000, est_aa_yen: 1500000, auctions: [] },
+      ds[3] && { case_id: ds[3].id, route: '商品→AA', est_aa_yen: 400000, auctions: [{ date: '2026-10-10', venue: 'TAA中部', listingFee: 9900, transportFee: 12000, result: '流札' }] },
       ds[4] && { case_id: ds[4].id, route: '廃車', auctions: [] },
     ].filter(Boolean)); }
     if (u.includes('.supabase.co/rest/v1/kaitori_voices')) return j([
