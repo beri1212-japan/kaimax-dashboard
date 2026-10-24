@@ -795,6 +795,42 @@
   }
 
   /* Table */
+  /* ===== 案件一覧：表（スプシ）表示 ===== */
+  .cv-toggle { display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; margin-left:4px; }
+  .cv-toggle button { border:0; background:#fff; padding:6px 12px; font-size:12.5px; font-weight:700; color:var(--ink-2); cursor:pointer; font-family:inherit; }
+  .cv-toggle button + button { border-left:1px solid var(--line); }
+  .cv-toggle button.on { background:#e8f0fe; color:#1557b0; }
+  @media (max-width: 899px) { .cv-toggle { display:none; } }
+  .cg-wrap { position:relative; overflow:auto; max-height:calc(100vh - 230px); border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .cg { border-collapse:separate; border-spacing:0; font-size:12px; color:var(--ink); width:max-content; min-width:100%; }
+  .cg th { position:sticky; top:0; z-index:3; background:#f8f9fa; font-size:11px; font-weight:700; color:var(--ink-3); text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); border-right:1px solid #eceef1; white-space:nowrap; }
+  .cg th.ro::after { content:'読取'; margin-left:4px; font-size:9.5px; font-weight:400; color:#9aa0a6; }
+  .cg td { height:26px; padding:3px 8px; border-bottom:1px solid #eceef1; border-right:1px solid #eceef1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:var(--w,160px); min-width:var(--mw,0); background:#fff; vertical-align:middle; outline:none; }
+  .cg tr:hover td { background:#f8fafd; }
+  .cg td.ed { cursor:text; }
+  .cg td.ed:hover { box-shadow:inset 0 0 0 1px #aecbfa; }
+  .cg td.ro { color:var(--ink-2); background:#fbfbfc; }
+  .cg td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .cg td:focus { box-shadow:inset 0 0 0 2px #1a73e8 !important; }
+  .cg td.editing { padding:0; overflow:visible; box-shadow:inset 0 0 0 2px #1a73e8 !important; }
+  .cg td.editing input, .cg td.editing select { width:100%; min-width:100%; height:26px; border:0; padding:3px 7px; font:inherit; font-size:12px; color:var(--ink); background:#fff; outline:none; box-sizing:border-box; }
+  .cg td.saving { background:#fef7e0 !important; }
+  .cg td.saved { background:#e6f4ea !important; transition:background .8s; }
+  .cg td.err { background:#fce8e6 !important; }
+  .cg .stk { position:sticky; z-index:2; }
+  .cg th.stk { z-index:4; }
+  .cg .stk-0 { left:0; } .cg .stk-1 { left:52px; box-shadow:1px 0 0 #dadce0; }
+  .cg td.no a { color:var(--accent); font-weight:700; text-decoration:none; font-family:Arial,monospace; }
+  .cg .cchip { display:inline-block; font-size:11px; margin-right:6px; color:var(--ink-2); }
+  .cg .cchip b { color:var(--ink-3); font-weight:700; margin-right:1px; }
+  .cg .cchip i { font-style:normal; color:var(--ink-3); margin-left:2px; font-size:10.5px; }
+  .cg .dim { color:#9aa0a6; }
+  .cg-pop { position:fixed; z-index:1200; background:#fff; border:1px solid #dadce0; border-radius:8px; box-shadow:0 6px 24px rgba(60,64,67,.22); padding:10px; }
+  .cg-pop textarea { width:420px; max-width:70vw; height:140px; border:1px solid var(--line); border-radius:6px; padding:7px 9px; font:inherit; font-size:12.5px; line-height:1.6; color:var(--ink); resize:vertical; box-sizing:border-box; }
+  .cg-pop .cg-pop-a { display:flex; gap:8px; align-items:center; margin-top:6px; font-size:11.5px; color:var(--ink-3); }
+  .cg-pop .cg-pop-a button { height:26px; padding:0 12px; border-radius:6px; border:1px solid var(--line); background:#fff; font-weight:700; cursor:pointer; font-family:inherit; font-size:12px; }
+  .cg-pop .cg-pop-a button.pri { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .cg-help { font-size:11.5px; color:var(--ink-3); margin:0 0 6px; }
   .table-controls {
     display: flex;
     align-items: center;
@@ -2775,7 +2811,12 @@
     <div class="table-controls">
       <input type="text" class="search-box" id="case-search" placeholder="顧客名・車種・案件番号で検索...">
       <button class="btn-new-inline" id="newCaseInline" title="店頭査定・カーセンサーなど、MOTA以外の案件を手入力で登録"><svg class="ic"><use href="#ic-plus"/></svg> 新規案件登録</button>
+      <div class="cv-toggle" role="group" aria-label="表示の切り替え"><button type="button" id="cv-card" onclick="setCaseView('card')">カード</button><button type="button" id="cv-grid" onclick="setCaseView('grid')">表（スプシ）</button></div>
       <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
+    </div>
+    <div id="case-grid-area" hidden>
+      <div class="cg-help">セルをクリックするとその場で編集できます。Enter・Tab・ほかの場所をクリックで保存（Escで取り消し）。矢印キーでセルを移動。「読取」の列は自動で入る項目のため編集できません。NOを押すと詳細が開きます。</div>
+      <div class="cg-wrap" id="case-grid-wrap"></div>
     </div>
 
     <table id="case-table">
@@ -4189,8 +4230,16 @@
     if (_ad) _ad.textContent = caseSort.key === 'date' ? _arrow : '';
     if (_af) _af.textContent = caseSort.key === 'followup' ? _arrow : '';
     const filteredCases = list;
+    const gridMode = caseViewMode() === 'grid';
+    const _ct = document.getElementById('case-table'), _ga = document.getElementById('case-grid-area');
+    if (_ct) _ct.hidden = gridMode;
+    if (_ga) _ga.hidden = !gridMode;
+    const _bc = document.getElementById('cv-card'), _bg = document.getElementById('cv-grid');
+    if (_bc) _bc.classList.toggle('on', !gridMode);
+    if (_bg) _bg.classList.toggle('on', gridMode);
 
-    filteredCases.forEach(c => {
+    if (gridMode) renderCaseGrid(filteredCases);
+    else filteredCases.forEach(c => {
       const phase = getPhase(c);
       const fu = getFollowupStatus(c.followup);
       let callTrail = '';
@@ -4245,6 +4294,207 @@
     if (typeof updateFilterSummary === 'function') updateFilterSummary();
   }
 
+  // ===== 案件一覧：表（スプシ）表示。1案件1行・セルをその場で編集し、セルを離れたら1項目ずつ保存 =====
+  // 保存は kaimax-api の update（送った項目だけ書き換える）。通話メモだけ update_memo。
+  function caseViewMode() {
+    if (window.matchMedia && window.matchMedia('(max-width: 899px)').matches) return 'card'; // スマホはカード（コール活動用）
+    try { return localStorage.getItem('kaimax.caseView') || 'grid'; } catch (e) { return 'grid'; }
+  }
+  window.setCaseView = function (m) {
+    try { localStorage.setItem('kaimax.caseView', m); } catch (e) {}
+    renderCaseTable();
+  };
+  const cgEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // 列の定義。k=案件の項目 / api=保存時の項目名（update）/ type: ro(読取) text long(長文) select call
+  const CG_COLS = [
+    { h: 'NO', k: 'no', type: 'no', w: 52, stk: 0 },
+    { h: '顧客名', k: 'customer', api: 'customer', type: 'text', w: 130, stk: 1 },
+    { h: '受信日', k: 'date', type: 'ro', w: 84 },
+    { h: '媒体', k: 'media', type: 'ro', w: 84 },
+    { h: '担当', k: 'assignee', api: 'assignee', type: 'select', w: 72, opts: () => { const n = allAssignees().filter(x => !isArchived(x)); return [''].concat(n); } },
+    { h: 'TEL', k: 'tel', api: 'tel', type: 'text', w: 112 },
+    { h: '車名', k: 'car', api: 'car', type: 'text', w: 190 },
+    { h: '年式', k: 'year', api: 'year', type: 'text', w: 80 },
+    { h: '走行距離', k: 'mileage', api: 'mileage', type: 'text', w: 90 },
+    { h: '入札結果', k: 'bidResult', type: 'ro', w: 72 },
+    { h: 'コール①〜⑧', k: 'calls', type: 'call', w: 260 },
+    { h: '査定', k: 'assess', api: 'assess', type: 'select', w: 44, opts: () => ['', '〇', '×'] },
+    { h: '結果', k: 'result', api: 'result', type: 'select', w: 120, opts: () => RESULT_OPTIONS },
+    { h: '次回後追日', k: 'followup', api: 'followup', type: 'text', w: 86 },
+    { h: '希望額', k: 'desiredRaw', api: 'desired', type: 'long', w: 110, num: true },
+    { h: '査定提示額', k: 'offeredRaw', api: 'offered', type: 'text', w: 100, num: true },
+    { h: '成約額', k: 'dealRaw', api: 'deal', type: 'text', w: 100, num: true },
+    { h: '通話メモ', k: 'memo', api: 'memo', type: 'long', w: 220 },
+    { h: '備考', k: 'note', api: 'note', type: 'long', w: 260 },
+  ];
+  let cgRows = [];
+  function cgCellHtml(col, c) {
+    const v = c[col.k];
+    if (col.type === 'no') return `<a href="#" onclick="event.preventDefault();openCaseById('${c.no}')" title="詳細を開く">${c.no}</a>`;
+    if (col.k === 'media') return `<span class="m-tag ${c.media}">${mediaLabels[c.media] || cgEsc(c.media)}</span>`;
+    if (col.type === 'call') {
+      const ch = (c.calls || []).map((cd, i) => cd && cd.result ? `<span class="cchip"><b>${'①②③④⑤⑥⑦⑧'[i]}</b>${cgEsc(cd.result)}${cd.date ? `<i>${cgEsc(cd.date)}</i>` : ''}</span>` : '').join('');
+      return ch || '<span class="dim">未架電</span>';
+    }
+    if (v == null || v === '') return '';
+    return cgEsc(String(v).replace(/\s*\n\s*/g, ' / '));
+  }
+  function renderCaseGrid(list) {
+    const wrap = document.getElementById('case-grid-wrap'); if (!wrap) return;
+    cgClosePop();
+    const keepScroll = { t: wrap.scrollTop, l: wrap.scrollLeft };
+    cgRows = list;
+    const th = CG_COLS.map(col => `<th class="${col.type === 'ro' ? 'ro ' : ''}${col.stk != null ? 'stk stk-' + col.stk : ''}" style="min-width:${col.w}px;">${col.h}</th>`).join('');
+    const rows = list.map((c, r) => `<tr data-r="${r}">` + CG_COLS.map((col, i) => {
+      const cls = [col.type === 'ro' || col.type === 'no' ? 'ro' : 'ed', col.type === 'no' ? 'no' : '', col.num ? 'num' : '', col.stk != null ? 'stk stk-' + col.stk : ''].filter(Boolean).join(' ');
+      const tip = col.type === 'long' || col.k === 'car' ? ` title="${cgEsc(c[col.k] || '')}"` : '';
+      return `<td class="${cls}" tabindex="-1" data-r="${r}" data-c="${i}" style="--w:${col.w}px;--mw:${col.w}px;"${tip}>${cgCellHtml(col, c)}</td>`;
+    }).join('') + '</tr>').join('');
+    wrap.innerHTML = `<table class="cg"><thead><tr>${th}</tr></thead><tbody>${rows || `<tr><td colspan="${CG_COLS.length}" class="dim" style="padding:14px;">該当する案件がありません</td></tr>`}</tbody></table>`;
+    wrap.scrollTop = keepScroll.t; wrap.scrollLeft = keepScroll.l;
+  }
+  function cgCell(r, ci) { return document.querySelector(`#case-grid-wrap td[data-r="${r}"][data-c="${ci}"]`); }
+  function cgFocus(r, ci) {
+    r = Math.max(0, Math.min(cgRows.length - 1, r)); ci = Math.max(0, Math.min(CG_COLS.length - 1, ci));
+    const td = cgCell(r, ci); if (td) { td.focus({ preventScroll: false }); td.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+  }
+  function cgClosePop() { document.querySelectorAll('.cg-pop').forEach(p => p.remove()); }
+  // 入力欄をセルの真下に出す（画面に固定。下にはみ出すならセルの上に出す）
+  function cgPlace(pop, td) {
+    const tr = td.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let top = tr.bottom + 2; if (top + ph > window.innerHeight - 8) top = Math.max(8, tr.top - ph - 2);
+    const left = Math.max(8, Math.min(tr.left, window.innerWidth - pw - 8));
+    pop.style.top = top + 'px'; pop.style.left = left + 'px';
+  }
+  // 編集開始
+  function cgEdit(td, initial) {
+    if (!td || td.classList.contains('editing')) return;
+    const r = +td.dataset.r, ci = +td.dataset.c, col = CG_COLS[ci], c = cgRows[r];
+    if (!col || !c || col.type === 'ro' || col.type === 'no') return;
+    cgClosePop();
+    if (col.type === 'call') { cgCallPop(td, c); return; }
+    if (col.type === 'long') { cgLongPop(td, c, col, r, ci); return; }
+    const cur = c[col.k] == null ? '' : String(c[col.k]);
+    td.classList.add('editing');
+    let el;
+    if (col.type === 'select') {
+      const opts = col.opts().slice(); if (cur && !opts.includes(cur)) opts.push(cur);
+      td.innerHTML = `<select>${opts.map(o => `<option value="${cgEsc(o)}"${o === cur ? ' selected' : ''}>${o === '' ? '—' : cgEsc(o)}</option>`).join('')}</select>`;
+      el = td.querySelector('select');
+      el.addEventListener('change', () => cgCommit(td, el.value, null));
+    } else {
+      td.innerHTML = `<input type="text" value="${cgEsc(initial != null ? initial : cur)}">`;
+      el = td.querySelector('input');
+    }
+    let done = false;
+    const finish = (val, move) => { if (done) return; done = true; cgCommit(td, val, move); };
+    el.addEventListener('keydown', (e) => {
+      e.stopPropagation(); // 確定したキーが次のセルに伝わって、そのまま編集が始まらないように
+      if (e.isComposing) return; // 日本語変換中のEnterは確定に使わない
+      if (e.key === 'Enter') { e.preventDefault(); finish(el.value, e.shiftKey ? 'up' : 'down'); }
+      else if (e.key === 'Tab') { e.preventDefault(); finish(el.value, e.shiftKey ? 'left' : 'right'); }
+      else if (e.key === 'Escape') { e.preventDefault(); done = true; cgRestore(td); td.focus(); }
+    });
+    el.addEventListener('blur', () => setTimeout(() => finish(el.value, null), 0));
+    el.focus();
+    if (el.tagName === 'INPUT') { const n = el.value.length; el.setSelectionRange(initial != null ? n : 0, n); }
+  }
+  function cgRestore(td) {
+    const r = +td.dataset.r, ci = +td.dataset.c;
+    td.classList.remove('editing');
+    td.innerHTML = cgCellHtml(CG_COLS[ci], cgRows[r]);
+  }
+  function cgMove(td, move) {
+    if (!move) return;
+    const r = +td.dataset.r, ci = +td.dataset.c;
+    if (move === 'down') cgFocus(r + 1, ci); else if (move === 'up') cgFocus(r - 1, ci);
+    else if (move === 'right') cgFocus(r, ci + 1); else if (move === 'left') cgFocus(r, ci - 1);
+  }
+  // 保存（変わっていなければ何もしない）
+  async function cgCommit(td, val, move) {
+    const r = +td.dataset.r, ci = +td.dataset.c, col = CG_COLS[ci], c = cgRows[r];
+    const before = c[col.k] == null ? '' : String(c[col.k]);
+    const next = String(val == null ? '' : val).trim();
+    if (next === before) { cgRestore(td); if (move) cgMove(td, move); else if (document.activeElement === document.body) td.focus(); return; }
+    // 先に画面へ反映（保存中は黄色）
+    const prevVals = {};
+    const apply = (vals) => { [c, (allCases || []).find(x => x.no === c.no), (cases || []).find(x => x.no === c.no)].forEach(o => { if (o) Object.assign(o, vals); }); };
+    const vals = { [col.k]: next };
+    if (col.k === 'tel') vals.tel = formatTel(next);
+    if (col.k === 'desiredRaw') vals.desired = parseInt(next.replace(/[^\d]/g, '')) || null;
+    if (col.k === 'offeredRaw') vals.offered = parseInt(next.replace(/[^\d]/g, '')) || null;
+    if (col.k === 'dealRaw') vals.deal = parseInt(next.replace(/[^\d]/g, '')) || null;
+    if (col.k === 'result') vals.result = next.replace(/（/g, '(').replace(/）/g, ')');
+    Object.keys(vals).forEach(k => { prevVals[k] = c[k]; });
+    apply(vals);
+    cgRestore(td); td.classList.add('saving'); td.classList.remove('saved', 'err');
+    if (move) cgMove(td, move);
+    try {
+      const r2 = col.k === 'memo'
+        ? await postWebhook('update_memo', { no: c.no, memo: next })
+        : await postWebhook('update', { no: c.no, [col.api]: next });
+      const data = r2 && r2.ok ? r2.data : null;
+      if (data && data.status === 'success') {
+        td.classList.remove('saving'); td.classList.add('saved');
+        setTimeout(() => td.classList.remove('saved'), 1600);
+      } else throw new Error((data && data.message) || '通信エラー');
+    } catch (e) {
+      apply(prevVals); td.innerHTML = cgCellHtml(col, c);
+      td.classList.remove('saving'); td.classList.add('err');
+      showToast(`✗ 保存できませんでした（NO ${c.no}・${col.h}）: ${e.message || e} — 元の値に戻しました`, true);
+      setTimeout(() => td.classList.remove('err'), 4000);
+    }
+  }
+  // 長い文字（通話メモ・備考・希望額の明細）は、セルの下に広い入力欄を出す
+  function cgLongPop(td, c, col, r, ci) {
+    const wrap = document.getElementById('case-grid-wrap');
+    const pop = document.createElement('div'); pop.className = 'cg-pop';
+    pop.innerHTML = `<div style="font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:5px;">NO ${c.no}・${col.h}</div><textarea>${cgEsc(c[col.k] || '')}</textarea>
+      <div class="cg-pop-a"><button class="pri" type="button">保存</button><button type="button">取消</button><span>Ctrl+Enterで保存・Escで取消</span></div>`;
+    document.body.appendChild(pop);
+    cgPlace(pop, td);
+    const ta = pop.querySelector('textarea'); ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length);
+    td.classList.add('act');
+    let done = false;
+    const close = (save) => { if (done) return; done = true; const v = ta.value; pop.remove(); td.classList.remove('act'); if (save) cgCommit(td, v, null); td.focus(); };
+    pop.querySelector('.pri').addEventListener('mousedown', (e) => { e.preventDefault(); close(true); });
+    pop.querySelectorAll('button')[1].addEventListener('mousedown', (e) => { e.preventDefault(); close(false); });
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); close(true); }
+    });
+    ta.addEventListener('blur', () => setTimeout(() => close(true), 0));
+  }
+  // コール①〜⑧は、今までと同じ入力欄をセルの下に出す
+  function cgCallPop(td, c) {
+    const wrap = document.getElementById('case-grid-wrap');
+    const pop = document.createElement('div'); pop.className = 'cg-pop';
+    document.body.appendChild(pop);
+    openCallEditor(pop, c);
+    cgPlace(pop, td);
+  }
+  document.addEventListener('scroll', (e) => {
+    if (e.target && e.target.id === 'case-grid-wrap') document.querySelectorAll('.cg-pop textarea').forEach(t => t.blur());
+  }, true);
+  // セルのクリックとキーボード操作（表の中だけ）
+  document.addEventListener('click', (e) => {
+    const td = e.target.closest && e.target.closest('#case-grid-wrap td[data-c]');
+    if (td) { if (e.target.closest('a')) return; td.focus(); cgEdit(td, null); return; }
+    if (!(e.target.closest && e.target.closest('.cg-pop'))) cgClosePop();
+  });
+  document.addEventListener('keydown', (e) => {
+    const td = document.activeElement && document.activeElement.closest && document.activeElement.closest('#case-grid-wrap td[data-c]');
+    if (!td || td.classList.contains('editing') || e.isComposing) return;
+    const r = +td.dataset.r, ci = +td.dataset.c;
+    const mv = { ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowRight: [0, 1], ArrowLeft: [0, -1] }[e.key];
+    if (mv) { e.preventDefault(); cgFocus(r + mv[0], ci + mv[1]); return; }
+    if (e.key === 'Tab') { e.preventDefault(); cgFocus(r, ci + (e.shiftKey ? -1 : 1)); return; }
+    if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); cgEdit(td, null); return; }
+    // 文字を打ち始めたら、そのまま上書き入力（文字・数字の欄だけ）
+    const col = CG_COLS[ci];
+    if (col && col.type === 'text' && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); cgEdit(td, e.key); }
+  });
+
   // ===== 一覧上でのコール結果 直接編集 =====
   // 日付ヘルパ: シートは「M/D」形式、<input type=date>は「YYYY-MM-DD」形式
   function _pad2(n) { return String(n).padStart(2, '0'); }
@@ -4298,7 +4548,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1021b'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
