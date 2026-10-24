@@ -4403,7 +4403,8 @@
       const opts = col.opts().slice(); if (cur && !opts.includes(cur)) opts.push(cur);
       td.innerHTML = `<select>${opts.map(o => `<option value="${cgEsc(o)}"${o === cur ? ' selected' : ''}>${o === '' ? '—' : cgEsc(o)}</option>`).join('')}</select>`;
       el = td.querySelector('select');
-      el.addEventListener('change', () => cgCommit(td, el.value, null));
+      el.style.minWidth = Math.max(td.offsetWidth, 64) + 'px';
+      el.addEventListener('change', () => { done = true; cgCommit(td, el.value, null); });
     } else {
       td.innerHTML = `<input type="text" value="${cgEsc(initial != null ? initial : cur)}">`;
       el = td.querySelector('input');
@@ -4501,7 +4502,11 @@
   // セルのクリックとキーボード操作（表の中だけ）
   document.addEventListener('click', (e) => {
     const td = e.target.closest && e.target.closest('#case-grid-wrap td[data-c]');
-    if (td) { if (e.target.closest('a')) return; td.focus(); cgEdit(td, null); return; }
+    if (td) {
+      if (e.target.closest('a')) return;
+      if (td.classList.contains('editing')) return; // 編集中の入力欄・選択欄をクリックしたときは何もしない（ここでセルにフォーカスを戻すと選択欄が閉じる）
+      td.focus(); cgEdit(td, null); return;
+    }
     if (!(e.target.closest && e.target.closest('.cg-pop'))) cgClosePop();
   });
   document.addEventListener('keydown', (e) => {
@@ -4570,7 +4575,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024d'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024e'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
