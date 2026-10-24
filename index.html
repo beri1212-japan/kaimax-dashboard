@@ -843,11 +843,12 @@
   .cv-toggle button + button { border-left:1px solid var(--line); }
   .cv-toggle button.on { background:#e8f0fe; color:#1557b0; }
   @media (max-width: 899px) { .cv-toggle { display:none; } }
-  .cg-wrap { position:relative; overflow:auto; max-height:calc(100vh - 230px); border:1px solid var(--line); border-radius:8px; background:#fff; }
-  .cg { border-collapse:separate; border-spacing:0; font-size:12px; color:var(--ink); width:max-content; min-width:100%; }
-  .cg th { position:sticky; top:0; z-index:3; background:#f8f9fa; font-size:11px; font-weight:700; color:var(--ink-3); text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); border-right:1px solid #eceef1; white-space:nowrap; }
-  .cg th.ro::after { content:'読取'; margin-left:4px; font-size:9.5px; font-weight:400; color:#9aa0a6; }
-  .cg td { height:26px; padding:3px 8px; border-bottom:1px solid #eceef1; border-right:1px solid #eceef1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:var(--w,160px); min-width:var(--mw,0); background:#fff; vertical-align:middle; outline:none; }
+  .cg-wrap { position:relative; overflow:auto; width:max-content; max-width:100%; max-height:calc(100vh - 230px); border:1px solid var(--line); border-radius:8px; background:#fff; }
+  .cg { border-collapse:separate; border-spacing:0; font-size:12px; color:var(--ink); width:max-content; }
+  .cg th { position:sticky; top:0; z-index:3; background:#f8f9fa; font-size:11px; font-weight:700; color:var(--ink-3); text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); border-right:1px solid #eceef1; white-space:nowrap; }
+  .cg th.ro { color:#9aa0a6; background:#f1f3f4; }
+  .cg td { height:26px; padding:3px 6px; border-bottom:1px solid #eceef1; border-right:1px solid #eceef1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:var(--w,160px); min-width:var(--mw,0); background:#fff; vertical-align:middle; outline:none; }
+  .cg th, .cg td { box-sizing:border-box; }
   .cg tr:hover td { background:#f8fafd; }
   .cg td.ed { cursor:text; }
   .cg td.ed:hover { box-shadow:inset 0 0 0 1px #aecbfa; }
@@ -861,9 +862,9 @@
   .cg td.err { background:#fce8e6 !important; }
   .cg .stk { position:sticky; z-index:2; }
   .cg th.stk { z-index:4; }
-  .cg .stk-0 { left:0; } .cg .stk-1 { left:52px; box-shadow:1px 0 0 #dadce0; }
+  .cg .stk-0 { left:0; } .cg .stk-1 { left:44px; box-shadow:1px 0 0 #dadce0; }
   .cg td.no a { color:var(--accent); font-weight:700; text-decoration:none; font-family:Arial,monospace; }
-  .cg .cchip { display:inline-block; font-size:11px; margin-right:6px; color:var(--ink-2); }
+  .cg .cchip { display:inline-block; font-size:11px; margin-right:4px; color:var(--ink-2); }
   .cg .cchip b { color:var(--ink-3); font-weight:700; margin-right:1px; }
   .cg .cchip i { font-style:normal; color:var(--ink-3); margin-left:2px; font-size:10.5px; }
   .cg .dim { color:#9aa0a6; }
@@ -2891,7 +2892,7 @@
       <div class="table-info">表示: <b id="row-count">0</b> 件 / 全 <b id="row-count-all">0</b> 件</div>
     </div>
     <div id="case-grid-area" hidden>
-      <div class="cg-help">セルをクリックするとその場で編集できます。Enter・Tab・ほかの場所をクリックで保存（Escで取り消し）。矢印キーでセルを移動。「読取」の列は自動で入る項目のため編集できません。NOを押すと詳細が開きます。</div>
+      <div class="cg-help">セルをクリックするとその場で編集できます。Enter・Tab・ほかの場所をクリックで保存（Escで取り消し）。矢印キーでセルを移動。灰色の列（受信日・媒体・入札）は自動で入る項目のため編集できません。カーソルを乗せると全文が見えます。NOを押すと詳細が開きます。</div>
       <div class="cg-topbar" id="cg-topbar" aria-hidden="true"><div></div></div>
       <div class="cg-wrap" id="case-grid-wrap"></div>
     </div>
@@ -4389,31 +4390,32 @@
   const cgEsc = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   // 列の定義。k=案件の項目 / api=保存時の項目名（update）/ type: ro(読取) text long(長文) select call
   const CG_COLS = [
-    { h: 'NO', k: 'no', type: 'no', w: 52, stk: 0 },
-    { h: '顧客名', k: 'customer', api: 'customer', type: 'text', w: 150, stk: 1 },
-    { h: '受信日', k: 'date', type: 'ro', w: 98 },
-    { h: '媒体', k: 'media', type: 'ro', w: 84 },
-    { h: '担当', k: 'assignee', api: 'assignee', type: 'select', w: 72, opts: () => { const n = allAssignees().filter(x => !isArchived(x)); return [''].concat(n); } },
+    { h: 'NO', k: 'no', type: 'no', w: 44, stk: 0 },
+    { h: '顧客名', k: 'customer', api: 'customer', type: 'text', w: 110, stk: 1 },
+    { h: '受信日', k: 'date', type: 'ro', w: 90 },
+    { h: '媒体', k: 'media', type: 'ro', w: 62 },
+    { h: '担当', k: 'assignee', api: 'assignee', type: 'select', w: 52, opts: () => { const n = allAssignees().filter(x => !isArchived(x)); return [''].concat(n); } },
     { h: 'TEL', k: 'tel', api: 'tel', type: 'text', w: 112 },
-    { h: '車名', k: 'car', api: 'car', type: 'text', w: 190 },
-    { h: '年式', k: 'year', api: 'year', type: 'text', w: 80 },
-    { h: '走行距離', k: 'mileage', api: 'mileage', type: 'text', w: 90 },
-    { h: '入札結果', k: 'bidResult', type: 'ro', w: 72 },
-    { h: 'コール①〜⑧', k: 'calls', type: 'call', w: 260 },
-    { h: '査定', k: 'assess', api: 'assess', type: 'select', w: 44, opts: () => ['', '〇', '×'] },
-    { h: '結果', k: 'result', api: 'result', type: 'select', w: 120, opts: () => RESULT_OPTIONS },
-    { h: '次回後追日', k: 'followup', api: 'followup', type: 'text', w: 86 },
-    { h: '希望額', k: 'desiredRaw', api: 'desired', type: 'long', w: 110, num: true },
-    { h: '査定提示額', k: 'offeredRaw', api: 'offered', type: 'text', w: 100, num: true },
-    { h: '成約額', k: 'dealRaw', api: 'deal', type: 'text', w: 100, num: true },
-    { h: '通話メモ', k: 'memo', api: 'memo', type: 'long', w: 220 },
-    { h: '備考', k: 'note', api: 'note', type: 'long', w: 260 },
+    { h: '車名', k: 'car', api: 'car', type: 'text', w: 140 },
+    { h: '年式', k: 'year', api: 'year', type: 'text', w: 56 },
+    { h: '走行', k: 'mileage', api: 'mileage', type: 'text', w: 76 },
+    { h: '入札', k: 'bidResult', type: 'ro', w: 48 },
+    { h: 'コール', k: 'calls', type: 'call', w: 190 },
+    { h: '査定', k: 'assess', api: 'assess', type: 'select', w: 34, opts: () => ['', '〇', '×'] },
+    { h: '結果', k: 'result', api: 'result', type: 'select', w: 92, opts: () => RESULT_OPTIONS },
+    { h: '後追日', k: 'followup', api: 'followup', type: 'text', w: 70 },
+    { h: '希望額', k: 'desiredRaw', api: 'desired', type: 'long', w: 80, num: true },
+    { h: '提示額', k: 'offeredRaw', api: 'offered', type: 'text', w: 78, num: true },
+    { h: '成約額', k: 'dealRaw', api: 'deal', type: 'text', w: 80, num: true },
+    { h: '通話メモ', k: 'memo', api: 'memo', type: 'long', w: 150 },
+    { h: '備考', k: 'note', api: 'note', type: 'long', w: 170 },
   ];
   let cgRows = [];
   function cgCellHtml(col, c) {
     const v = c[col.k];
     if (col.type === 'no') return `<a href="#" onclick="event.preventDefault();openCaseById('${c.no}')" title="詳細を開く">${c.no}</a>`;
-    if (col.k === 'media') return `<span class="m-tag ${c.media}">${mediaLabels[c.media] || cgEsc(c.media)}</span>`;
+    if (col.k === 'bidResult') { const t = String(v || ''); return t ? `<span title="${cgEsc(t)}">${cgEsc(t === '権利獲得' ? '獲得' : t)}</span>` : ''; }
+    if (col.k === 'media') { const short = { carsensor: 'カーセン', navikuru: 'ナビクル', yahoo: 'Yahoo', self: '自社', shop: '店頭', other: '他' }; return `<span class="m-tag ${c.media}" title="${cgEsc(mediaLabels[c.media] || c.media)}" style="padding:1px 5px;font-size:10.5px;">${short[c.media] || mediaLabels[c.media] || cgEsc(c.media)}</span>`; }
     if (col.type === 'call') {
       const ch = (c.calls || []).map((cd, i) => cd && cd.result ? `<span class="cchip"><b>${'①②③④⑤⑥⑦⑧'[i]}</b>${cgEsc(cd.result)}${cd.date ? `<i>${cgEsc(cd.date)}</i>` : ''}</span>` : '').join('');
       return ch || '<span class="dim">未架電</span>';
@@ -4426,10 +4428,10 @@
     cgClosePop();
     const keepScroll = { t: wrap.scrollTop, l: wrap.scrollLeft };
     cgRows = list;
-    const th = CG_COLS.map(col => `<th class="${col.type === 'ro' ? 'ro ' : ''}${col.stk != null ? 'stk stk-' + col.stk : ''}" style="min-width:${col.w}px;">${col.h}</th>`).join('');
+    const th = CG_COLS.map(col => `<th class="${col.type === 'ro' ? 'ro ' : ''}${col.stk != null ? 'stk stk-' + col.stk : ''}" style="min-width:${col.w}px;max-width:${col.w}px;">${col.h}</th>`).join('');
     const rows = list.map((c, r) => `<tr data-r="${r}">` + CG_COLS.map((col, i) => {
       const cls = [col.type === 'ro' || col.type === 'no' ? 'ro' : 'ed', col.type === 'no' ? 'no' : '', col.num ? 'num' : '', col.stk != null ? 'stk stk-' + col.stk : ''].filter(Boolean).join(' ');
-      const tip = col.type === 'long' || col.k === 'car' ? ` title="${cgEsc(c[col.k] || '')}"` : '';
+      const tip = ['text', 'long', 'select'].includes(col.type) && c[col.k] ? ` title="${cgEsc(c[col.k])}"` : '';
       return `<td class="${cls}" tabindex="-1" data-r="${r}" data-c="${i}" style="--w:${col.w}px;--mw:${col.w}px;"${tip}>${cgCellHtml(col, c)}</td>`;
     }).join('') + '</tr>').join('');
     wrap.innerHTML = `<table class="cg"><thead><tr>${th}</tr></thead><tbody>${rows || `<tr><td colspan="${CG_COLS.length}" class="dim" style="padding:14px;">該当する案件がありません</td></tr>`}</tbody></table>`;
@@ -4650,7 +4652,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024h'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024i'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
