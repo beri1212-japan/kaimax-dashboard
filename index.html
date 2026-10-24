@@ -4024,7 +4024,9 @@
     { key: 'assessed', label: '査定〇' },
   ];
   // 結果値のボタン表示順（既知を優先、未知は後ろに自動追加）
-  const RESULT_ORDER = ['検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', 'アポ', '成約', '入庫済み', '他社売却', '自社代替', '売らない', '売却しない', 'しない', '着拒', '媒体重複'];
+  // 結果の選択肢。入力欄（表・一覧・詳細）と絞り込みのチップは、すべてこの一覧から作る（ここを直せば全部そろう）
+  const RESULT_LIST = ['入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
+  const RESULT_ORDER = RESULT_LIST.concat(['アポ', 'しない']);
 
   // 1件が指定した段階/結果に一致するか
   function matchStage(c, s) {
@@ -4064,7 +4066,8 @@
     if (!wrap) return;
     const chips = [{ key: 'all', label: '全て' }]
       .concat(STAGE_PHASES)
-      .concat(distinctResults().map(r => ({ key: 'r:' + r, label: r })));
+      // 入力できる結果はデータに無くても必ず出す。一覧に無い古い値がデータにあれば後ろに足す
+      .concat(RESULT_LIST.concat(distinctResults().filter(r => !RESULT_LIST.includes(r))).map(r => ({ key: 'r:' + r, label: r })));
     const cur = caseFilters.stage;
     const isActive = (k) => (Array.isArray(cur) ? cur.includes(k) : cur === k);
     wrap.innerHTML = chips.map(ch =>
@@ -4581,7 +4584,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024f'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024g'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4932,7 +4935,7 @@
   function isArchived(name) { return staffDb[name] === 'archived'; }
   window.archiveAssignee = function (name) { setStaffStatus(name, 'archived', '✓「' + name + '」を退職にしました'); };
   window.restoreAssignee = function (name) { setStaffStatus(name, 'active', '✓「' + name + '」を在籍に戻しました'); };
-  const RESULT_OPTIONS = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
+  const RESULT_OPTIONS = [''].concat(RESULT_LIST);
 
   function openAssigneeEditor(td, c) {
     if (!td) return;
@@ -6182,7 +6185,7 @@
   const OPT_BIDRESULT = ['', '権利獲得', '落札', '失注', '〇', '×'];
   const OPT_CALL = ['', '不通', '不通SMS', '通話', '留守', '着信拒', 'アポ', 'アポ確定', '検討中', '他決'];
   const OPT_ASSESS = ['', '〇', '×'];
-  const OPT_RESULT = ['', '入庫済み', '成約', '検討(1ヶ月以内)', '検討(直近)', '検討(長期)', '他社結果待ち', '★近日返事', '他社売却', '自社代替', '売らない', '売却しない', '着拒', '媒体重複'];
+  const OPT_RESULT = [''].concat(RESULT_LIST);
   const OPT_ASSIGNEE = ['前田', '川縁', '高木', '上野', '野村', '馬塚', '諸田', '石川'];
   const CALL_MARKS = ['①','②','③','④','⑤','⑥','⑦','⑧'];
 
