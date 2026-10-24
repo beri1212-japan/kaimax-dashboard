@@ -4308,8 +4308,8 @@
   // 列の定義。k=案件の項目 / api=保存時の項目名（update）/ type: ro(読取) text long(長文) select call
   const CG_COLS = [
     { h: 'NO', k: 'no', type: 'no', w: 52, stk: 0 },
-    { h: '顧客名', k: 'customer', api: 'customer', type: 'text', w: 130, stk: 1 },
-    { h: '受信日', k: 'date', type: 'ro', w: 84 },
+    { h: '顧客名', k: 'customer', api: 'customer', type: 'text', w: 150, stk: 1 },
+    { h: '受信日', k: 'date', type: 'ro', w: 98 },
     { h: '媒体', k: 'media', type: 'ro', w: 84 },
     { h: '担当', k: 'assignee', api: 'assignee', type: 'select', w: 72, opts: () => { const n = allAssignees().filter(x => !isArchived(x)); return [''].concat(n); } },
     { h: 'TEL', k: 'tel', api: 'tel', type: 'text', w: 112 },
@@ -4548,7 +4548,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
