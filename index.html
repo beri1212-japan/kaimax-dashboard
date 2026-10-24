@@ -794,6 +794,48 @@
     font-weight: 700;
   }
 
+  /* ===== 案件一覧の絞り込みバー（1〜2行にまとめる。中身は従来のチップを裏で使う） ===== */
+  #page-cases .filters > .filter-group, #page-cases .filters > .filter-toggle, #page-cases .filters > .filter-more { display:none !important; }
+  #page-cases .filters { display:block; padding:12px 24px 10px; }
+  .fbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; position:relative; }
+  .fb-task { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .fb-task button { border:0; background:#fff; height:32px; padding:0 12px; font:inherit; font-size:12.5px; font-weight:700; color:var(--ink-2); cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .fb-task button + button { border-left:1px solid var(--line); }
+  .fb-task button .ic { width:14px; height:14px; }
+  .fb-task button.on { background:#e8f0fe; color:#1557b0; }
+  .fb-sep { width:1px; height:22px; background:var(--line); margin:0 2px; }
+  .fb-more { display:contents; }
+  .fb-more-btn { display:none; }
+  .fb-f { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--ink-3); white-space:nowrap; }
+  .fb-f select, .fb-res { height:32px; border:1px solid var(--line); border-radius:7px; background:#fff; font:inherit; font-size:12.5px; color:var(--ink); padding:0 8px; cursor:pointer; }
+  #fbar .fb-f select { appearance:auto; -webkit-appearance:auto; background-image:none; min-width:88px; box-shadow:none; }
+  .fb-f select.set, .fb-res.set { border-color:#aecbfa; background:#e8f0fe; color:#1557b0; font-weight:700; }
+  .fb-res { display:inline-flex; align-items:center; gap:6px; max-width:260px; }
+  .fb-res span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fb-clear { border:0; background:none; color:var(--accent); font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; padding:0 4px; height:32px; }
+  .fb-clear[hidden] { display:none; }
+  .fb-pop { position:absolute; z-index:60; top:calc(100% + 6px); background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 28px rgba(60,64,67,.2); padding:12px 14px; width:min(560px, calc(100vw - 32px)); }
+  .fb-pop[hidden] { display:none; }
+  .fb-pop h4 { margin:0 0 6px; font-size:11.5px; color:var(--ink-3); font-weight:700; }
+  .fb-pop #stage-chips { display:flex !important; flex-wrap:wrap; gap:6px; }
+  .fb-pop .fb-pop-a { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:11.5px; color:var(--ink-3); }
+  .fb-pop .fb-pop-a button { height:28px; padding:0 14px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff; font:inherit; font-weight:700; font-size:12px; cursor:pointer; }
+  .fb-on { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:8px; font-size:11.5px; color:var(--ink-3); }
+  .fb-on[hidden] { display:none; }
+  .fb-tag { display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 4px 0 9px; border-radius:12px; background:#f1f3f4; color:var(--ink-2); font-size:11.5px; font-weight:700; }
+  .fb-tag button { border:0; background:none; width:18px; height:18px; border-radius:50%; cursor:pointer; color:var(--ink-3); font-size:13px; line-height:18px; padding:0; }
+  .fb-tag button:hover { background:#dadce0; color:var(--ink); }
+  @media (max-width: 720px) {
+    #page-cases .filters { padding:10px 10px 8px !important; }
+    .fb-sep { display:none; }
+    .fb-task { width:100%; } .fb-task button { flex:1; justify-content:center; padding:0 6px; }
+    .fb-more-btn { display:inline-flex; align-items:center; gap:4px; height:32px; padding:0 12px; border:1px solid var(--line); border-radius:7px; background:#fff; font:inherit; font-size:12.5px; font-weight:700; color:var(--ink-2); }
+    .fb-more-btn b { color:#1557b0; }
+    .fb-more { display:none; width:100%; flex-wrap:wrap; gap:8px 10px; }
+    .fb-more.open { display:flex; }
+    .fb-f { flex:1 1 calc(50% - 10px); } .fb-f select { flex:1; min-width:0; }
+    .fb-res { flex:1 1 100%; max-width:none; }
+  }
   /* Table */
   /* ===== 案件一覧：表（スプシ）表示 ===== */
   .cv-toggle { display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; margin-left:4px; }
@@ -2756,6 +2798,30 @@
 <!-- ============================================== -->
 <div class="page-section" id="page-cases">
   <div class="filters">
+    <div class="fbar" id="fbar">
+      <div class="fb-task" role="group" aria-label="よく使う絞り込み">
+        <button type="button" data-task="call"><svg class="ic"><use href="#ic-phone"/></svg>コール案件</button>
+        <button type="button" data-task="hot"><svg class="ic"><use href="#ic-flame"/></svg>HOT案件</button>
+        <button type="button" data-task="assess"><svg class="ic"><use href="#ic-clipboard"/></svg>査定予定</button>
+      </div>
+      <span class="fb-sep"></span>
+      <button type="button" class="fb-more-btn" id="fb-more-btn" aria-expanded="false">絞り込み<b id="fb-more-n"></b> ▾</button>
+      <div class="fb-more" id="fb-more">
+      <label class="fb-f" id="fb-asg-slot">担当</label>
+      <label class="fb-f">期間<select id="fb-period" data-chips=".period-chip-cases" data-attr="data-period"></select></label>
+      <label class="fb-f">媒体<select id="fb-media" data-chips=".media-chip-cases" data-attr="data-cmedia"></select></label>
+      <button type="button" class="fb-res" id="fb-res" aria-expanded="false"><span>結果・段階：すべて</span>▾</button>
+      <label class="fb-f">架電<select id="fb-cstatus" data-chips=".callstatus-chip" data-attr="data-cstatus"></select></label>
+      <label class="fb-f">滞留<select id="fb-stale" data-chips=".stale-chip" data-attr="data-stale"></select></label>
+      <button type="button" class="fb-clear" id="fb-clear" hidden>条件をすべて外す</button>
+      </div>
+      <div class="fb-pop" id="fb-pop" hidden>
+        <h4>結果・段階（複数選べます）</h4>
+        <div id="fb-stage-slot"></div>
+        <div class="fb-pop-a"><span>段階＝結果がまだ空の案件の進み具合</span><button type="button" id="fb-pop-close">閉じる</button></div>
+      </div>
+    </div>
+    <div class="fb-on" id="fb-on" hidden></div>
     <div class="filter-group task-preset-group">
       <span class="filter-label" style="font-weight:700;">タスク</span>
       <span class="chip task-chip" data-task="call" style="background:#b8312f;color:#fff;border-color:#b8312f;font-weight:700;"><svg class="ic"><use href="#ic-phone"/></svg> コール案件</span>
@@ -4584,7 +4650,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024g'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024h'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -6499,6 +6565,7 @@
       .map(c => c.textContent.trim())
       .filter(t => t && !NEUTRAL.includes(t));
     el.textContent = on.length ? on.join(' / ') : '条件なし（すべて表示）';
+    if (typeof syncFilterBar === 'function') syncFilterBar();
   }
 
   // ページタブ切替
@@ -6601,6 +6668,72 @@
     if (_asel) _asel.addEventListener('change', () => { caseFilters.assignee = _asel.value; renderCaseTable(); });
   }
   populateAssigneeFilter();
+  // ===== 案件一覧の絞り込みバー =====
+  // 見た目だけをまとめ直し、条件の切り替えは従来のチップ（非表示）をそのまま押して行う（既存の処理を変えないため）
+  (function setupFilterBar() {
+    const bar = document.getElementById('fbar'); if (!bar) return;
+    // 担当者プルダウンは既存のものをそのまま移す
+    const asg = document.getElementById('assignee-filter'), slot = document.getElementById('fb-asg-slot');
+    if (asg && slot) slot.appendChild(asg);
+    // 結果・段階のチップはポップアップの中へ移す
+    const stage = document.getElementById('stage-chips'), sslot = document.getElementById('fb-stage-slot');
+    if (stage && sslot) sslot.appendChild(stage);
+    // 単一選択のプルダウン（期間・媒体・架電・滞留）
+    bar.querySelectorAll('select[data-chips]').forEach(sel => {
+      const chips = [...document.querySelectorAll(sel.dataset.chips)];
+      sel.innerHTML = chips.map(c => `<option value="${c.getAttribute(sel.dataset.attr)}">${c.textContent.trim()}</option>`).join('');
+      sel.addEventListener('change', () => {
+        const c = chips.find(x => x.getAttribute(sel.dataset.attr) === sel.value); if (c) c.click();
+        document.querySelectorAll('.task-chip').forEach(t => t.classList.remove('active'));
+      });
+    });
+    bar.querySelectorAll('.fb-task button').forEach(b => b.addEventListener('click', () => {
+      const t = document.querySelector(`.task-chip[data-task="${b.dataset.task}"]`); if (t) t.click();
+    }));
+    const mb = document.getElementById('fb-more-btn'), more = document.getElementById('fb-more');
+    mb.addEventListener('click', () => { const o = more.classList.toggle('open'); mb.setAttribute('aria-expanded', o ? 'true' : 'false'); });
+    const pop = document.getElementById('fb-pop'), res = document.getElementById('fb-res');
+    const openPop = (open) => {
+      pop.hidden = !open; res.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) pop.style.left = Math.max(0, Math.min(res.offsetLeft, bar.clientWidth - pop.offsetWidth)) + 'px';
+    };
+    res.addEventListener('click', (e) => { e.stopPropagation(); openPop(pop.hidden); });
+    document.getElementById('fb-pop-close').addEventListener('click', () => openPop(false));
+    document.addEventListener('click', (e) => { if (!pop.hidden && !e.composedPath().includes(pop) && e.target !== res) openPop(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) openPop(false); });
+    document.getElementById('fb-clear').addEventListener('click', () => {
+      const t = document.querySelector('.task-chip[data-task="reset"]'); if (t) t.click();
+      ['.callstatus-chip[data-cstatus="all"]', '.stale-chip[data-stale="all"]'].forEach(q => { const c = document.querySelector(q); if (c && !c.classList.contains('active')) c.click(); });
+      const a = document.getElementById('assignee-filter'); if (a && a.value !== 'all') { a.value = 'all'; a.dispatchEvent(new Event('change')); }
+    });
+  })();
+  // 今の条件をバーに映す（renderCaseTable の最後に呼ばれる）
+  function syncFilterBar() {
+    const bar = document.getElementById('fbar'); if (!bar) return;
+    const tags = [];
+    bar.querySelectorAll('select[data-chips]').forEach(sel => {
+      const act = document.querySelector(sel.dataset.chips + '.active');
+      if (act) sel.value = act.getAttribute(sel.dataset.attr);
+      const isAll = sel.value === 'all';
+      sel.classList.toggle('set', !isAll);
+      if (!isAll && act) tags.push({ label: sel.parentElement.firstChild.textContent.trim() + '：' + act.textContent.trim(), off: () => { const c = document.querySelector(sel.dataset.chips + '[' + sel.dataset.attr + '="all"]'); if (c) c.click(); } });
+    });
+    const a = document.getElementById('assignee-filter');
+    if (a) { a.classList.toggle('set', a.value !== 'all'); if (a.value !== 'all') tags.push({ label: '担当：' + a.value, off: () => { a.value = 'all'; a.dispatchEvent(new Event('change')); } }); }
+    const st = [...document.querySelectorAll('#stage-chips .chip.active')].map(c => c.textContent.trim()).filter(t => t !== '全て');
+    const res = document.getElementById('fb-res');
+    res.classList.toggle('set', st.length > 0);
+    res.querySelector('span').textContent = '結果・段階：' + (st.length ? (st.length <= 2 ? st.join('・') : st.length + '件を選択') : 'すべて');
+    st.forEach(t => tags.push({ label: t, off: () => { const c = [...document.querySelectorAll('#stage-chips .chip.active')].find(x => x.textContent.trim() === t); if (c) c.click(); } }));
+    const task = document.querySelector('.task-chip.active');
+    bar.querySelectorAll('.fb-task button').forEach(b => b.classList.toggle('on', !!task && task.dataset.task === b.dataset.task));
+    const on = document.getElementById('fb-on');
+    on.innerHTML = tags.length ? '<span>絞り込み中：</span>' + tags.map((t, i) => `<span class="fb-tag">${t.label.replace(/</g, '&lt;')}<button type="button" data-i="${i}" title="この条件を外す">×</button></span>`).join('') : '';
+    on.hidden = !tags.length;
+    on.querySelectorAll('button[data-i]').forEach(b => b.addEventListener('click', () => tags[+b.dataset.i].off()));
+    document.getElementById('fb-clear').hidden = !tags.length;
+    const n = document.getElementById('fb-more-n'); if (n) n.textContent = tags.length ? `（${tags.length}）` : '';
+  }
   // 結果/フェーズは統合フィルタ（renderStageFilterで動的生成・イベント付与）
   
   // タスクプリセットボタン
