@@ -831,6 +831,10 @@
   .cg-pop .cg-pop-a button { height:26px; padding:0 12px; border-radius:6px; border:1px solid var(--line); background:#fff; font-weight:700; cursor:pointer; font-family:inherit; font-size:12px; }
   .cg-pop .cg-pop-a button.pri { background:var(--accent); color:#fff; border-color:var(--accent); }
   .cg-help { font-size:11.5px; color:var(--ink-3); margin:0 0 6px; }
+  #page-cases.cg-on.page-section { max-width:none; }
+  #page-cases.cg-on .container { max-width:none; padding-left:24px; padding-right:24px; }
+  .cg-topbar { overflow-x:auto; overflow-y:hidden; height:16px; margin-bottom:2px; }
+  .cg-topbar > div { height:1px; }
   .table-controls {
     display: flex;
     align-items: center;
@@ -2816,6 +2820,7 @@
     </div>
     <div id="case-grid-area" hidden>
       <div class="cg-help">セルをクリックするとその場で編集できます。Enter・Tab・ほかの場所をクリックで保存（Escで取り消し）。矢印キーでセルを移動。「読取」の列は自動で入る項目のため編集できません。NOを押すと詳細が開きます。</div>
+      <div class="cg-topbar" id="cg-topbar" aria-hidden="true"><div></div></div>
       <div class="cg-wrap" id="case-grid-wrap"></div>
     </div>
 
@@ -4234,6 +4239,7 @@
     const _ct = document.getElementById('case-table'), _ga = document.getElementById('case-grid-area');
     if (_ct) _ct.hidden = gridMode;
     if (_ga) _ga.hidden = !gridMode;
+    const _pc = document.getElementById('page-cases'); if (_pc) _pc.classList.toggle('cg-on', gridMode);
     const _bc = document.getElementById('cv-card'), _bg = document.getElementById('cv-grid');
     if (_bc) _bc.classList.toggle('on', !gridMode);
     if (_bg) _bg.classList.toggle('on', gridMode);
@@ -4352,6 +4358,21 @@
     }).join('') + '</tr>').join('');
     wrap.innerHTML = `<table class="cg"><thead><tr>${th}</tr></thead><tbody>${rows || `<tr><td colspan="${CG_COLS.length}" class="dim" style="padding:14px;">該当する案件がありません</td></tr>`}</tbody></table>`;
     wrap.scrollTop = keepScroll.t; wrap.scrollLeft = keepScroll.l;
+    cgSyncTopbar();
+  }
+  // 表の上にも横スクロールバーを出す（下のバーと連動）
+  function cgSyncTopbar() {
+    const wrap = document.getElementById('case-grid-wrap'), bar = document.getElementById('cg-topbar'); if (!wrap || !bar) return;
+    bar.firstElementChild.style.width = wrap.scrollWidth + 'px';
+    bar.style.width = wrap.clientWidth + 'px';
+    bar.style.visibility = wrap.scrollWidth > wrap.clientWidth + 1 ? 'visible' : 'hidden';
+    bar.scrollLeft = wrap.scrollLeft;
+    if (!bar.dataset.bound) {
+      bar.dataset.bound = '1';
+      bar.addEventListener('scroll', () => { if (wrap.scrollLeft !== bar.scrollLeft) wrap.scrollLeft = bar.scrollLeft; });
+      wrap.addEventListener('scroll', () => { if (bar.scrollLeft !== wrap.scrollLeft) bar.scrollLeft = wrap.scrollLeft; });
+      window.addEventListener('resize', cgSyncTopbar);
+    }
   }
   function cgCell(r, ci) { return document.querySelector(`#case-grid-wrap td[data-r="${r}"][data-c="${ci}"]`); }
   function cgFocus(r, ci) {
@@ -4548,7 +4569,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024b'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1024c'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
