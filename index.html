@@ -391,6 +391,41 @@
   .rep-sec-title { font-size:14px; font-weight:700; color:var(--ink); margin:14px 0 5px; display:flex; align-items:center; gap:8px; }
   .rep-note { font-size:11.5px; color:var(--ink-3); margin:0 0 7px; line-height:1.5; }
   .rep-table-wrap { overflow-x:auto; }
+  /* 実績集計・日別 */
+  .dly-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:12px 0 4px; }
+  .dly-bar label { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-3); }
+  .dly-bar select { height:32px; border:1px solid var(--line); border-radius:7px; background:#fff; font:inherit; font-size:13px; color:var(--ink); padding:0 8px; }
+  .dly-tiles-h { font-size:12px; font-weight:700; color:var(--ink-2); margin:14px 0 6px; }
+  .dly-tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; }
+  .dly-tile { background:#fff; border:1px solid var(--line); border-radius:8px; padding:9px 12px; }
+  .dly-tl { font-size:11.5px; color:var(--ink-3); font-weight:700; }
+  .dly-tv { font-size:24px; font-weight:800; color:var(--ink); font-family:Arial,inherit; line-height:1.25; }
+  .dly-ts { font-size:11px; color:var(--ink-3); }
+  table.dly-table { min-width:520px; }
+  table.dly-table tbody tr { cursor:pointer; }
+  table.dly-table tr.today td { background:#e8f0fe; }
+  table.dly-table tr.sel td { background:#fef7e0; }
+  table.dly-table tfoot td { font-weight:800; border-top:2px solid var(--line); }
+  .dly-dow { font-weight:400; color:var(--ink-3); font-size:11px; }
+  tr.sun .dly-dow { color:#c5221f; } tr.sat .dly-dow { color:#1967d2; }
+  .dly-today { margin-left:6px; font-size:10.5px; font-weight:700; color:#fff; background:var(--accent); border-radius:9px; padding:0 6px; }
+  .dly-z { color:#c4c7c5; }
+  .dly-rate { color:var(--ink-3); }
+  .dly-lists { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:4px 18px; margin-top:8px; }
+  .dly-lh { font-size:12px; font-weight:700; color:var(--ink-2); margin:10px 0 4px; }
+  .dly-ul { margin:0; padding:0 0 0 2px; list-style:none; font-size:12.5px; line-height:1.9; }
+  .dly-car { color:var(--ink-3); } .dly-who, .dly-r { font-size:11px; color:var(--ink-3); background:#f1f3f4; border-radius:8px; padding:1px 6px; }
+  .dly-notes { margin-top:14px; line-height:1.8; }
+  @media (max-width:720px) {
+    .dly-tiles { gap:5px; }
+    .dly-tile { padding:7px 7px; }
+    .dly-tl { font-size:10.5px; }
+    .dly-tv { font-size:19px; }
+    .dly-ts { font-size:10px; line-height:1.3; }
+    table.dly-table { min-width:0; font-size:12px; }
+    table.dly-table th, table.dly-table td { padding:5px 5px; }
+    table.dly-table .dly-rate { display:none; }
+  }
   /* 目標・コスト（年度表） */
   .fy-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 6px; }
   .fy-bar select { padding:6px 10px; border:1px solid var(--line); border-radius:7px; font-size:14px; color:var(--ink); background:var(--bg-panel); }
@@ -2968,6 +3003,7 @@
     <div class="rep-toggle">
       <span class="chip rep-unit active" data-unit="month" onclick="setReportUnit('month')">月別</span>
       <span class="chip rep-unit" data-unit="week" onclick="setReportUnit('week')">週別（土〜金）</span>
+      <span class="chip rep-unit" data-unit="day" onclick="setReportUnit('day')">日別</span>
     </div>
   </div>
   <div id="report-body"></div>
@@ -4402,6 +4438,7 @@
     { h: '入札', k: 'bidResult', type: 'ro', w: 48 },
     { h: 'コール', k: 'calls', type: 'call', w: 190 },
     { h: '査定', k: 'assess', api: 'assess', type: 'select', w: 34, opts: () => ['', '〇', '×'] },
+    { h: '査定日', k: 'assessOn', api: 'assessOn', type: 'text', w: 52, date: true },
     { h: '結果', k: 'result', api: 'result', type: 'select', w: 92, opts: () => RESULT_OPTIONS },
     { h: '後追日', k: 'followup', api: 'followup', type: 'text', w: 70 },
     { h: '希望額', k: 'desiredRaw', api: 'desired', type: 'long', w: 80, num: true },
@@ -4421,6 +4458,7 @@
       return ch || '<span class="dim">未架電</span>';
     }
     if (v == null || v === '') return '';
+    if (col.date) return cgEsc(isoToMd(v));
     return cgEsc(String(v).replace(/\s*\n\s*/g, ' / '));
   }
   function renderCaseGrid(list) {
@@ -4473,7 +4511,7 @@
     cgClosePop();
     if (col.type === 'call') { cgCallPop(td, c); return; }
     if (col.type === 'long') { cgLongPop(td, c, col, r, ci); return; }
-    const cur = c[col.k] == null ? '' : String(c[col.k]);
+    const cur = c[col.k] == null ? '' : col.date ? isoToMd(c[col.k]) : String(c[col.k]);
     td.classList.add('editing');
     let el;
     if (col.type === 'select') {
@@ -4514,7 +4552,12 @@
   async function cgCommit(td, val, move) {
     const r = +td.dataset.r, ci = +td.dataset.c, col = CG_COLS[ci], c = cgRows[r];
     const before = c[col.k] == null ? '' : String(c[col.k]);
-    const next = String(val == null ? '' : val).trim();
+    let next = String(val == null ? '' : val).trim();
+    if (col.date && next) {
+      const iso = looseDateISO(next);
+      if (!iso) { cgRestore(td); showToast(`✗ 日付が読めません（「10/25」のように入力してください）`, true); return; }
+      next = iso;
+    }
     if (next === before) { cgRestore(td); if (move) cgMove(td, move); else if (document.activeElement === document.body) td.focus(); return; }
     // 先に画面へ反映（保存中は黄色）
     const prevVals = {};
@@ -4525,8 +4568,12 @@
     if (col.k === 'offeredRaw') vals.offered = parseInt(next.replace(/[^\d]/g, '')) || null;
     if (col.k === 'dealRaw') vals.deal = parseInt(next.replace(/[^\d]/g, '')) || null;
     if (col.k === 'result') vals.result = next.replace(/（/g, '(').replace(/）/g, ')');
+    // 査定を〇にしたら査定日に今日（サーバー側と同じ決まり）。〇でなくなったら査定日を消す
+    if (col.k === 'assess') vals.assessOn = next === '〇' ? (before === '〇' && c.assessOn ? c.assessOn : todayISO()) : '';
     Object.keys(vals).forEach(k => { prevVals[k] = c[k]; });
     apply(vals);
+    const sib = col.k === 'assess' ? td.parentElement.querySelector(`td[data-c="${CG_COLS.findIndex(x => x.k === 'assessOn')}"]`) : null;
+    if (sib) sib.innerHTML = cgCellHtml(CG_COLS[+sib.dataset.c], c);
     cgRestore(td); td.classList.add('saving'); td.classList.remove('saved', 'err');
     if (move) cgMove(td, move);
     try {
@@ -4539,7 +4586,7 @@
         setTimeout(() => td.classList.remove('saved'), 1600);
       } else throw new Error((data && data.message) || '通信エラー');
     } catch (e) {
-      apply(prevVals); td.innerHTML = cgCellHtml(col, c);
+      apply(prevVals); td.innerHTML = cgCellHtml(col, c); if (sib) sib.innerHTML = cgCellHtml(CG_COLS[+sib.dataset.c], c);
       td.classList.remove('saving'); td.classList.add('err');
       showToast(`✗ 保存できませんでした（NO ${c.no}・${col.h}）: ${e.message || e} — 元の値に戻しました`, true);
       setTimeout(() => td.classList.remove('err'), 4000);
@@ -4611,6 +4658,15 @@
     }
     return todayISO();
   }
+  function looseDateISO(v) {
+    const s = String(v || '').normalize('NFKC').trim();
+    let m = s.match(/^(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/), y, mo, d;
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else { m = s.match(/^(\d{1,2})[\/\-.月](\d{1,2})/); if (!m) return ''; mo = +m[1]; d = +m[2]; const n = new Date(); y = n.getFullYear(); if (new Date(y, mo - 1, d) - n > 30 * 86400000) y--; }
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getMonth() !== mo - 1 || dt.getDate() !== d) return '';
+    return y + '-' + _pad2(mo) + '-' + _pad2(d);
+  }
   function isoToMd(v) {
     // 「YYYY-MM-DD」→「M/D」（先頭0なし）。シートの表記に合わせる
     if (!v) return '';
@@ -4652,7 +4708,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1024i'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1025a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4722,7 +4778,7 @@
       const rowOpts = (cur.result && !opts.includes(cur.result)) ? opts.concat([cur.result]) : opts;
       rows += `<div class="ce-row"><span class="ce-n">${['①','②','③','④','⑤','⑥','⑦','⑧'][i]}</span>`
         + `<select class="ce-result" data-idx="${i}">${rowOpts.map(o => `<option value="${o}"${o === cur.result ? ' selected' : ''}>${o || '—'}</option>`).join('')}</select>`
-        + `<input class="ce-date" type="date" data-idx="${i}" value="${mdToISO(cur.date)}"></div>`;
+        + `<input class="ce-date" type="date" data-idx="${i}" value="${cur.result && !cur.date ? '' : mdToISO(cur.date)}"></div>`;
     }
     td.innerHTML = `<div class="call-editor">${rows}<div class="ce-actions"><button class="ce-save">保存</button><button class="ce-cancel">取消</button><span class="ce-msg"></span></div></div>`;
     // 編集中はセル内クリックで詳細が開かないように
@@ -4937,7 +4993,7 @@
       const md = isoToMd(dv ? dv.value : iso);
       const arr = [];
       for (let i = 0; i < 8; i++) { const cur = c.calls[i]; arr[i] = cur ? { result: cur.result, date: cur.date || '' } : { result: '', date: '' }; }
-      arr[targetIdx] = { result, date: (targetIdx === 0 ? '' : md) }; // ①は日付列なし
+      arr[targetIdx] = { result, date: md }; // ①も日付を残す（2026/10/25〜）
       closeQuickCall();
       saveCallsArray(c, arr);
     }
@@ -5067,7 +5123,9 @@
   window.openResultEditor = openResultEditor;
 
   // ===== 実績集計（月別 / 週別 土〜金、発生ベース＆活動ベース、推移グラフ） =====
-  const REACHED_SET = ['通話', '検討中', 'アポ'];
+  // 着電＝お客様と話せた結果。アポ＝アポ／アポ確定（日別・月別・週別で共通）
+  const REACHED_SET = ['通話', '検討中', 'アポ', 'アポ確定', '他決'];
+  const APO_SET = ['アポ', 'アポ確定'];
   function ymKeyOf(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   function monthLabel(key) { const p = key.split('-'); return p[0] + '/' + (+p[1]); }
   function weekStartSat(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const off = (x.getDay() - 6 + 7) % 7; x.setDate(x.getDate() - off); return x; }
@@ -5082,7 +5140,7 @@
       const o = map[key] || (map[key] = { cases: 0, bid: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0 });
       o.cases++;
       if (c.bid === '〇' || c.bid === '入札') o.bid++;
-      (c.calls || []).forEach(k => { if (k.result) { o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (k.result === 'アポ') o.apo++; } });
+      (c.calls || []).forEach(k => { if (k.result) { o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (APO_SET.includes(k.result)) o.apo++; } });
       if (c.assess === '〇') o.assess++;
       if (isDeal(c)) o.deal++;
     });
@@ -5098,7 +5156,7 @@
         const d = new Date(cy, +m[1] - 1, +m[2]);
         const key = unit === 'week' ? weekKeyOf(d) : ymKeyOf(d);
         const o = map[key] || (map[key] = { calls: 0, reach: 0, apo: 0 });
-        o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (k.result === 'アポ') o.apo++;
+        o.calls++; if (REACHED_SET.includes(k.result)) o.reach++; if (APO_SET.includes(k.result)) o.apo++;
       });
     });
     return map;
@@ -5145,6 +5203,7 @@
   function renderReport() {
     const host = document.getElementById('report-body'); if (!host) return;
     const unit = window.reportUnit || 'month';
+    if (unit === 'day') { renderDaily(host); return; }
     const lab = unit === 'week' ? weekLabel : monthLabel;
     const coh = buildCohort(unit), act = buildActivity(unit);
     const ck = Object.keys(coh).sort(), ak = Object.keys(act).sort();
@@ -5185,6 +5244,121 @@
     host.innerHTML = cohortTable + cohChart + actTable + actChart;
   }
   window.renderReport = renderReport;
+  // ===== 日別の活動実績（その日に起きたことを数える） =====
+  // 案件発生＝受信日 / コール・着電・アポ＝架電した日 / 査定＝査定日 / 成約＝成約日（契約日）
+  // 日付の無いコール（2026/10/25より前の①など）は受信日で数え、その数を注記する
+  const DOW = ['日', '月', '火', '水', '木', '金', '土'];
+  const dKey = d => d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate());
+  window.dailyState = window.dailyState || { ym: '', who: 'all', day: '' };
+  function callDateOf(k, rd) {
+    const m = String(k.date || '').match(/(\d{1,2})\s*[\/月.\-]\s*(\d{1,2})/);
+    if (!m) return null;
+    let y = rd ? rd.getFullYear() : new Date().getFullYear();
+    let d = new Date(y, +m[1] - 1, +m[2]);
+    if (rd && d - rd < -30 * 86400000) d = new Date(y + 1, +m[1] - 1, +m[2]);
+    return d;
+  }
+  // 1件ごとの出来事を日付つきで並べる（担当で絞れるように担当名も持つ）
+  function dailyEvents() {
+    const ev = [];
+    (allCases || []).forEach(c => {
+      const who = c.assignee || '（未割当）', rd = parseDateFlexible(c.date);
+      if (rd) ev.push({ day: dKey(rd), type: 'case', who, c });
+      (c.calls || []).forEach((k, i) => {
+        if (!k || !k.result) return;
+        const d = callDateOf(k, rd) || rd; if (!d) return;
+        ev.push({ day: dKey(d), type: 'call', who, c, r: k.result, est: !k.date });
+      });
+      if (c.assess === '〇') ev.push({ day: c.assessOn || '', type: 'assess', who, c });
+      if (isDeal(c)) { const e = dealExtra(c); ev.push({ day: e.dealOn || '', type: 'deal', who, c }); }
+    });
+    return ev;
+  }
+  function dailyCount(list) {
+    const o = { cases: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0, est: 0 };
+    list.forEach(e => {
+      if (e.type === 'case') o.cases++;
+      else if (e.type === 'call') { o.calls++; if (REACHED_SET.includes(e.r)) o.reach++; if (APO_SET.includes(e.r)) o.apo++; if (e.est) o.est++; }
+      else if (e.type === 'assess') o.assess++;
+      else if (e.type === 'deal') o.deal++;
+    });
+    return o;
+  }
+  window.setDaily = function (k, v) { window.dailyState[k] = v; if (k !== 'day') window.dailyState.day = ''; renderReport(); };
+  window.pickDailyDay = function (d) { window.dailyState.day = window.dailyState.day === d ? '' : d; renderReport(); const el = document.getElementById('dly-detail'); if (el && window.dailyState.day) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+  function renderDaily(host) {
+    const st = window.dailyState, now = new Date(), todayK = dKey(now);
+    const all = dailyEvents();
+    const months = [...new Set(all.map(e => e.day.slice(0, 7)).filter(x => /^\d{4}-\d{2}$/.test(x)))].sort().reverse();
+    const curYm = todayK.slice(0, 7);
+    if (!months.includes(curYm)) months.unshift(curYm);
+    if (!st.ym || !months.includes(st.ym)) st.ym = curYm;
+    const ev = st.who === 'all' ? all : all.filter(e => e.who === st.who);
+    const [yy, mm] = st.ym.split('-').map(Number);
+    const last = new Date(yy, mm, 0).getDate();
+    const upto = st.ym === curYm ? now.getDate() : last;
+    const byDay = new Map();
+    ev.forEach(e => { if (e.day.slice(0, 7) !== st.ym) return; if (!byDay.has(e.day)) byDay.set(e.day, []); byDay.get(e.day).push(e); });
+    const pct = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
+    const z = v => v ? v : '<span class="dly-z">0</span>';
+    const sum = { cases: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0, est: 0 };
+    let rows = '';
+    const days = [];
+    for (let d = 1; d <= upto; d++) {
+      const dt = new Date(yy, mm - 1, d), k = dKey(dt), o = dailyCount(byDay.get(k) || []);
+      Object.keys(sum).forEach(f => sum[f] += o[f]);
+      days.push({ k, dt, o });
+    }
+    days.slice().reverse().forEach(({ k, dt, o }) => {
+      const cls = [k === todayK ? 'today' : '', k === st.day ? 'sel' : '', dt.getDay() === 0 ? 'sun' : dt.getDay() === 6 ? 'sat' : ''].filter(Boolean).join(' ');
+      rows += `<tr class="${cls}" onclick="pickDailyDay('${k}')"><td>${dt.getMonth() + 1}/${dt.getDate()}<span class="dly-dow">（${DOW[dt.getDay()]}）</span>${k === todayK ? '<span class="dly-today">今日</span>' : ''}</td>
+        <td>${z(o.cases)}</td><td>${z(o.calls)}</td><td>${z(o.reach)}</td><td>${z(o.apo)}</td><td>${z(o.assess)}</td><td>${z(o.deal)}</td><td class="dly-rate">${pct(o.reach, o.calls)}</td></tr>`;
+    });
+    // 日付が無くて日別に出せない査定・成約（この月に受信した案件のうち）
+    const inMonth = e => { const rd = parseDateFlexible(e.c.date); return rd && dKey(rd).slice(0, 7) === st.ym; };
+    const noAssess = ev.filter(e => e.type === 'assess' && !e.day && inMonth(e)).length;
+    const noDeal = ev.filter(e => e.type === 'deal' && !e.day && inMonth(e)).length;
+    const names = allAssignees().filter(n => !isArchived(n));
+    const tile = (lab, v, sub) => `<div class="dly-tile"><div class="dly-tl">${lab}</div><div class="dly-tv">${v}</div>${sub ? `<div class="dly-ts">${sub}</div>` : ''}</div>`;
+    const t0 = st.ym === curYm ? dailyCount(byDay.get(todayK) || []) : null;
+    const tiles = (o, title) => `<div class="dly-tiles-h">${title}</div><div class="dly-tiles">${tile('案件発生', o.cases)}${tile('コール', o.calls, '着電 ' + o.reach + '（' + pct(o.reach, o.calls) + '）')}${tile('アポ', o.apo)}${tile('査定', o.assess)}${tile('成約', o.deal)}</div>`;
+    let detail = '';
+    if (st.day && st.day.slice(0, 7) === st.ym) {
+      const list = byDay.get(st.day) || [];
+      const dt = new Date(st.day + 'T00:00:00');
+      const byWho = new Map(); list.forEach(e => { if (!byWho.has(e.who)) byWho.set(e.who, []); byWho.get(e.who).push(e); });
+      const whoRows = [...byWho.keys()].sort((a, b) => byWho.get(b).length - byWho.get(a).length).map(w => { const o = dailyCount(byWho.get(w));
+        return `<tr><td>${ocEsc(w)}</td><td>${z(o.cases)}</td><td>${z(o.calls)}</td><td>${z(o.reach)}</td><td>${z(o.apo)}</td><td>${z(o.assess)}</td><td>${z(o.deal)}</td></tr>`; }).join('');
+      const link = c => `<a href="#" onclick="event.preventDefault();openCaseById('${c.no}')">NO ${c.no}</a> ${ocEsc(c.customer || '')} <span class="dly-car">${ocEsc(c.car || '')}</span> <span class="dly-who">${ocEsc(c.assignee || '未割当')}</span>`;
+      const block = (title, type, extra) => { const l = list.filter(e => e.type === type && (!extra || extra(e))); return l.length ? `<div class="dly-lh">${title}（${l.length}）</div><ul class="dly-ul">${l.map(e => `<li>${link(e.c)}${e.r ? ` <span class="dly-r">${ocEsc(e.r)}${e.est ? '・日付なし' : ''}</span>` : ''}</li>`).join('')}</ul>` : ''; };
+      detail = `<div class="panel" id="dly-detail" style="margin-top:14px;">
+        <div class="rep-sec-title" style="margin-top:0;">${dt.getMonth() + 1}/${dt.getDate()}（${DOW[dt.getDay()]}）の内訳<button class="dl-btn ghost" style="margin-left:auto;height:24px;" onclick="pickDailyDay('${st.day}')">閉じる</button></div>
+        ${whoRows ? `<div class="rep-table-wrap"><table class="rep-table" style="min-width:420px;"><thead><tr><th>担当</th><th>案件発生</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th></tr></thead><tbody>${whoRows}</tbody></table></div>` : '<div class="rep-note">この日の記録はありません</div>'}
+        <div class="dly-lists">${block('成約', 'deal')}${block('査定', 'assess')}${block('アポ', 'call', e => APO_SET.includes(e.r))}${block('案件発生', 'case')}</div>
+      </div>`;
+    }
+    host.innerHTML = `
+      <div class="dly-bar">
+        <label>月<select onchange="setDaily('ym', this.value)">${months.map(m => `<option value="${m}"${m === st.ym ? ' selected' : ''}>${m.slice(0, 4)}年${+m.slice(5)}月</option>`).join('')}</select></label>
+        <label>担当<select onchange="setDaily('who', this.value)"><option value="all">全員</option>${names.concat(['（未割当）']).map(n => `<option${n === st.who ? ' selected' : ''}>${ocEsc(n)}</option>`).join('')}</select></label>
+      </div>
+      ${t0 ? tiles(t0, '今日（' + (now.getMonth() + 1) + '/' + now.getDate() + '）') : ''}
+      ${tiles(sum, yy + '年' + mm + '月の合計' + (st.ym === curYm ? '（今日まで）' : ''))}
+      <div class="rep-sec-title" style="margin-top:18px;">日別（新しい日が上）<span class="rep-note" style="margin:0;font-weight:400;">行を押すとその日の担当別・案件が出ます</span></div>
+      <div class="rep-table-wrap"><table class="rep-table dly-table">
+        <thead><tr><th>日付</th><th>案件発生</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th class="dly-rate">着電率</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>合計</td><td>${sum.cases}</td><td>${sum.calls}</td><td>${sum.reach}</td><td>${sum.apo}</td><td>${sum.assess}</td><td>${sum.deal}</td><td class="dly-rate">${pct(sum.reach, sum.calls)}</td></tr></tfoot>
+      </table></div>
+      ${detail}
+      <div class="rep-note dly-notes">
+        <b>数え方</b>：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・アポ・検討中・他決）／査定＝査定日／成約＝成約日（契約日）。担当は案件の担当者で数えています（実際に電話した人ではありません）。<br>
+        ${sum.est ? `・日付の無いコール ${sum.est}件（10/24以前の①など）は受信日で数えています。10/25からは①も電話した日が残ります。<br>` : ''}
+        ${noAssess ? `・この月に受信した案件で、査定は〇だが査定日が無いもの ${noAssess}件は日別に出ていません（査定日は10/25から、〇にした日が自動で入ります。表（スプシ）の「査定日」で直せます）。<br>` : ''}
+        ${noDeal ? `・この月に受信した案件で、成約だが成約日が無いもの ${noDeal}件は日別に出ていません（成約一覧で契約と紐づけると入ります）。` : ''}
+      </div>`;
+  }
+
 
   // ===== 成約一覧（結果が 成約 / 入庫済み） =====
   // 期間の基準は「成約日」（契約と紐づけた案件）／未紐づけは受信日で代用。契約と紐づけると車台番号・成約日・成約金額が入る
@@ -7206,14 +7380,16 @@
   let caseExtra = new Map(), ssContracts = [], outcomes = new Map();
   async function loadRowsFromDB() {
     const [cs, calls, ins, ocs] = await Promise.all([
-      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on',
+      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on,assess_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
       selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason,synced_at').catch(() => []),
       selectAll('kaimax_outcomes', 'case_id,route,cost_yen,est_body_yen,est_recycle_yen,est_listing_fee,est_success_fee,est_transport_fee,cost_memo,auctions,sold_on,sold_yen,sold_to,memo,updated_by,updated_at').catch(() => []),
     ]);
     // シート形に載らない項目（車台番号・契約番号・成約日）は案件NOで引けるように別に持つ
-    caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '' }]));
+    // ①コールの日付はシート形に列が無いので別に持つ（2026/10/25から記録）
+    const call1 = new Map(calls.filter(k => k.seq === 1 && k.called_raw).map(k => [k.case_id, k.called_raw]));
+    caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '', assessOn: c.assess_on || '', call1: call1.get(c.id) || '' }]));
     // smart-sign の買取契約（成約の正本）。画面側では car_id=契約番号・status=成約(契約済のとき) の形にそろえて使う
     ssContracts = (ins || []).map(k => ({ car_id: k.contract_no, vin: k.vin, maker: k.maker, car: k.car, grade: k.grade, first_reg: k.first_reg, mileage: k.mileage,
       assessor: k.assignee, status: k.status === '契約済' ? '成約' : k.status, registered_at: k.contract_on, deal_on: k.contract_on, deal_yen: k.amount, customer: k.customer_name || '', tradeIn: k.trade_in_yen || 0,
@@ -7292,6 +7468,8 @@
       }
       if (!rows) throw new Error(lastErr || '読み込み失敗');
       const loaded = rowsToCases(rows);
+      // DBにしか無い項目（査定日・①の日付）を案件に足す。①がある案件は calls[0] が①
+      loaded.forEach(c => { const e = caseExtra.get(String(c.no)); if (!e) return; c.assessOn = e.assessOn || ''; if (e.call1 && c.calls && c.calls[0]) c.calls[0].date = e.call1; });
       
       if (loaded.length === 0) {
         allCases = fallbackCases;

@@ -3,7 +3,7 @@
 //      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
-//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
+//      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / update は assess を〇にすると assess_on(査定日)に今日を入れる / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
 //      自社サイト買取ページ: voice_save・voice_flags(お客様の声) / model_save・model_flags(車種ページ) / news_save(買取ニュース) / faq_save(よくある質問) / carmaster_save(査定フォームの車種マスタ)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -72,18 +72,34 @@ async function insertCase(row: Record<string, unknown>) {
   throw new Error("案件NOの採番に失敗しました");
 }
 // payload の callN / callNDate を位置(seq=N)どおりに反映。キーが無い位置は触らない
+// 日付が空のとき: 同じ結果の既存行はそのまま（昔の①など日付不明のまま）、新しく入った／結果が変わった行は今日の日付を入れる（日別実績のため。2026/10/25〜）
 async function applyCalls(caseId: number, receivedOn: string | null, p: Record<string, unknown>, actor: string) {
+  const { data: cur } = await sb.from("kaimax_calls").select("seq, result, called_raw, called_on").eq("case_id", caseId);
+  const old = new Map((cur ?? []).map((r) => [r.seq as number, r]));
   for (let n = 1; n <= 8; n++) {
     if (!(`call${n}` in p)) continue;
     const result = t(p[`call${n}`]);
     if (!result) { await sb.from("kaimax_calls").delete().eq("case_id", caseId).eq("seq", n); continue; }
-    const raw = n === 1 ? "" : t(p[`call${n}Date`]);
+    let raw = t(p[`call${n}Date`]);
+    let on = raw ? monthDay(raw, receivedOn) : null;
+    if (!raw) {
+      const o = old.get(n);
+      if (o && o.result === result) { raw = t(o.called_raw); on = (o.called_on as string) ?? null; }
+      else { on = todayISO(); raw = `${+on.slice(5, 7)}/${+on.slice(8, 10)}`; }
+    }
     const { error } = await sb.from("kaimax_calls").upsert(
-      { case_id: caseId, seq: n, result, called_raw: raw || null, called_on: raw ? monthDay(raw, receivedOn) : null },
+      { case_id: caseId, seq: n, result, called_raw: raw || null, called_on: on },
       { onConflict: "case_id,seq" });
     if (error) throw new Error(error.message);
   }
   void actor;
+}
+// 査定日: 〇に変わったら今日（査定日の指定が無いとき）。〇でなくなったら消す
+function withAssessOn(f: Record<string, unknown>, prevAssess: unknown) {
+  if (!("assess" in f) || "assess_on" in f) return f;
+  if (f.assess === "〇" && prevAssess !== "〇") f.assess_on = todayISO();
+  if (f.assess !== "〇") f.assess_on = null;
+  return f;
 }
 // ダッシュボードの詳細パネル（旧 buildRow）→ 列
 function detailFields(p: Record<string, unknown>) {
@@ -98,6 +114,7 @@ function detailFields(p: Record<string, unknown>) {
   if ("bidResult" in p) set("bid_result", nz(p.bidResult));
   if ("rival" in p) set("rival_memo", nz(p.rival));
   if ("assess" in p) { const a = t(p.assess); set("assess", a === "〇" || a === "×" ? a : null); }
+  if ("assessOn" in p) { const d = t(p.assessOn); set("assess_on", d ? monthDay(d, null) : null); }
   if ("result" in p) set("result", t(p.result) ? normResult(t(p.result)) : null);
   if ("followup" in p) { const f = t(p.followup); set("followup_raw", f || null); set("followup_on", f ? monthDay(f, null) : null); }
   if ("assignee" in p) set("assignee", nz(p.assignee));
@@ -193,7 +210,7 @@ async function listAssessNos() {
 // ---------- スタッフ用 ----------
 async function staffAction(action: string, p: Record<string, unknown>, actor: string) {
   if (action === "create") {
-    const f = detailFields(p);
+    const f = withAssessOn(detailFields(p), null);
     const row = await insertCase({ ...f, media: f.media ?? "その他", source: "manual" });
     const { data: c } = await sb.from("kaimax_cases").select("id, received_on").eq("case_no", row.case_no).single();
     await applyCalls(c!.id, c!.received_on, p, actor);
@@ -363,7 +380,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     return { status: "success", message: `案件NO ${no} を削除しました` };
   }
   if (action === "update") {
-    const f = detailFields(p);
+    const f = withAssessOn(detailFields(p), c.assess);
     const { error } = await sb.from("kaimax_cases").update(f).eq("id", c.id);
     if (error) return { status: "error", message: error.message };
     await applyCalls(c.id, (f.received_on as string) ?? c.received_on, p, actor);
