@@ -4590,7 +4590,12 @@
     if (col.k === 'desiredRaw') vals.desired = parseInt(next.replace(/[^\d]/g, '')) || null;
     if (col.k === 'offeredRaw') vals.offered = parseInt(next.replace(/[^\d]/g, '')) || null;
     if (col.k === 'dealRaw') vals.deal = parseInt(next.replace(/[^\d]/g, '')) || null;
-    if (col.k === 'result') vals.result = next.replace(/（/g, '(').replace(/）/g, ')');
+    if (col.k === 'result') {
+      vals.result = next.replace(/（/g, '(').replace(/）/g, ')');
+      // 成約にした日（サーバー側と同じ決まり）。日別実績・日報の成約日に使う（契約と紐づくまで）
+      const ex = caseExtra.get(String(c.no));
+      if (ex) { const now = ['成約', '入庫済み'].includes(vals.result), was = ['成約', '入庫済み'].includes(before); if (now && !was) ex.markedOn = todayISO(); if (!now) ex.markedOn = ''; }
+    }
     // 査定を〇にしたら査定日に今日（サーバー側と同じ決まり）。〇でなくなったら査定日を消す
     if (col.k === 'assess') vals.assessOn = next === '〇' ? (before === '〇' && c.assessOn ? c.assessOn : todayISO()) : '';
     Object.keys(vals).forEach(k => { prevVals[k] = c[k]; });
@@ -4731,7 +4736,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1025b'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1025c'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5318,7 +5323,7 @@
         ev.push({ day: dKey(d), type: 'call', who, c, r: k.result, est: !k.date });
       });
       if (c.assess === '〇') ev.push({ day: c.assessOn || '', type: 'assess', who, c });
-      if (isDeal(c)) { const e = dealExtra(c); ev.push({ day: e.dealOn || '', type: 'deal', who, c }); }
+      if (isDeal(c)) { const e = dealExtra(c); ev.push({ day: e.dealOn || e.markedOn || (rd ? dKey(rd) : ''), type: 'deal', who, c }); }
     });
     return ev;
   }
@@ -5400,7 +5405,7 @@
       </table></div>
       ${detail}
       <div class="rep-note dly-notes">
-        <b>数え方</b>：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・アポ・検討中・他決）／査定＝査定日／成約＝成約日（契約日）。担当は案件の担当者で数えています（実際に電話した人ではありません）。<br>
+        <b>数え方</b>：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・アポ・検討中・他決）／査定＝査定日／成約＝kaimaxで結果が成約・入庫済みの案件を成約日で（契約日→未紐づけは成約にした日→それも無ければ受信日。成約一覧と同じ）。担当は案件の担当者で数えています（実際に電話した人ではありません）。<br>
         ${sum.est ? `・日付の無いコール ${sum.est}件（10/24以前の①など）は受信日で数えています。10/25からは①も電話した日が残ります。<br>` : ''}
         ${noAssess ? `・この月に受信した案件で、査定は〇だが査定日が無いもの ${noAssess}件は日別に出ていません（査定日は10/25から、〇にした日が自動で入ります。表（スプシ）の「査定日」で直せます）。<br>` : ''}
         ${noDeal ? `・この月に受信した案件で、成約だが成約日が無いもの ${noDeal}件は日別に出ていません（成約一覧で契約と紐づけると入ります）。` : ''}
@@ -5414,7 +5419,8 @@
   const insNorm = s => String(s || '').normalize('NFKC').toUpperCase().replace(/[\s\-・ー]|ハイブリッド|HYBRID|HV|HB|セダン|SD/g, '');
   const nameNorm = s => String(s || '').normalize('NFKC').replace(/[\s・]/g, '');
   function dealExtra(c) { return caseExtra.get(String(c.no)) || { vin: '', contractNo: '', dealOn: '' }; }
-  function dealDateOf(c) { const e = dealExtra(c); return e.dealOn ? new Date(e.dealOn + 'T00:00:00') : parseDateFlexible(c.date); }
+  // 成約日＝契約日。契約と紐づく前は「成約にした日」、それも無ければ受信日で代用
+  function dealDateOf(c) { const e = dealExtra(c); const d = e.dealOn || e.markedOn; return d ? new Date(d + 'T00:00:00') : parseDateFlexible(c.date); }
   function linkedCarIds() { const set = new Set(); caseExtra.forEach(e => { if (e.contractNo) set.add(e.contractNo); }); return set; }
   // smart-sign の契約から、この案件の候補を探す（担当・車名・日付・年式）
   function contractCandidates(c) {
@@ -7433,7 +7439,7 @@
   let caseExtra = new Map(), ssContracts = [], outcomes = new Map();
   async function loadRowsFromDB() {
     const [cs, calls, ins, ocs] = await Promise.all([
-      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on,assess_on',
+      selectAll('kaimax_cases', 'id,case_no,media,received_on,received_raw,customer_name,tel,car_name,bid,bid_result,rival_memo,assess,result,followup_raw,assignee,note,desired_raw,offered_raw,deal_raw,address,email,model_year,mileage,call_memo,reply_status,vin,contract_no,deal_on,assess_on,deal_marked_on',
         q => q.is('deleted_at', null).order('case_no')),
       selectAll('kaimax_calls', 'case_id,seq,result,called_raw', q => q.order('case_id').order('seq')),
       selectAll('kaimax_contracts', 'contract_no,contract_on,status,customer_name,maker,car,grade,vin,first_reg,mileage,amount,trade_in_yen,assignee,auto_kind,excluded,exclude_reason,synced_at').catch(() => []),
@@ -7442,7 +7448,7 @@
     // シート形に載らない項目（車台番号・契約番号・成約日）は案件NOで引けるように別に持つ
     // ①コールの日付はシート形に列が無いので別に持つ（2026/10/25から記録）
     const call1 = new Map(calls.filter(k => k.seq === 1 && k.called_raw).map(k => [k.case_id, k.called_raw]));
-    caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '', assessOn: c.assess_on || '', call1: call1.get(c.id) || '' }]));
+    caseExtra = new Map(cs.map(c => [String(c.case_no), { vin: c.vin || '', contractNo: c.contract_no || '', dealOn: c.deal_on || '', markedOn: c.deal_marked_on || '', assessOn: c.assess_on || '', call1: call1.get(c.id) || '' }]));
     // smart-sign の買取契約（成約の正本）。画面側では car_id=契約番号・status=成約(契約済のとき) の形にそろえて使う
     ssContracts = (ins || []).map(k => ({ car_id: k.contract_no, vin: k.vin, maker: k.maker, car: k.car, grade: k.grade, first_reg: k.first_reg, mileage: k.mileage,
       assessor: k.assignee, status: k.status === '契約済' ? '成約' : k.status, registered_at: k.contract_on, deal_on: k.contract_on, deal_yen: k.amount, customer: k.customer_name || '', tradeIn: k.trade_in_yen || 0,

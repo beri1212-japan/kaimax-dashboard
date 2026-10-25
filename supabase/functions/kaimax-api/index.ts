@@ -102,6 +102,15 @@ function withAssessOn(f: Record<string, unknown>, prevAssess: unknown) {
   if (f.assess !== "〇") f.assess_on = null;
   return f;
 }
+// 成約にした日: 結果が成約/入庫済みに変わったら今日、成約でなくなったら消す（契約と紐づくまでの成約日の代わり）
+const DEAL_RESULTS = new Set(["成約", "入庫済み"]);
+function withDealMarked(f: Record<string, unknown>, prevResult: unknown) {
+  if (!("result" in f)) return f;
+  const now = DEAL_RESULTS.has(String(f.result ?? "")), before = DEAL_RESULTS.has(String(prevResult ?? ""));
+  if (now && !before) f.deal_marked_on = todayISO();
+  if (!now) f.deal_marked_on = null;
+  return f;
+}
 // ダッシュボードの詳細パネル（旧 buildRow）→ 列
 function detailFields(p: Record<string, unknown>) {
   const o: Record<string, unknown> = {};
@@ -212,7 +221,7 @@ async function listAssessNos() {
 async function staffAction(action: string, p: Record<string, unknown>, actor: string) {
   if (action === "daily_report") return { status: "success", ...(await dailyReport(t(p.date))) };
   if (action === "create") {
-    const f = withAssessOn(detailFields(p), null);
+    const f = withDealMarked(withAssessOn(detailFields(p), null), null);
     const row = await insertCase({ ...f, media: f.media ?? "その他", source: "manual" });
     const { data: c } = await sb.from("kaimax_cases").select("id, received_on").eq("case_no", row.case_no).single();
     await applyCalls(c!.id, c!.received_on, p, actor);
@@ -382,7 +391,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
     return { status: "success", message: `案件NO ${no} を削除しました` };
   }
   if (action === "update") {
-    const f = withAssessOn(detailFields(p), c.assess);
+    const f = withDealMarked(withAssessOn(detailFields(p), c.assess), c.result);
     const { error } = await sb.from("kaimax_cases").update(f).eq("id", c.id);
     if (error) return { status: "error", message: error.message };
     await applyCalls(c.id, (f.received_on as string) ?? c.received_on, p, actor);
@@ -391,7 +400,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
   }
   if (action === "update_calls") {
     await applyCalls(c.id, c.received_on, p, actor);
-    const f = detailFields({ ...("followup" in p ? { followup: p.followup } : {}), ...("result" in p ? { result: p.result } : {}) });
+    const f = withDealMarked(detailFields({ ...("followup" in p ? { followup: p.followup } : {}), ...("result" in p ? { result: p.result } : {}) }), c.result);
     if (Object.keys(f).length) await sb.from("kaimax_cases").update(f).eq("id", c.id);
     else await sb.from("kaimax_cases").update({ updated_at: new Date().toISOString() }).eq("id", c.id);
     await audit(actor, "update_calls", no, p);
@@ -405,7 +414,7 @@ async function staffAction(action: string, p: Record<string, unknown>, actor: st
   if (action === "update_meta") {
     const pick: Record<string, unknown> = {};
     for (const k of ["result", "assignee", "followup"]) if (k in p) pick[k] = p[k];
-    const f = detailFields(pick);
+    const f = withDealMarked(detailFields(pick), c.result);
     if (Object.keys(f).length) await sb.from("kaimax_cases").update(f).eq("id", c.id);
     await audit(actor, "update_meta", no, pick);
     return { status: "success", message: `案件NO ${no} を更新しました`, no };
@@ -611,7 +620,7 @@ async function dailyReport(dateIn: string) {
   const D = /^\d{4}-\d{2}-\d{2}$/.test(dateIn) ? dateIn : (() => { const t0 = new Date(Date.now() + 9 * 3600000 - 86400000); return t0.toISOString().slice(0, 10); })();
   const ym = D.slice(0, 7), m0 = ym + "-01";
   const [cases, calls, targets] = await Promise.all([
-    selAll("kaimax_cases", "id,case_no,media,received_on,customer_name,car_name,assess,assess_on,result,followup_raw,followup_on,assignee,offered_raw,desired_raw,deal_yen,deal_raw,deal_on", (q) => q.is("deleted_at", null)),
+    selAll("kaimax_cases", "id,case_no,media,received_on,customer_name,car_name,assess,assess_on,result,followup_raw,followup_on,assignee,offered_raw,desired_raw,deal_yen,deal_raw,deal_on,deal_marked_on", (q) => q.is("deleted_at", null)),
     selAll("kaimax_calls", "case_id,seq,result,called_on"),
     selAll("kaimax_targets", "ym,assignee,target", (q) => q.eq("ym", ym)),
   ]);
@@ -619,6 +628,8 @@ async function dailyReport(dateIn: string) {
   calls.forEach((k) => { if (!byCase.has(k.case_id)) byCase.set(k.case_id, []); byCase.get(k.case_id)!.push(k); });
   const who = (c: any) => c.assignee || "（未割当）";
   const isDeal = (c: any) => c.result === "成約" || c.result === "入庫済み";
+  // 成約はkaimaxの結果（成約/入庫済み）で数える。日付は 契約日 → 成約にした日 → 受信日 の順（成約一覧と同じ）
+  const dealDay = (c: any) => c.deal_on || c.deal_marked_on || c.received_on || null;
   type Cnt = { cases: number; calls: number; reach: number; apo: number; assess: number; deal: number; est: number };
   const z = (): Cnt => ({ cases: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0, est: 0 });
   const day = z(), mtd = z(); const dayWho = new Map<string, Cnt>(), mtdWho = new Map<string, Cnt>();
@@ -638,7 +649,7 @@ async function dailyReport(dateIn: string) {
       if (!k.called_on && inM(d)) mtd.est++;
     }
     if (c.assess === "〇") { if (c.assess_on) bump(c.assess_on, "assess"); else if (inM(c.received_on)) noAssessDate++; }
-    if (isDeal(c)) { if (c.deal_on) bump(c.deal_on, "deal"); else if (inM(c.received_on)) noDealDate++; }
+    if (isDeal(c)) { if (dealDay(c)) bump(dealDay(c), "deal"); else if (inM(c.received_on)) noDealDate++; }
     if (inM(c.received_on)) {
       coh.n++;
       if (ks.length) coh.called++;
@@ -674,7 +685,7 @@ async function dailyReport(dateIn: string) {
   const kpiRow = (o: Cnt) => `<td>${n0(o.cases)}</td><td>${n0(o.calls)}</td><td>${n0(o.reach)}</td><td>${n0(o.apo)}</td><td>${n0(o.assess)}</td><td>${n0(o.deal)}</td><td class="r">${pct(o.reach, o.calls)}</td>`;
   const whoNames = [...new Set([...mtdWho.keys(), ...dayWho.keys()])].sort((a, b) => (mtdWho.get(b)?.calls || 0) - (mtdWho.get(a)?.calls || 0));
   const whoRows = whoNames.map((w) => `<tr><th>${esc(w)}</th>${kpiRow(dayWho.get(w) || z())}<td class="sep"></td>${kpiRow(mtdWho.get(w) || z())}</tr>`).join("");
-  const dealsD = cases.filter((c) => isDeal(c) && c.deal_on === D);
+  const dealsD = cases.filter((c) => isDeal(c) && dealDay(c) === D);
   const assessD = cases.filter((c) => c.assess === "〇" && c.assess_on === D);
   const newD = cases.filter((c) => c.received_on === D);
   const mediaCnt = new Map<string, number>(); newD.forEach((c) => mediaCnt.set(c.media || "その他", (mediaCnt.get(c.media || "その他") || 0) + 1));
@@ -747,7 +758,7 @@ td.g { font-weight: 700; color: #3c4043; } td.over { color: #c5221f; font-weight
 <div class="scroll"><table class="kpi"><thead><tr><th>担当</th><th>案件</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th>着電率</th><th class="sep"></th><th>案件</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th>着電率</th></tr></thead>
 <tbody>${whoRows || `<tr><td colspan="16">記録なし</td></tr>`}</tbody></table></div>
 <div class="two">
-<div><h2>${md(D)} の成約（${dealsD.length}）</h2>${dealsD.length ? `<table><thead><tr><th>NO</th><th>担当</th><th>顧客</th><th>車名</th><th>成約額</th></tr></thead><tbody>${dealsD.map((c) => caseLine(c, (odd(c) ? '<span class="warn">⚠入力確認 </span>' : "") + esc(c.deal_yen != null ? yenS(c.deal_yen) : c.deal_raw || ""))).join("")}</tbody></table>` : '<div class="sub">なし</div>'}</div>
+<div><h2>${md(D)} の成約（${dealsD.length}）</h2>${dealsD.length ? `<table><thead><tr><th>NO</th><th>担当</th><th>顧客</th><th>車名</th><th>成約額</th></tr></thead><tbody>${dealsD.map((c) => caseLine(c, (odd(c) ? '<span class="warn">⚠入力確認 </span>' : "") + esc(c.deal_yen != null ? yenS(c.deal_yen) : c.deal_raw || "") + (c.deal_on ? "" : '<span class="sub">（契約未紐づけ）</span>'))).join("")}</tbody></table>` : '<div class="sub">なし</div>'}</div>
 <div><h2>${md(D)} の査定（${assessD.length}）</h2>${assessD.length ? `<table><thead><tr><th>NO</th><th>担当</th><th>顧客</th><th>車名</th><th>結果</th></tr></thead><tbody>${assessD.map((c) => caseLine(c, esc(c.result || ""))).join("")}</tbody></table>` : '<div class="sub">なし</div>'}</div>
 </div>
 <h2>見込み案件（${pros.length}件・${made.slice(5, 10).replace("-", "/")}時点）</h2>
@@ -755,8 +766,8 @@ td.g { font-weight: 700; color: #3c4043; } td.over { color: #c5221f; font-weight
 <tbody>${prosRows || `<tr><td colspan="11">なし</td></tr>`}</tbody></table></div>
 <div class="note">
 区分：査定済＝査定〇で結果待ち／アポ＝アポを取ったが査定前／返事待＝★近日返事・検討(直近/1ヶ月以内)・他社結果待ち。このほか 検討(長期) ${longTerm}件・未決着（アポ前）${others}件。<br>
-数え方：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・検討中・アポ・他決）／査定＝査定日／成約＝成約日（契約日）。担当は案件の担当者。率は「この月に受信した案件」のうち、その段階まで進んだ件数の割合。<br>
-${mtd.est ? `日付の無いコール ${mtd.est}件は受信日で数えています（10/24以前の①など）。` : ""}${noAssessDate || noDealDate ? `この月に受信した案件のうち、${[noAssessDate ? `査定〇で査定日が無い ${noAssessDate}件` : "", noDealDate ? `成約で成約日が無い ${noDealDate}件` : ""].filter(Boolean).join("・")}は査定・成約の数に入っていません（率には入っています）。` : ""}
+数え方：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・検討中・アポ・他決）／査定＝査定日／成約＝kaimaxで結果が成約・入庫済みの案件を成約日で（契約日→未紐づけは成約にした日→それも無ければ受信日）。担当は案件の担当者。率は「この月に受信した案件」のうち、その段階まで進んだ件数の割合。<br>
+${mtd.est ? `日付の無いコール ${mtd.est}件は受信日で数えています（10/24以前の①など）。` : ""}${noAssessDate || noDealDate ? `この月に受信した案件のうち、${[noAssessDate ? `査定〇で査定日が無い ${noAssessDate}件` : "", noDealDate ? `成約で日付が無い ${noDealDate}件` : ""].filter(Boolean).join("・")}は査定・成約の数に入っていません（率には入っています）。` : ""}
 </div>
 </div></body></html>`;
   return { date: D, html };
