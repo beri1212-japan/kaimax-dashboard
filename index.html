@@ -3370,13 +3370,22 @@
     return cases.filter(c => c.media === media);
   }
   
+  // 期間内の成約（kaimaxの結果が成約/入庫済み。成約日＝契約日→成約にした日→受信日。日報・日別・成約一覧と同じ数え方）
+  function dealsInPeriod(media) {
+    const from = typeof currentPeriodFrom !== 'undefined' ? currentPeriodFrom : null, to = typeof currentPeriodTo !== 'undefined' ? currentPeriodTo : null;
+    return (allCases || []).filter(c => isDeal(c) && (!media || media === 'all' || c.media === media)).filter(c => {
+      if (!from || !to || currentPeriod === 'all') return true;
+      const d = dealDateOf(c); return !!d && d >= from && d <= to;
+    });
+  }
   // 媒体別KPI算出
   function computeKPI(media) {
     const list = casesByMedia(media);
     const total = list.length;
     const reached = list.filter(hasReached).length;
     const assessedYes = list.filter(isAssessed).length;
-    const dealCount = list.filter(isDeal).length;
+    const cohortDeal = list.filter(isDeal).length;       // 期間内に受信した案件のうち成約（成約率・ファネル用）
+    const dealCount = dealsInPeriod(media).length;      // 期間内に成約した件数（実績）
     const inbound = list.filter(isInbound).length;
     const followupTarget = list.filter(isFollowupTarget).length;
     const followupToday = list.filter(isFollowupToday).length;
@@ -3398,13 +3407,13 @@
     };
     
     return {
-      total, reached, assessedYes, dealCount, inbound,
+      total, reached, assessedYes, dealCount, cohortDeal, inbound,
       followupTarget, followupToday,
       bidYes, bidWon,
       resultBreakdown,
       reachRate: total > 0 ? (reached / total * 100) : 0,
       assessRate: reached > 0 ? (assessedYes / reached * 100) : 0,
-      dealRate: total > 0 ? (dealCount / total * 100) : 0,
+      dealRate: total > 0 ? (cohortDeal / total * 100) : 0,
       bidRate: total > 0 ? (bidYes / total * 100) : 0,
       winRate: bidYes > 0 ? (bidWon / bidYes * 100) : 0,
     };
@@ -3674,29 +3683,34 @@
   // 旧版の互換（ダッシュボード側から呼ばれることがある）
   window.saveTargetInput = function (ym, name, val) { const i = document.createElement('input'); i.value = val; return window.saveTargetCell(i, ym, name); };
 
-  function assigneeKPI(list) {
+  // list＝期間内に受信した案件、deals＝期間内に成約した案件（成約日ベース）
+  function assigneeKPI(list, deals) {
     const total = list.length;
     const reached = list.filter(hasReached).length;
     const apo = list.filter(c => c.calls.some(k => k.result === 'アポ')).length;
     const assessed = list.filter(isAssessed).length;
-    const deal = list.filter(isDeal).length;
-    const amount = list.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
-    return { total, reached, apo, assessed, deal, amount, dealRate: total > 0 ? deal / total * 100 : 0 };
+    const ds = deals || list.filter(isDeal);
+    const deal = ds.length;
+    const amount = ds.reduce((s, c) => s + (c.deal || 0), 0);
+    const cohortDeal = list.filter(isDeal).length;
+    return { total, reached, apo, assessed, deal, amount, dealRate: total > 0 ? cohortDeal / total * 100 : 0 };
   }
 
   function renderAssigneePerformance() {
     const list = cases; // 期間フィルタ済み
-    const groups = {};
+    const groups = {}, dgroups = {};
+    const dealList = dealsInPeriod('all');
     list.forEach(c => { const a = (c.assignee || '').trim() || '未割当'; (groups[a] = groups[a] || []).push(c); });
+    dealList.forEach(c => { const a = (c.assignee || '').trim() || '未割当'; (dgroups[a] = dgroups[a] || []).push(c); if (!groups[a]) groups[a] = []; });
     const targets = getPeriodTargets();
     let names = Object.keys(groups).sort((a, b) => {
       if (a === '未割当') return 1; if (b === '未割当') return -1;
       const aa = isArchived(a), ab = isArchived(b);
       if (aa !== ab) return aa ? 1 : -1; // 退職者は下へ
-      const ka = assigneeKPI(groups[a]), kb = assigneeKPI(groups[b]);
+      const ka = assigneeKPI(groups[a], dgroups[a] || []), kb = assigneeKPI(groups[b], dgroups[b] || []);
       return kb.deal - ka.deal || kb.total - ka.total || a.localeCompare(b, 'ja');
     });
-    const overall = assigneeKPI(list);
+    const overall = assigneeKPI(list, dealList);
     const overallTarget = Object.values(targets).reduce((s, v) => s + (v || 0), 0);
     const yen = n => n ? ('¥' + n.toLocaleString('ja-JP')) : '—';
     const progressBar = (deal, target) => {
@@ -3712,7 +3726,7 @@
     };
     const esc = s => String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
     const rows = names.map(name => {
-      const k = assigneeKPI(groups[name]);
+      const k = assigneeKPI(groups[name], dgroups[name] || []);
       const t = targets[name] || '';
       return `<tr>
         <td style="font-weight:700;">${name}${isArchived(name) ? '<span style="font-size:10px;color:var(--ink-3);font-weight:700;background:var(--bg-soft);border-radius:4px;padding:1px 5px;margin-left:6px;">退職</span>' : ''}</td>
@@ -3754,12 +3768,13 @@
   // ステータス帯（目標・実績・進捗率・HOT を上部にまとめて表示）。表示中の期間に連動（既定=当月）
   function renderMonthHero() {
     const list = cases; // 期間フィルタ済み（既定は当月）
-    const deal = list.filter(isDeal).length;
+    const dealList = dealsInPeriod('all');             // 実績＝期間内に成約した件数（成約日ベース）
+    const deal = dealList.length;
     const apo = list.filter(c => c.calls.some(k => k.result === 'アポ')).length;
     const assess = list.filter(isAssessed).length;
     const reached = list.filter(hasReached).length;
     const totalM = list.length;
-    const amount = list.filter(isDeal).reduce((s, c) => s + (c.deal || 0), 0);
+    const amount = dealList.reduce((s, c) => s + (c.deal || 0), 0);
     const pt = getPeriodTargets();
     const target = Object.values(pt).reduce((s, v) => s + (v || 0), 0);
     const rate = target > 0 ? (deal / target * 100) : 0;
@@ -3775,7 +3790,7 @@
         <div class="mh-head"><svg class="ic"><use href="#ic-clock"/></svg> ${plabel}ステータス <span class="mh-badge">${disp}</span></div>
         <div class="mh-grid">
           <div class="mh-tile"><div class="mh-label">目標</div><div class="mh-val">${target || 0}<span>件</span></div><div class="mh-sub">成約目標</div></div>
-          <div class="mh-tile"><div class="mh-label">実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約</div></div>
+          <div class="mh-tile"><div class="mh-label">実績</div><div class="mh-val">${deal}<span>件</span></div><div class="mh-sub">成約（成約日で数える）</div></div>
           <div class="mh-tile"><div class="mh-label">進捗率</div><div class="mh-val accent">${target > 0 ? fmtPct(rate) : '—'}<span>${target > 0 ? '%' : ''}</span></div>
             <div class="mh-bar"><div style="width:${barW}%;background:${met ? 'var(--green)' : 'var(--accent)'};"></div></div>
             <div class="mh-sub">${target > 0 ? (deal + ' / ' + target + '件' + (met ? ' ✓達成' : '')) : '目標未設定（目標設定タブで入力）'}</div>
@@ -3807,6 +3822,10 @@
   function kpiHistory() {
     const coh = buildCohort('month');
     const keys = Object.keys(coh).sort().slice(-6);
+    // 成約だけは成約月で数える（実績の数字と前月比をそろえる）
+    const byDeal = {};
+    (allCases || []).filter(isDeal).forEach(c => { const d = dealDateOf(c); if (d) { const k = ymKeyOf(d); byDeal[k] = (byDeal[k] || 0) + 1; } });
+    keys.forEach(k => { coh[k] = Object.assign({}, coh[k], { deal: byDeal[k] || 0 }); });
     return { keys, coh };
   }
 
@@ -3932,7 +3951,7 @@
             const mk = mediaKPIs[m];
             if (mk.total === 0) return '';
             const w = (mk.dealRate / Math.max(maxDealRate, 1)) * 100;
-            return `<div class="media-compare"><div class="name"><span class="dot-m ${dotClass[m]}"></span>${mediaLabels[m]}</div><div class="bar-bg"><div class="bar-fill ${fillClass[m]}" style="width:${w}%;"></div></div><div class="pct">${fmtPct(mk.dealRate)}%</div><div class="num">${mk.dealCount}/${mk.total}</div></div>`;
+            return `<div class="media-compare"><div class="name"><span class="dot-m ${dotClass[m]}"></span>${mediaLabels[m]}</div><div class="bar-bg"><div class="bar-fill ${fillClass[m]}" style="width:${w}%;"></div></div><div class="pct">${fmtPct(mk.dealRate)}%</div><div class="num">${mk.cohortDeal}/${mk.total}</div></div>`;
           }).join('')}
         </div>
 
@@ -4004,7 +4023,7 @@
           ${funnelStage('03', '獲得(落札)', k.bidWon, k.total, false, true)}
           ${funnelStage('04', '架電到達', k.reached, k.total, true, false)}
           ${funnelStage('05', '査定済', k.assessedYes, k.total, false, false)}
-          ${funnelStage('06', '成約', k.dealCount, k.total, false, false)}
+          ${funnelStage('06', '成約', k.cohortDeal, k.total, false, false)}
         </div>
       </div>
     `;
@@ -4036,7 +4055,7 @@
           ${funnelStage('01', '受信', k.total, k.total, false, false)}
           ${funnelStage('02', '架電到達', k.reached, k.total, true, false)}
           ${funnelStage('03', '査定済', k.assessedYes, k.total, false, false)}
-          ${funnelStage('04', '成約', k.dealCount, k.total, false, false)}
+          ${funnelStage('04', '成約', k.cohortDeal, k.total, false, false)}
         </div>
       </div>
     `;
@@ -4736,7 +4755,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1025c'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1025d'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -6276,7 +6295,7 @@
     const now = new Date(TODAY);
     const mt = getMonthTargets(currentYM());
     const target = Object.values(mt).reduce((s, v) => s + (v || 0), 0);
-    const monthDeals = book.filter(c => { const d = parseDateFlexible(c.date); return isDeal(c) && d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length;
+    const monthDeals = book.filter(c => { const d = dealDateOf(c); return isDeal(c) && d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); }).length; // 当月に成約した件数（成約日ベース）
     const remain = Math.max(0, target - monthDeals);
     const needAssess = (r3 > 0 && remain > 0) ? Math.ceil(remain / (r3 / 100)) : 0;
 
@@ -7081,7 +7100,7 @@
     if (!currentPeriodFrom || !currentPeriodTo) return list;
     return list.filter(c => {
       const d = parseDateFlexible(c.date);
-      if (!d) return true; // 日付なしは保持
+      if (!d) return currentPeriod === 'all'; // 受信日の無い案件は「全期間」のときだけ数える（当月などに紛れ込ませない）
       return d >= currentPeriodFrom && d <= currentPeriodTo;
     });
   }
