@@ -391,6 +391,13 @@
   .rep-sec-title { font-size:14px; font-weight:700; color:var(--ink); margin:14px 0 5px; display:flex; align-items:center; gap:8px; }
   .rep-note { font-size:11.5px; color:var(--ink-3); margin:0 0 7px; line-height:1.5; }
   .rep-table-wrap { overflow-x:auto; }
+  /* 日報 */
+  .np-bar { display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .np-bar input[type=date] { height:32px; border:1px solid var(--line); border-radius:7px; padding:0 8px; font:inherit; font-size:13px; color:var(--ink); background:#fff; }
+  .np-bar .dl-btn { height:32px; padding:0 12px; font-size:13px; }
+  .np-msg { font-size:12px; font-weight:700; }
+  .np-note { font-size:11.5px; color:var(--ink-3); margin:0 0 10px; }
+  .np-frame { width:100%; max-width:820px; min-height:600px; border:1px solid var(--line); border-radius:8px; background:#fff; display:block; }
   /* 実績集計・日別 */
   .dly-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin:12px 0 4px; }
   .dly-bar label { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-3); }
@@ -2632,6 +2639,7 @@
     <div class="page-tab" data-page="deals"><svg class="ic"><use href="#ic-car"/></svg><span>成約一覧</span></div>
     <div class="page-tab" data-page="site"><svg class="ic"><use href="#ic-globe"/></svg><span>サイト掲載</span></div>
     <div class="page-tab" data-page="report"><svg class="ic"><use href="#ic-report"/></svg><span>実績集計</span></div>
+    <div class="page-tab" data-page="nippo"><svg class="ic"><use href="#ic-clipboard"/></svg><span>日報</span></div>
     <div class="page-tab" data-page="targets"><svg class="ic"><use href="#ic-target"/></svg><span>目標・コスト</span></div>
   </nav>
   <!-- 外部リンク。URLを変えたいときは下の href だけ書き換えればOK -->
@@ -3007,6 +3015,21 @@
     </div>
   </div>
   <div id="report-body"></div>
+</div>
+
+<div class="page-section" id="page-nippo">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 10px;">
+    <h2 class="section-title" style="margin:0;">日報 <span class="ja">日次の活動・月累計KPI・見込み案件</span></h2>
+    <div class="np-bar">
+      <button type="button" class="dl-btn ghost" onclick="nippoShift(-1)" aria-label="前の日">‹</button>
+      <input type="date" id="np-date" onchange="loadNippo()">
+      <button type="button" class="dl-btn ghost" onclick="nippoShift(1)" aria-label="次の日">›</button>
+      <button type="button" class="dl-btn" onclick="printNippo()">印刷・PDF</button>
+      <span id="np-msg" class="np-msg"></span>
+    </div>
+  </div>
+  <div class="np-note">毎朝8時ごろ、前日分を PDF にして Chatwork へ自動で送ります。見込み案件は「今」の状態です。</div>
+  <iframe id="np-frame" class="np-frame" title="日報"></iframe>
 </div>
 
 <!-- Detail Panel -->
@@ -4708,7 +4731,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1025a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1025b'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -5244,6 +5267,31 @@
     host.innerHTML = cohortTable + cohChart + actTable + actChart;
   }
   window.renderReport = renderReport;
+  // ===== 日報（サーバーで作ったHTMLをそのまま表示。Chatworkに送るPDFと同じ中身） =====
+  let nippoSeq = 0;
+  window.loadNippo = async function () {
+    const di = document.getElementById('np-date'), fr = document.getElementById('np-frame'), msg = document.getElementById('np-msg');
+    if (!di || !fr || !di.value) return;
+    const my = ++nippoSeq;
+    msg.textContent = '読み込み中…'; msg.style.color = 'var(--ink-3)';
+    try {
+      const r = await postWebhook('daily_report', { date: di.value });
+      if (my !== nippoSeq) return;
+      const d = r && r.ok ? r.data : null;
+      if (!d || d.status !== 'success' || !d.html) throw new Error((d && d.message) || '通信エラー');
+      fr.onload = () => { try { fr.style.height = (fr.contentDocument.documentElement.scrollHeight + 8) + 'px'; } catch (e) {} };
+      fr.srcdoc = d.html;
+      msg.textContent = '';
+    } catch (e) { msg.textContent = '✗ 読み込めませんでした: ' + (e.message || e); msg.style.color = 'var(--red)'; }
+  };
+  window.nippoShift = function (n) {
+    const di = document.getElementById('np-date'); if (!di.value) return;
+    const d = new Date(di.value + 'T00:00:00'); d.setDate(d.getDate() + n);
+    di.value = d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate());
+    loadNippo();
+  };
+  window.printNippo = function () { const fr = document.getElementById('np-frame'); try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { showToast('印刷を開けませんでした', true); } };
+
   // ===== 日別の活動実績（その日に起きたことを数える） =====
   // 案件発生＝受信日 / コール・着電・アポ＝架電した日 / 査定＝査定日 / 成約＝成約日（契約日）
   // 日付の無いコール（2026/10/25より前の①など）は受信日で数え、その数を注記する
@@ -6716,7 +6764,7 @@
   })();
   // ヘッダーのページ名を現在のタブに追従させる
   function updatePageTitle(key) {
-    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', deals: '成約一覧', site: 'サイト掲載', report: '実績集計', targets: '目標・コスト' };
+    const names = { dashboard: 'ダッシュボード', cases: '案件一覧', deals: '成約一覧', site: 'サイト掲載', report: '実績集計', nippo: '日報', targets: '目標・コスト' };
     const el = document.getElementById('pageTitle');
     if (el && names[key]) el.textContent = names[key];
   }
@@ -6765,6 +6813,11 @@
       if (t.dataset.page === 'cases') {
         caseSort = { key: 'date', dir: 'desc' };
         renderCaseTable();
+      }
+      if (t.dataset.page === 'nippo') {
+        const di = document.getElementById('np-date');
+        if (di && !di.value) { const y = new Date(Date.now() - 86400000); di.value = y.getFullYear() + '-' + _pad2(y.getMonth() + 1) + '-' + _pad2(y.getDate()); }
+        loadNippo();
       }
       // 目標設定タブを開いたら、担当者ごとの目標入力フォームを生成
       if (t.dataset.page === 'targets') {

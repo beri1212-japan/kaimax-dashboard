@@ -46,6 +46,8 @@ kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_wo
 - 実績集計の「日別」（2026/10/25〜）: 案件発生＝受信日／コール・着電・アポ＝電話した日／査定＝`kaimax_cases.assess_on`／成約＝成約日(deal_on)。着電＝通話・検討中・アポ・アポ確定・他決、アポ＝アポ・アポ確定（`REACHED_SET`/`APO_SET`、月別・週別も同じ）。担当は案件の担当者で数える
 - 査定日 `assess_on`: API の update/create で査定が〇に変わったら今日を自動で入れる（〇でなくなれば消す）。表（スプシ）の「査定日」列で直せる。10/24以前の査定は大半が日付なし
 - コールの日付: API の applyCalls は日付が空のとき、同じ結果の既存行はそのまま・新規／結果が変わった行は今日を入れる。①も日付を保存する（以前は捨てていた）。画面では ① の日付を `caseExtra.call1` から `calls[0].date` に足している
+- 日報（2026/10/25〜。画面「日報」タブ）: HTMLは kaimax-api の `dailyReport()` がサーバーで作る（**画面とChatwork PDFで同じ中身**）。スタッフは POST `daily_report {date}`→`{html}`、ワーカーは GET `?action=daily_report&date=`→HTML。見込み案件＝結果が決着していない案件のうち 査定〇／アポあり／★近日返事・検討(直近/1ヶ月以内)・他社結果待ち
+- 日報の自動送信: AIPC `worker/daily-report.mjs`（run.bat 毎時の中で、JST 8〜11時台・当日未送信のときだけ。成功日は `worker/.daily-report-last-ok.txt`）。前日分をPDF（`reports/買取日報_YYYYMMDD.pdf`）にして Chatwork の AIアカウントで送る。送り先は `.env.local` の `DAILY_REPORT_ROOM`（未設定なら ★API連動 330229752）。`worker/.daily-report-test` を置くと次の実行で1回だけ送る
 - `kaimax-import`（シート→DB取込）は**無効化済み**。再実行すると本番データを上書きするので戻さない
 - スプレッドシート「買取案件管理表」は 2026/10/19 13:34 時点で凍結（参照用）。ウェブ公開は全シート解除済み
 

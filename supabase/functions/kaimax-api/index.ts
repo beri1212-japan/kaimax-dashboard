@@ -4,6 +4,7 @@
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
 //      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / update は assess を〇にすると assess_on(査定日)に今日を入れる / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
+//      日報: daily_report（スタッフPOST→{html} / ワーカーGET ?action=daily_report&date=→HTML）
 //      自社サイト買取ページ: voice_save・voice_flags(お客様の声) / model_save・model_flags(車種ページ) / news_save(買取ニュース) / faq_save(よくある質問) / carmaster_save(査定フォームの車種マスタ)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -20,7 +21,7 @@ const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, head
 const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill", "import_contracts"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
 const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts", "set_contract_scope",
-  "voice_save", "voice_flags", "model_save", "model_flags", "news_save", "faq_save", "carmaster_save"]);
+  "voice_save", "voice_flags", "model_save", "model_flags", "news_save", "faq_save", "carmaster_save", "daily_report"]);
 
 // ---------- 共通ユーティリティ ----------
 const t = (v: unknown) => String(v ?? "").trim();
@@ -209,6 +210,7 @@ async function listAssessNos() {
 
 // ---------- スタッフ用 ----------
 async function staffAction(action: string, p: Record<string, unknown>, actor: string) {
+  if (action === "daily_report") return { status: "success", ...(await dailyReport(t(p.date))) };
   if (action === "create") {
     const f = withAssessOn(detailFields(p), null);
     const row = await insertCase({ ...f, media: f.media ?? "その他", source: "manual" });
@@ -581,6 +583,185 @@ async function siteAction(action: string, p: Record<string, unknown>, actor: str
   return { status: "error", message: "不明なアクション: " + action };
 }
 
+// ---------- 日報（買取の日次実績・KPI・見込み案件）----------
+// GET ?action=daily_report&date=YYYY-MM-DD（ワーカー鍵）→ HTML / スタッフ POST daily_report → { html }
+// 数え方は画面の「実績集計・日別」と同じ: 案件発生=受信日 / コール・着電・アポ=電話した日（日付なしは受信日）/ 査定=査定日 / 成約=成約日
+const REACHED = new Set(["通話", "検討中", "アポ", "アポ確定", "他決"]);
+const APO = new Set(["アポ", "アポ確定"]);
+const CLOSED = new Set(["成約", "入庫済み", "他社売却", "売らない", "売却しない", "着拒", "媒体重複", "自社代替"]);
+const WAITING = new Set(["★近日返事", "検討(直近)", "検討(1ヶ月以内)", "他社結果待ち"]);
+const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const md = (iso: string | null | undefined) => iso ? `${+iso.slice(5, 7)}/${+iso.slice(8, 10)}` : "";
+const dowOf = (iso: string) => DOW[new Date(iso + "T00:00:00Z").getUTCDay()];
+const yenS = (n: number | null | undefined) => n == null ? "" : "¥" + Number(n).toLocaleString("ja-JP");
+async function selAll(table: string, cols: string, build?: (q: any) => any) {
+  const out: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    let q = sb.from(table).select(cols).range(from, from + 999);
+    if (build) q = build(q);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+async function dailyReport(dateIn: string) {
+  const D = /^\d{4}-\d{2}-\d{2}$/.test(dateIn) ? dateIn : (() => { const t0 = new Date(Date.now() + 9 * 3600000 - 86400000); return t0.toISOString().slice(0, 10); })();
+  const ym = D.slice(0, 7), m0 = ym + "-01";
+  const [cases, calls, targets] = await Promise.all([
+    selAll("kaimax_cases", "id,case_no,media,received_on,customer_name,car_name,assess,assess_on,result,followup_raw,followup_on,assignee,offered_raw,desired_raw,deal_yen,deal_raw,deal_on", (q) => q.is("deleted_at", null)),
+    selAll("kaimax_calls", "case_id,seq,result,called_on"),
+    selAll("kaimax_targets", "ym,assignee,target", (q) => q.eq("ym", ym)),
+  ]);
+  const byCase = new Map<number, any[]>();
+  calls.forEach((k) => { if (!byCase.has(k.case_id)) byCase.set(k.case_id, []); byCase.get(k.case_id)!.push(k); });
+  const who = (c: any) => c.assignee || "（未割当）";
+  const isDeal = (c: any) => c.result === "成約" || c.result === "入庫済み";
+  type Cnt = { cases: number; calls: number; reach: number; apo: number; assess: number; deal: number; est: number };
+  const z = (): Cnt => ({ cases: 0, calls: 0, reach: 0, apo: 0, assess: 0, deal: 0, est: 0 });
+  const day = z(), mtd = z(); const dayWho = new Map<string, Cnt>(), mtdWho = new Map<string, Cnt>();
+  const add = (map: Map<string, Cnt>, w: string, f: keyof Cnt) => { if (!map.has(w)) map.set(w, z()); map.get(w)![f]++; };
+  const inM = (d: string | null) => !!d && d >= m0 && d <= D;
+  let noDealDate = 0, noAssessDate = 0;
+  const coh = { n: 0, called: 0, reached: 0, apo: 0, assess: 0, deal: 0 };
+  for (const c of cases) {
+    const w = who(c), ks = byCase.get(c.id) || [];
+    const bump = (d: string | null, f: keyof Cnt) => { if (d === D) { day[f]++; add(dayWho, w, f); } if (inM(d)) { mtd[f]++; add(mtdWho, w, f); } };
+    bump(c.received_on, "cases");
+    for (const k of ks) {
+      const d = k.called_on || c.received_on;
+      bump(d, "calls");
+      if (REACHED.has(k.result)) bump(d, "reach");
+      if (APO.has(k.result)) bump(d, "apo");
+      if (!k.called_on && inM(d)) mtd.est++;
+    }
+    if (c.assess === "〇") { if (c.assess_on) bump(c.assess_on, "assess"); else if (inM(c.received_on)) noAssessDate++; }
+    if (isDeal(c)) { if (c.deal_on) bump(c.deal_on, "deal"); else if (inM(c.received_on)) noDealDate++; }
+    if (inM(c.received_on)) {
+      coh.n++;
+      if (ks.length) coh.called++;
+      if (ks.some((k) => REACHED.has(k.result))) coh.reached++;
+      if (ks.some((k) => APO.has(k.result))) coh.apo++;
+      if (c.assess === "〇") coh.assess++;
+      if (isDeal(c)) coh.deal++;
+    }
+  }
+  const pct = (a: number, b: number) => b > 0 ? Math.round(a / b * 1000) / 10 + "%" : "—";
+  const target = targets.reduce((s, t) => s + (t.target || 0), 0);
+  const lastDay = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate();
+  // 見込み案件（今の状態）
+  const lastCall = (c: any) => { const ks = (byCase.get(c.id) || []).slice().sort((a, b) => b.seq - a.seq); return ks[0] || null; };
+  const lastOn = (c: any) => (byCase.get(c.id) || []).map((k) => k.called_on).filter(Boolean).sort().pop() || null;
+  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+  const pros: any[] = []; let others = 0, longTerm = 0;
+  for (const c of cases) {
+    if (CLOSED.has(c.result || "")) continue;
+    const ks = byCase.get(c.id) || [];
+    let g = "";
+    if (c.assess === "〇") g = "査定済・回答待ち";
+    else if (ks.some((k) => APO.has(k.result))) g = "アポあり・査定前";
+    else if (WAITING.has(c.result || "")) g = "返事待ち";
+    else if (/^検討\(長期\)/.test(c.result || "")) { longTerm++; continue; }
+    else { others++; continue; }
+    pros.push({ c, g, last: lastCall(c), lastOn: lastOn(c) });
+  }
+  const gOrder = ["査定済・回答待ち", "アポあり・査定前", "返事待ち"];
+  pros.sort((a, b) => gOrder.indexOf(a.g) - gOrder.indexOf(b.g) || (a.c.followup_on || "9999").localeCompare(b.c.followup_on || "9999") || (b.lastOn || "").localeCompare(a.lastOn || ""));
+  // 表
+  const n0 = (v: number) => v ? String(v) : `<span class="z">0</span>`;
+  const kpiRow = (o: Cnt) => `<td>${n0(o.cases)}</td><td>${n0(o.calls)}</td><td>${n0(o.reach)}</td><td>${n0(o.apo)}</td><td>${n0(o.assess)}</td><td>${n0(o.deal)}</td><td class="r">${pct(o.reach, o.calls)}</td>`;
+  const whoNames = [...new Set([...mtdWho.keys(), ...dayWho.keys()])].sort((a, b) => (mtdWho.get(b)?.calls || 0) - (mtdWho.get(a)?.calls || 0));
+  const whoRows = whoNames.map((w) => `<tr><th>${esc(w)}</th>${kpiRow(dayWho.get(w) || z())}<td class="sep"></td>${kpiRow(mtdWho.get(w) || z())}</tr>`).join("");
+  const dealsD = cases.filter((c) => isDeal(c) && c.deal_on === D);
+  const assessD = cases.filter((c) => c.assess === "〇" && c.assess_on === D);
+  const newD = cases.filter((c) => c.received_on === D);
+  const mediaCnt = new Map<string, number>(); newD.forEach((c) => mediaCnt.set(c.media || "その他", (mediaCnt.get(c.media || "その他") || 0) + 1));
+  const odd = (c: any) => c.deal_yen != null && (c.deal_yen < 50000 || c.deal_yen > 10000000);
+  const caseLine = (c: any, extra = "") => `<tr><td class="no">${c.case_no}</td><td>${esc(who(c))}</td><td>${esc(c.customer_name || "")}</td><td>${esc(c.car_name || "")}</td><td>${extra}</td></tr>`;
+  const prosRows = pros.map(({ c, g, last, lastOn }) => {
+    const over = c.followup_on && c.followup_on < today;
+    const st = c.result || (last ? last.result : "");
+    return `<tr><td class="g">${g === "査定済・回答待ち" ? "査定済" : g === "アポあり・査定前" ? "アポ" : "返事待"}</td><td class="no">${c.case_no}</td><td>${md(c.received_on)}</td><td>${esc((c.media || "").replace("カーセンサー", "カーセン"))}</td><td>${esc(who(c))}</td><td>${esc(c.customer_name || "")}</td><td class="car">${esc(c.car_name || "")}</td><td>${esc(st)}</td><td>${md(lastOn)}</td><td class="${over ? "over" : ""}">${esc(c.followup_raw || "")}${over ? " 期限切れ" : ""}</td><td class="num">${esc(String(c.offered_raw || "").slice(0, 14))}</td></tr>`;
+  }).join("");
+  const made = new Date(Date.now() + 9 * 3600000).toISOString().replace("T", " ").slice(0, 16);
+  const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>買取日報 ${D}</title>
+<style>
+@page { size: A4 portrait; margin: 9mm 8mm; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Yu Gothic UI","Meiryo","Hiragino Sans","Noto Sans CJK JP",sans-serif; color: #202124; font-size: 10px; background: #fff; }
+.wrap { max-width: 194mm; margin: 0 auto; padding: 4px; }
+h1 { font-size: 15px; margin: 0; } .sub { color: #5f6368; font-size: 9.5px; }
+.hd { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #1a73e8; padding-bottom: 4px; margin-bottom: 6px; }
+h2 { font-size: 11.5px; margin: 9px 0 4px; padding-left: 6px; border-left: 3px solid #1a73e8; }
+.tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.tile { border: 1px solid #dadce0; border-radius: 5px; padding: 4px 6px; }
+.tile b { display: block; font-size: 17px; line-height: 1.2; font-family: Arial, sans-serif; }
+.tile span { font-size: 9px; color: #5f6368; } .tile i { font-style: normal; font-size: 8.5px; color: #5f6368; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #eceef0; padding: 2px 4px; text-align: left; white-space: nowrap; font-weight: 400; }
+thead th { background: #f1f3f4; color: #5f6368; font-size: 9px; font-weight: 700; }
+tbody th { font-weight: 700; }
+td { font-family: Arial, "Yu Gothic UI", "Meiryo", sans-serif; }
+.kpi td, .kpi th { text-align: right; } .kpi th:first-child, .kpi tbody th { text-align: left; }
+td.sep { border: 0; width: 8px; } .z { color: #bdc1c6; } td.r { color: #5f6368; }
+.rates { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 4px; }
+.rate { background: #f8f9fa; border-radius: 5px; padding: 3px 6px; } .rate b { font-size: 13px; font-family: Arial, sans-serif; } .rate span { display: block; font-size: 8.5px; color: #5f6368; }
+td.no { color: #1557b0; font-weight: 700; } td.car { max-width: 46mm; overflow: hidden; text-overflow: ellipsis; }
+td.g { font-weight: 700; color: #3c4043; } td.over { color: #c5221f; font-weight: 700; } td.num { text-align: right; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.note { color: #5f6368; font-size: 8.5px; line-height: 1.6; margin-top: 6px; }
+.warn { color: #c5221f; font-weight: 700; }
+.pros tr { break-inside: avoid; }
+@media screen and (max-width: 700px) { .tiles, .rates { grid-template-columns: repeat(3, 1fr); } .two { grid-template-columns: 1fr; } .scroll { overflow-x: auto; } }
+</style></head><body><div class="wrap">
+<div class="hd"><div><h1>買取 日報　${+D.slice(5, 7)}/${+D.slice(8, 10)}（${dowOf(D)}）</h1><div class="sub">株式会社インディオ富山 買取（kaimax）</div></div><div class="sub">作成 ${made}</div></div>
+<h2>${+D.slice(5, 7)}/${+D.slice(8, 10)} の活動</h2>
+<div class="tiles">
+<div class="tile"><span>案件発生</span><b>${day.cases}</b><i>${[...mediaCnt].map(([k, v]) => esc(k) + v).join(" ") || "—"}</i></div>
+<div class="tile"><span>コール</span><b>${day.calls}</b></div>
+<div class="tile"><span>着電</span><b>${day.reach}</b><i>着電率 ${pct(day.reach, day.calls)}</i></div>
+<div class="tile"><span>アポ</span><b>${day.apo}</b></div>
+<div class="tile"><span>査定</span><b>${day.assess}</b></div>
+<div class="tile"><span>成約</span><b>${day.deal}</b></div>
+</div>
+<h2>${+ym.slice(5, 7)}月の累計（${+ym.slice(5, 7)}/1〜${md(D)}・${lastDay}日中${+D.slice(8, 10)}日目）</h2>
+<div class="tiles">
+<div class="tile"><span>案件発生</span><b>${mtd.cases}</b></div>
+<div class="tile"><span>コール</span><b>${mtd.calls}</b></div>
+<div class="tile"><span>着電</span><b>${mtd.reach}</b><i>着電率 ${pct(mtd.reach, mtd.calls)}</i></div>
+<div class="tile"><span>アポ</span><b>${mtd.apo}</b></div>
+<div class="tile"><span>査定</span><b>${mtd.assess}</b></div>
+<div class="tile"><span>成約${target ? "／目標" : ""}</span><b>${mtd.deal}${target ? `<span style="display:inline;font-size:11px;color:#5f6368;"> / ${target}</span>` : ""}</b><i>${target ? "達成率 " + pct(mtd.deal, target) : "目標未設定"}</i></div>
+</div>
+<div class="rates">
+<div class="rate"><span>この月に受信した案件</span><b>${coh.n}</b>件</div>
+<div class="rate"><span>架電率（1回以上電話）</span><b>${pct(coh.called, coh.n)}</b></div>
+<div class="rate"><span>着電率（話せた）</span><b>${pct(coh.reached, coh.n)}</b></div>
+<div class="rate"><span>アポ率</span><b>${pct(coh.apo, coh.n)}</b></div>
+<div class="rate"><span>査定率</span><b>${pct(coh.assess, coh.n)}</b></div>
+<div class="rate"><span>成約率</span><b>${pct(coh.deal, coh.n)}</b></div>
+</div>
+<h2>担当別（左＝${md(D)}／右＝月累計）</h2>
+<div class="scroll"><table class="kpi"><thead><tr><th>担当</th><th>案件</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th>着電率</th><th class="sep"></th><th>案件</th><th>コール</th><th>着電</th><th>アポ</th><th>査定</th><th>成約</th><th>着電率</th></tr></thead>
+<tbody>${whoRows || `<tr><td colspan="16">記録なし</td></tr>`}</tbody></table></div>
+<div class="two">
+<div><h2>${md(D)} の成約（${dealsD.length}）</h2>${dealsD.length ? `<table><thead><tr><th>NO</th><th>担当</th><th>顧客</th><th>車名</th><th>成約額</th></tr></thead><tbody>${dealsD.map((c) => caseLine(c, (odd(c) ? '<span class="warn">⚠入力確認 </span>' : "") + esc(c.deal_yen != null ? yenS(c.deal_yen) : c.deal_raw || ""))).join("")}</tbody></table>` : '<div class="sub">なし</div>'}</div>
+<div><h2>${md(D)} の査定（${assessD.length}）</h2>${assessD.length ? `<table><thead><tr><th>NO</th><th>担当</th><th>顧客</th><th>車名</th><th>結果</th></tr></thead><tbody>${assessD.map((c) => caseLine(c, esc(c.result || ""))).join("")}</tbody></table>` : '<div class="sub">なし</div>'}</div>
+</div>
+<h2>見込み案件（${pros.length}件・${made.slice(5, 10).replace("-", "/")}時点）</h2>
+<div class="scroll"><table class="pros"><thead><tr><th>区分</th><th>NO</th><th>受信</th><th>媒体</th><th>担当</th><th>顧客</th><th>車名</th><th>状況</th><th>最終接触</th><th>後追日</th><th>提示額</th></tr></thead>
+<tbody>${prosRows || `<tr><td colspan="11">なし</td></tr>`}</tbody></table></div>
+<div class="note">
+区分：査定済＝査定〇で結果待ち／アポ＝アポを取ったが査定前／返事待＝★近日返事・検討(直近/1ヶ月以内)・他社結果待ち。このほか 検討(長期) ${longTerm}件・未決着（アポ前）${others}件。<br>
+数え方：案件発生＝受信日／コール・着電・アポ＝電話した日（着電＝通話・検討中・アポ・他決）／査定＝査定日／成約＝成約日（契約日）。担当は案件の担当者。率は「この月に受信した案件」のうち、その段階まで進んだ件数の割合。<br>
+${mtd.est ? `日付の無いコール ${mtd.est}件は受信日で数えています（10/24以前の①など）。` : ""}${noAssessDate || noDealDate ? `この月に受信した案件のうち、${[noAssessDate ? `査定〇で査定日が無い ${noAssessDate}件` : "", noDealDate ? `成約で成約日が無い ${noDealDate}件` : ""].filter(Boolean).join("・")}は査定・成約の数に入っていません（率には入っています）。` : ""}
+</div>
+</div></body></html>`;
+  return { date: D, html };
+}
+
 // ---------- お客様（reply.html）用：認証なし。受け付けるのは決まった状況だけ ----------
 const REPLY_STATUSES = new Set(["査定を行いたい", "まだ検討中", "すでに売却した", "売却をやめた", "検討中", "他社商談中", "売却済み", "売却中止"]);
 async function customerReply(p: Record<string, unknown>) {
@@ -636,6 +817,12 @@ Deno.serve(async (req) => {
         // 生存確認用の記録（毎時の収集が動いているかを後から確認できるように）
         await audit("worker", "list_assess_nos", null, { count: (r as { items?: unknown[] }).items?.length ?? null });
         return json(r);
+      }
+      if (url.searchParams.get("action") === "daily_report") {
+        // 日報（AIPC が毎朝PDFにしてChatworkへ送る）。ワーカー鍵が必要
+        if (!(await isWorker(decodeURIComponent(pathKey)))) return json({ status: "error", message: "認証エラー" });
+        const r = await dailyReport(url.searchParams.get("date") || "");
+        return new Response(r.html, { status: 200, headers: { ...cors, "content-type": "text/html; charset=utf-8" } });
       }
       return json({ status: "ok", message: "kaimax-api (Supabase)", timestamp: new Date().toISOString() });
     }
