@@ -50,6 +50,7 @@ kaimax-api のアクション: ワーカー `mota_create` `mota_result` `mota_wo
 - 日報の自動送信: AIPC `worker/daily-report.mjs`（run.bat 毎時の中で、JST 8〜11時台・当日未送信のときだけ。成功日は `worker/.daily-report-last-ok.txt`）。前日分をPDF（`reports/買取日報_YYYYMMDD.pdf`）にして Chatwork の AIアカウントで送る。送り先は `.env.local` の `DAILY_REPORT_ROOM`（未設定なら ★API連動 330229752）。`worker/.daily-report-test` を置くと次の実行で1回だけ送る
 - 成約の数え方（日報・日別・成約一覧で共通）: kaimaxの結果が成約/入庫済みの案件。日付は `deal_on`(契約日) → `deal_marked_on`(結果を成約にした日。APIの `withDealMarked` が自動で入れる) → 受信日。smart-sign/insmart の契約数は成約数に使わない
 - ダッシュボード（2026/10/25〜）: 実績（成約件数・成約額・目標進捗・担当者別の成約）は `dealsInPeriod()`＝成約日が期間内の成約。成約率・ファネルは期間内に受信した案件のうちの成約（`cohortDeal`）。受信日の無い案件は「全期間」のときだけ数える。目標・コストタブのROIは受信月のまま
+- お客様回答URL（2026/10/27〜）: `reply.html?t=<kaimax_cases.reply_token>`（24桁の推測できない鍵）。旧形式 `?id=案件NO` は受信30日以内の案件だけAPIが受け付ける（それ以外は案件に紐づけずに保存）。画面を開いた後に増えた案件は `ensureReplyToken()` で鍵を取りに行く
 - `kaimax-import`（シート→DB取込）は**無効化済み**。再実行すると本番データを上書きするので戻さない
 - スプレッドシート「買取案件管理表」は 2026/10/19 13:34 時点で凍結（参照用）。ウェブ公開は全シート解除済み
 

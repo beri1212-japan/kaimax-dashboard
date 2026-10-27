@@ -4,6 +4,7 @@
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
 //      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / update は assess を〇にすると assess_on(査定日)に今日を入れる / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
+//      お客様 reply: ?t=<reply_token>（旧 ?id= は受信30日以内のみ）
 //      日報: daily_report（スタッフPOST→{html} / ワーカーGET ?action=daily_report&date=→HTML）
 //      自社サイト買取ページ: voice_save・voice_flags(お客様の声) / model_save・model_flags(車種ページ) / news_save(買取ニュース) / faq_save(よくある質問) / carmaster_save(査定フォームの車種マスタ)
 // 返り値は常に HTTP 200 + JSON（GAS と同じく status で成否を返す）
@@ -778,8 +779,18 @@ const REPLY_STATUSES = new Set(["査定を行いたい", "まだ検討中", "す
 async function customerReply(p: Record<string, unknown>) {
   const status = t(p.status);
   if (!REPLY_STATUSES.has(status)) return { status: "error", message: "状況が不正です" };
-  const no = parseInt(t(p.id));
-  const c = Number.isFinite(no) ? await byNo(no) : null;
+  // 案件は推測できない鍵（?t=）で特定する。旧URL（?id=案件NO）は、受信から30日以内の案件だけ受け付ける（送信済みSMSのため。連番の総当たりを防ぐ）
+  let c: Record<string, any> | null = null;
+  const tok = t(p.t);
+  if (/^[0-9a-f]{24}$/.test(tok)) {
+    const { data } = await sb.from("kaimax_cases").select("*").eq("reply_token", tok).is("deleted_at", null).maybeSingle();
+    c = data;
+  } else if (/^\d{1,6}$/.test(t(p.id))) {
+    const old = await byNo(parseInt(t(p.id)));
+    const limit = new Date(Date.now() + 9 * 3600000 - 30 * 86400000).toISOString().slice(0, 10);
+    if (old && old.received_on && old.received_on >= limit) c = old;
+  }
+  const no = c ? (c.case_no as number) : NaN;
   const jst = new Date(Date.now() + 9 * 3600000).toISOString();
   const raw = `${jst.slice(0, 4)}/${jst.slice(5, 7)}/${jst.slice(8, 10)} ${jst.slice(11, 16)}`;
   const cut = (v: unknown, n: number) => { const s = t(v); return s ? s.slice(0, n) : null; };

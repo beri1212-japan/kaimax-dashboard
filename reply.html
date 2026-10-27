@@ -299,7 +299,8 @@
   var KEY      = '';                                                     // ③（旧GAS用の鍵。廃止）
   // ═══════════════════════════════════════════
   var qs   = new URLSearchParams(location.search);
-  var id   = qs.get('id') || '';
+  var tkn  = qs.get('t') || '';   // 推測できない鍵（新しいURL）
+  var id   = qs.get('id') || '';  // 旧URL（案件NO）。受信30日以内の案件だけ受け付ける
   var car  = qs.get('car') || '';
   // 電話リンク（?tel= があれば担当者直通に切替）
   var tel = (qs.get('tel') || TEL).replace(/[^0-9+]/g, '');
@@ -382,7 +383,8 @@
     var payload = {
       key: KEY,
       action: 'reply',
-      id: id,
+      t: tkn,
+      id: tkn ? '' : id,
       status: status,
       method: val('method'),
       date: schedule,
