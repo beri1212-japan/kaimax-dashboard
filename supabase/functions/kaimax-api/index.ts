@@ -1,6 +1,6 @@
 // kaimax-api: 旧 GAS Web App と同じ受け渡し形式 { secret?, action, payload } で kaimax_* テーブルを読み書きする。
 //  - ワーカー(AIPC): URL末尾 /w/<鍵> または body.secret の鍵（SHA-256 が kaimax_worker_keys に登録されたもの）
-//      許可: mota_create / mota_result / mota_won / mota_refill / GET ?action=list_assess_nos
+//      許可: mota_create / mota_result / mota_won / mota_refill / mota_sync / GET ?action=list_assess_nos
 //  - スタッフ(ダッシュボード): Authorization: Bearer <Supabaseのアクセストークン>
 //      team_members に在籍し admin/車両販売部門の人、または kaimax_allowed_emails に登録されたメール。
 //      許可: create / update / delete(論理削除) / update_calls / update_memo / update_meta / set_target(月別目標) / set_cost(月別コスト) / set_staff(担当者の追加・退職) / link_contract・unlink_contract(成約案件とsmart-sign買取契約の紐づけ) / update は assess を〇にすると assess_on(査定日)に今日を入れる / set_outcome(成約車の成果管理。AA暫定=est_body_yen(税別)/est_recycle_yen/est_*_fee も) / create_from_contract(契約から成約案件を新規作成) / import_contracts(smart-signの契約一覧を取り込み。ワーカーからも可) / set_contract_scope(契約を買取の成果に含める/含めない)
@@ -19,7 +19,7 @@ const cors = {
 };
 const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, headers: { ...cors, "content-type": "application/json; charset=utf-8" } });
 
-const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill", "import_contracts"]);
+const WORKER_ACTIONS = new Set(["mota_create", "mota_result", "mota_won", "mota_refill", "mota_sync", "import_contracts"]);
 const MEDIA_KEYS = new Set(["mota", "carsensor", "navikuru", "line", "yahoo", "self", "shop", "other"]);
 const STAFF_ACTIONS = new Set(["create", "update", "delete", "update_calls", "update_memo", "update_meta", "set_target", "set_cost", "set_staff", "link_contract", "unlink_contract", "set_outcome", "create_from_contract", "import_contracts", "set_contract_scope",
   "voice_save", "voice_flags", "model_save", "model_flags", "news_save", "faq_save", "carmaster_save", "daily_report"]);
@@ -140,21 +140,70 @@ function detailFields(p: Record<string, unknown>) {
   return o;
 }
 const MOTA_NOTE_FIELDS: [string, string][] = [["modelCode", "型式"], ["bodyNo", "車台"], ["displacement", "排気量"], ["repair", "修復歴"], ["color", "色"],
-  ["inspection", "車検"], ["fuel", "燃料"], ["transmission", "MT/AT"], ["handle", "ハンドル"], ["timing", "売却希望"], ["replacement", "乗換検討"]];
+  ["inspection", "車検"], ["fuel", "燃料"], ["transmission", "MT/AT"], ["handle", "ハンドル"], ["timing", "売却希望"], ["replacement", "乗換検討"],
+  ["zip", "郵便番号"], ["area", "地域"]];
 
 // ---------- ワーカー用 ----------
+// 2026/11/14〜 MOTAがログインにロボット判定(Cloudflare Turnstile)を入れたため、取込経路は
+//   ①cs@ のGAS（MOTAの「入札依頼申込み」メール→mota_create。source=mota_mail）
+//   ②AIPC Chrome の Tampermonkey（12:15/18:15。受付中/受付終了/権利獲得→mota_create/result/won/refill。source=mota_tm）
+// 受信日: ワーカーが receivedOn(YYYY-MM-DD・直近14日以内) を送ればそれを使う（メールの受信日）
+function workerDate(v: unknown) {
+  const d = t(v);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const today = todayISO(), min = new Date(Date.parse(today) - 14 * 86400000).toISOString().slice(0, 10);
+  return d >= min && d <= today ? d : null;
+}
+const isoToSheet = (d: string) => `${+d.slice(0, 4)}/${+d.slice(5, 7)}/${+d.slice(8, 10)}`;
+// 車名の照合用: 全角半角・空白・記号を除き、メーカー名を落とす
+const MAKERS = ["トヨタ", "レクサス", "日産", "ホンダ", "マツダ", "スバル", "スズキ", "ダイハツ", "三菱", "ミツビシ", "いすゞ", "日野", "メルセデス・ベンツ", "メルセデスベンツ", "BMW", "アウディ", "フォルクスワーゲン", "ミニ", "MINI", "ボルボ", "ポルシェ", "ジープ", "プジョー"];
+function carKey(s: unknown) {
+  let x = t(s).normalize("NFKC").replace(/[\s・\-ー‐－]/g, "").toUpperCase();
+  for (const m of MAKERS) { const k = m.normalize("NFKC").replace(/[\s・\-ー‐－]/g, "").toUpperCase(); if (x.startsWith(k)) { x = x.slice(k.length); break; } }
+  return x;
+}
+// スタッフが手で入れたMOTA案件（査定番号なし）のうち、受信日±1日・車名が一致する1件を探す（二重登録を防ぐ）
+async function findManualMota(car: unknown, receivedOn: string) {
+  const a = carKey(car); if (a.length < 2) return null;
+  const lo = new Date(Date.parse(receivedOn) - 86400000).toISOString().slice(0, 10), hi = new Date(Date.parse(receivedOn) + 86400000).toISOString().slice(0, 10);
+  const { data } = await sb.from("kaimax_cases").select("*").eq("media", "MOTA").is("mota_assess_no", null).is("deleted_at", null)
+    .gte("received_on", lo).lte("received_on", hi);
+  const hit = (data ?? []).filter((c) => { const b = carKey(c.car_name); return b.length >= 2 && (a.startsWith(b) || b.startsWith(a)); });
+  return hit.length === 1 ? hit[0] : null;
+}
+function motaNote(assessNo: string, p: Record<string, unknown>) {
+  return ["査定番号:" + assessNo, ...MOTA_NOTE_FIELDS.filter(([k]) => t(p[k])).map(([k, l]) => `${l}:${t(p[k])}`)].join(" / ");
+}
 async function motaCreate(p: Record<string, unknown>) {
   const assessNo = t(p.assessNo);
   if (!/^\d+$/.test(assessNo)) return { status: "error", message: "査定番号が取得できませんでした(MOTAページ構造を確認してください)" };
   const ex = await byAssess(+assessNo);
   if (ex) return { status: "duplicate", message: `査定番号 ${assessNo} は既に登録済みです`, no: ex.case_no };
-  const note = ["査定番号:" + assessNo, ...MOTA_NOTE_FIELDS.filter(([k]) => t(p[k])).map(([k, l]) => `${l}:${t(p[k])}`)].join(" / ");
+  const src = t(p.source) === "mota_mail" || t(p.source) === "mota_tm" ? t(p.source) : "mota_worker";
+  const recv = workerDate(p.receivedOn) || todayISO();
+  // 手入力済みの案件があれば、そこに査定番号と明細を足す（新規に作らない）
+  const man = await findManualMota(p.car, recv);
+  if (man) {
+    const upd: Record<string, unknown> = { mota_assess_no: +assessNo };
+    if (!man.model_year && t(p.year)) upd.model_year = t(p.year);
+    if (!man.mileage && t(p.mileage)) upd.mileage = t(p.mileage);
+    if (!man.sale_timing && t(p.timing)) upd.sale_timing = t(p.timing);
+    upd.note = (t(man.note) ? t(man.note) + " / " : "") + motaNote(assessNo, p);
+    await sb.from("kaimax_cases").update(upd).eq("id", man.id);
+    await audit("worker", "mota_link_manual", man.case_no, { assessNo, source: src });
+    return { status: "linked", message: `査定番号 ${assessNo} を手入力の案件NO ${man.case_no} に紐づけました`, no: man.case_no };
+  }
   const row = await insertCase({
-    media: "MOTA", received_on: todayISO(), received_raw: todaySheet(), car_name: nz(p.car), note,
-    model_year: nz(p.year), mileage: nz(p.mileage), sale_timing: nz(p.timing), mota_assess_no: +assessNo, source: "mota_worker",
+    media: "MOTA", received_on: recv, received_raw: isoToSheet(recv), car_name: nz(p.car), note: motaNote(assessNo, p),
+    model_year: nz(p.year), mileage: nz(p.mileage), sale_timing: nz(p.timing), mota_assess_no: +assessNo, source: src,
   });
-  await audit("worker", "mota_create", row.case_no, { assessNo });
+  await audit("worker", "mota_create", row.case_no, { assessNo, source: src });
   return { status: "success", message: `MOTA案件NO ${row.case_no} を追加(${t(p.car) || "車種不明"})`, no: row.case_no };
+}
+// Tampermonkey の取込1回分の結果を記録（AIPC が「時刻を過ぎても取込が無い」を検知するため）
+async function motaSyncLog(p: Record<string, unknown>) {
+  await audit("worker", "mota_sync", null, { source: t(p.source) || "mota_tm", summary: p.summary ?? null, error: t(p.error) || null });
+  return { status: "success" };
 }
 async function motaResult(p: Record<string, unknown>) {
   const assessNo = t(p.assessNo);
@@ -208,11 +257,12 @@ async function motaRefill(p: Record<string, unknown>) {
   return { status: "updated", message: `案件NO ${c.case_no} に ${add.length} 項目を補完` };
 }
 async function listAssessNos() {
-  const items: { no: number; assessNo: string }[] = [];
+  // named=権利獲得の顧客名が入っている / detail=MOTA明細(型式など)が入っている（Tampermonkey が詳細ページを開くかの判断に使う）
+  const items: { no: number; assessNo: string; named: boolean; detail: boolean }[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("kaimax_cases").select("case_no, mota_assess_no").not("mota_assess_no", "is", null).range(from, from + 999);
+    const { data, error } = await sb.from("kaimax_cases").select("case_no, mota_assess_no, customer_name, bid_result, note").not("mota_assess_no", "is", null).range(from, from + 999);
     if (error) return { status: "error", message: error.message };
-    (data ?? []).forEach((r) => items.push({ no: r.case_no, assessNo: String(r.mota_assess_no) }));
+    (data ?? []).forEach((r) => items.push({ no: r.case_no, assessNo: String(r.mota_assess_no), named: !!(r.customer_name && r.bid_result === "権利獲得"), detail: /型式:|排気量:/.test(String(r.note || "")) }));
     if (!data || data.length < 1000) break;
   }
   return { status: "success", items };
@@ -840,6 +890,12 @@ Deno.serve(async (req) => {
         await audit("worker", "list_assess_nos", null, { count: (r as { items?: unknown[] }).items?.length ?? null });
         return json(r);
       }
+      if (url.searchParams.get("action") === "mota_sync_status") {
+        // AIPC の mota-sync-check が「12:15/18:15 の取込が終わったか」を見る
+        if (!(await isWorker(decodeURIComponent(pathKey)))) return json({ status: "error", message: "認証エラー" });
+        const { data } = await sb.from("kaimax_audit").select("at, payload").eq("action", "mota_sync").order("at", { ascending: false }).limit(1).maybeSingle();
+        return json({ status: "success", last_at: data?.at ?? null, error: (data?.payload as Record<string, unknown> | null)?.error ?? null, summary: (data?.payload as Record<string, unknown> | null)?.summary ?? null });
+      }
       if (url.searchParams.get("action") === "daily_report") {
         // 日報（AIPC が毎朝PDFにしてChatworkへ送る）。ワーカー鍵が必要
         if (!(await isWorker(decodeURIComponent(pathKey)))) return json({ status: "error", message: "認証エラー" });
@@ -859,6 +915,7 @@ Deno.serve(async (req) => {
         if (action === "mota_create") return json(await motaCreate(p));
         if (action === "mota_result") return json(await motaResult(p));
         if (action === "mota_won") return json(await motaWon(p));
+        if (action === "mota_sync") return json(await motaSyncLog(p));
         if (action === "import_contracts") return json(await staffAction("import_contracts", p, "worker")); // 夜間の自動取込（smart-sign）
         return json(await motaRefill(p));
       }
