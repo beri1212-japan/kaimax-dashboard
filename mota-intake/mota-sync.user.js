@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         kaimax MOTA取込（12:15/18:15）
 // @namespace    https://kaimax-indio.vercel.app/
-// @version      1.0.0
+// @version      1.1.0
 // @description  MOTA加盟店マイページから、受付中（新規・明細）・受付終了（入札結果）・権利獲得（お客様情報）を kaimax へ送る。ログインはID/パスワードを入れて、ロボット確認が通ったらログインボタンを押す（確認のチェックが出たら人が押す）
 // @match        https://autoc-one.jp/ullo/shop/*
 // @grant        GM_xmlhttpRequest
@@ -97,7 +97,11 @@
         const WS = ['入札済み', '現車確認', '他社決定', '未入札', '権利獲得', '落札', '成約', 'キャンセル', '辞退', '取消'];
         for (const el of li.querySelectorAll('*')) { if (el.children.length) continue; const t = (el.textContent || '').replace(/\s+/g, ''); const hit = WS.find((w) => t.includes(w)); if (hit) { status = hit; break; } }
       }
-      return { assessNo: (href.match(/\/car\/(\d+)\//) || [])[1] || '', car: clean((li.querySelector('.p-carlist-item__carname, .p-carlist-list__carname')?.textContent || link?.getAttribute('aria-label') || link?.textContent || '').replace(/\s*の詳細へ\s*$/, '')), status };
+      // 受信日の推定: 締切が12時台→前日の受信 / 18時台→当日の受信（MOTAメールの受信時刻と締切の関係から）
+      let receivedOn = '';
+      const dl = (li.textContent || '').match(/締切[：:\s]*(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):/);
+      if (dl) { const d = new Date(Date.UTC(+dl[1], +dl[2] - 1, +dl[3])); if (+dl[4] < 15) d.setUTCDate(d.getUTCDate() - 1); receivedOn = d.toISOString().slice(0, 10); }
+      return { receivedOn, assessNo: (href.match(/\/car\/(\d+)\//) || [])[1] || '', car: clean((li.querySelector('.p-carlist-item__carname, .p-carlist-list__carname')?.textContent || link?.getAttribute('aria-label') || link?.textContent || '').replace(/\s*の詳細へ\s*$/, '')), status };
     }).filter((c) => c.assessNo);
   }
   const listReady = (doc) => !!doc.querySelector('#carBidList > li, li.p-carlist-item, .p-carlist-empty, .c-empty') || /該当する車両はありません|ありません/.test(doc.body?.innerText || '');
@@ -161,7 +165,7 @@
         i++; show(`受付中 ${i}/${accTargets.length}：${c.car}`);
         const doc = await loadDoc(`${BASE}/car/${c.assessNo}/`, detailReady);
         const d = doc && !doc.loginRequired ? readDetail(doc) : {};
-        const p = toPayload(c.assessNo, d); if (!p.car) p.car = c.car;
+        const p = toPayload(c.assessNo, d); if (!p.car) p.car = c.car; if (c.receivedOn) p.receivedOn = c.receivedOn;
         const r = byNo.has(c.assessNo) ? await post('mota_refill', p) : await post('mota_create', p);
         if (r.status === 'success') sum.created++; else if (r.status === 'linked') sum.linked++; else if (r.status === 'updated') sum.refilled++;
         else if (!['duplicate', 'nochange'].includes(r.status)) { sum.errors++; console.warn('[kaimax]', c.assessNo, r); }
@@ -195,7 +199,7 @@
         const address = pick(d, ADDR_KEYS);
         const email = ((pick(d, MAIL_KEYS) || '').match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/) || [''])[0];
         if (!customer && !tel) { sum.errors++; console.warn('[kaimax] 顧客情報が読めない', c.assessNo); await sleep(4000); continue; }
-        if (!byNo.has(c.assessNo)) { const p = toPayload(c.assessNo, d); if (!p.car) p.car = c.car; await post('mota_create', p); }
+        if (!byNo.has(c.assessNo)) { const p = toPayload(c.assessNo, d); if (!p.car) p.car = c.car; if (c.receivedOn) p.receivedOn = c.receivedOn; await post('mota_create', p); }
         const r = await post('mota_won', { assessNo: c.assessNo, customer, tel, address, email, car: c.car });
         if (r.status === 'success') sum.won++; else if (r.status !== 'duplicate') { sum.errors++; console.warn('[kaimax]', c.assessNo, r); }
         await sleep(4000);

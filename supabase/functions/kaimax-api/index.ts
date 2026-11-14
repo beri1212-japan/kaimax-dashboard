@@ -193,10 +193,18 @@ async function motaCreate(p: Record<string, unknown>) {
     await audit("worker", "mota_link_manual", man.case_no, { assessNo, source: src });
     return { status: "linked", message: `査定番号 ${assessNo} を手入力の案件NO ${man.case_no} に紐づけました`, no: man.case_no };
   }
-  const row = await insertCase({
-    media: "MOTA", received_on: recv, received_raw: isoToSheet(recv), car_name: nz(p.car), note: motaNote(assessNo, p),
-    model_year: nz(p.year), mileage: nz(p.mileage), sale_timing: nz(p.timing), mota_assess_no: +assessNo, source: src,
-  });
+  let row;
+  try {
+    row = await insertCase({
+      media: "MOTA", received_on: recv, received_raw: isoToSheet(recv), car_name: nz(p.car), note: motaNote(assessNo, p),
+      model_year: nz(p.year), mileage: nz(p.mileage), sale_timing: nz(p.timing), mota_assess_no: +assessNo, source: src,
+    });
+  } catch (e) {
+    // 同じ査定番号を同時に送ってきたとき（メールとTampermonkeyなど）は、先に入った方を登録済みとして返す
+    const ex2 = await byAssess(+assessNo);
+    if (ex2) return { status: "duplicate", message: `査定番号 ${assessNo} は既に登録済みです`, no: ex2.case_no };
+    throw e;
+  }
   await audit("worker", "mota_create", row.case_no, { assessNo, source: src });
   return { status: "success", message: `MOTA案件NO ${row.case_no} を追加(${t(p.car) || "車種不明"})`, no: row.case_no };
 }

@@ -19,6 +19,8 @@
 | ログイン | Google（Supabase Auth）。許可は HUB の team_members（admin または vehicle_sales）＋ `kaimax_allowed_emails`（cs@ / morota@） |
 | ワーカー | AIPC の `.env.local` が `kaimax-api/w/<鍵>` を向く。鍵は `.env.supabase` にあり SHA-256 を `kaimax_worker_keys` に登録。旧設定は `.env.local.bak-20261019-gas` |
 | 生存確認 | ワーカーが登録済み一覧を取るたびに `kaimax_audit`（actor=worker, action=list_assess_nos）に1行残る。毎時無ければ止まっている |
+| **MOTA取込（2026/11/14〜）** | MOTAがログインにロボット判定（Cloudflare Turnstile）を入れ、AIPCの毎時Playwright収集（collect/result/won）は**停止**（run.bat から外した。旧 run.bat は `run.bat.bak-20261114`）。代わりに ① **cs@ の Apps Script「kaimax MOTAメール取込」**（10分ごと。「入札依頼申込み」メール→`mota_create` source=mota_mail、受信日=メールの日付。取込済みは Gmail ラベル `kaimax取込済`。鍵はスクリプトのプロパティ KAIMAX_KEY＝worker_keys id=3。ソースの写しは `mota-intake/gas-mota-mail.gs`）② **AIPC Chrome の Tampermonkey `mota-intake/mota-sync.user.js`**（run.bat の12時・18時の回が `worker/mota-sync-launch.bat` を起こし、10分後=12:15/18:15に Chrome で `…/carList/accepting/?limit=100#kaimax-sync` を開く→ID/PW自動入力→Turnstileが通ればログイン→受付中の明細補完(refill)・受付終了の入札結果・権利獲得のお客様情報→最後に `mota_sync` を記録。鍵＝worker_keys id=4、ID/PW・鍵は Tampermonkey の保存領域）③ 20分後に `worker/mota-sync-check.mjs` が GET `mota_sync_status` を見て、25分以内の成功が無ければ Chatwork ルーム444963287 に通知（AIアカウント）。**ロボット判定を自動で突破する作りにはしない**（チェックが出たら人が押す） |
+| 手入力との二重 | `mota_create` は査定番号が未登録なら、査定番号なしの手入力MOTA案件（受信日±1日・車名一致が1件）に紐づける（status=linked）。`kaimax_cases.source` の許可値に mota_mail / mota_tm を追加済み |
 | 契約の自動取込 | AIPC `worker/smartsign-contracts.mjs`。run.bat（毎時）の最後で呼ばれ、**午前2時以降・当日未成功のときだけ**実行（成功日は `worker/.smartsign-last-ok.txt`）。AppField→エントランス→smart-sign、契約日 直近60日を全ステータスでDL→`import_contracts`。ID/PWは `.env.local` の `SMARTSIGN_ID`/`SMARTSIGN_PW`（本人が記入）。画面の「最終取り込み」が36時間超で赤 |
 
 テーブル: `kaimax_cases`（案件・列ズレ補正済み）/ `kaimax_calls`（①〜⑧、seq=シート位置）/ `kaimax_replies`（顧客回答）/
