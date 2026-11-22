@@ -143,15 +143,15 @@
     border:1px solid var(--line);border-radius:4px;padding:1px 6px;vertical-align:1px;letter-spacing:.02em;
   }
   .pref-row{display:flex;gap:9px}
-  .pref-row .pdate{flex:1 1 58%;min-width:0}
-  .ptime{
+  .pref-row .pdate{flex:1 1 58%}
+  .ptime,.pdate{
     flex:1 1 42%;min-width:0;padding:15px 12px;font-size:16px;font-family:inherit;color:var(--ink);
     border:1.5px solid var(--line);border-radius:11px;background:var(--white);
     -webkit-appearance:none;appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%235C636E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
     background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;
   }
-  .ptime:invalid,.ptime option[value=""]{color:var(--sub)}
+  .ptime:invalid,.ptime option[value=""],.pdate option[value=""]{color:var(--sub)}
   textarea{min-height:100px;resize:vertical;line-height:1.6}
   #schedule{display:none}
   #schedule.on{display:block}
@@ -230,11 +230,11 @@
             <label class="chip"><input type="radio" name="method" value="来店査定"><span>来店査定</span></label>
           </div>
           <p class="q" style="margin-top:24px">ご希望の日程<span class="req">必須</span></p>
-          <p class="hint">ご都合の良い日時を第3希望までお選びください。（第1希望のみでもOKです）</p>
+          <p class="hint">ご都合の良い日時を第3希望までお選びください。（第1希望のみでもOKです）<br>※定休日（火曜・第1/第3月曜）と年末年始（12/26〜1/3）はお選びいただけません。</p>
           <div class="pref">
             <span class="pref-h">第1希望</span>
             <div class="pref-row">
-              <input type="date" class="pdate" id="date1" name="date1">
+              <select class="pdate" id="date1" name="date1"><option value="">日付</option></select>
               <select class="ptime" id="time1" name="time1">
                 <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
               </select>
@@ -243,7 +243,7 @@
           <div class="pref">
             <span class="pref-h">第2希望<span class="opt">任意</span></span>
             <div class="pref-row">
-              <input type="date" class="pdate" id="date2" name="date2">
+              <select class="pdate" id="date2" name="date2"><option value="">日付</option></select>
               <select class="ptime" id="time2" name="time2">
                 <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
               </select>
@@ -252,7 +252,7 @@
           <div class="pref">
             <span class="pref-h">第3希望<span class="opt">任意</span></span>
             <div class="pref-row">
-              <input type="date" class="pdate" id="date3" name="date3">
+              <select class="pdate" id="date3" name="date3"><option value="">日付</option></select>
               <select class="ptime" id="time3" name="time3">
                 <option value="">時間帯</option><option>午前中</option><option>13〜15時</option><option>15〜17時</option><option>17〜19時</option>
               </select>
@@ -316,10 +316,35 @@
     document.getElementById('carName').textContent = car;
     document.getElementById('carBox').hidden = false;
   }
-  // 希望日は本日以降のみ（第1〜第3希望すべてに適用）
-  var minDate = new Date(Date.now() + 9*3600*1000).toISOString().slice(0,10);
+  // 希望日は「本日〜60日先」の営業日だけを選択肢に出す（2026/11/22〜）
+  //  定休日: 毎週火曜・第1/第3月曜（祝日なら営業）。年末年始 12/26〜1/3 は祝日でも休み
+  //  祝日は下の表で判定する。★年が変わる前に翌年分を足すこと（2028年以降は未登録）
+  var HOLIDAYS = {
+    '2026-11-03':1,'2026-11-23':1,
+    '2027-01-01':1,'2027-01-11':1,'2027-02-11':1,'2027-02-23':1,'2027-03-21':1,'2027-03-22':1,'2027-04-29':1,
+    '2027-05-03':1,'2027-05-04':1,'2027-05-05':1,'2027-07-19':1,'2027-08-11':1,'2027-09-20':1,'2027-09-23':1,
+    '2027-10-11':1,'2027-11-03':1,'2027-11-23':1
+  };
+  function ymdStr(d){ return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
+  function isClosed(d){
+    var m = d.getMonth()+1, day = d.getDate(), w = d.getDay();
+    if ((m === 12 && day >= 26) || (m === 1 && day <= 3)) return true;   // 年末年始
+    if (HOLIDAYS[ymdStr(d)]) return false;                                // 祝日は営業
+    if (w === 2) return true;                                             // 火曜
+    if (w === 1 && (Math.ceil(day/7) === 1 || Math.ceil(day/7) === 3)) return true; // 第1・第3月曜
+    return false;
+  }
+  var jstNow = new Date(Date.now() + 9*3600*1000);
+  var base = new Date(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate());
+  var opts = '';
+  for (var k = 0; k <= 60; k++){
+    var d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + k);
+    if (isClosed(d)) continue;
+    var v = ymdStr(d);
+    opts += '<option value="' + v + '">' + fmtDateJP(v) + (k === 0 ? '（本日）' : '') + '</option>';
+  }
   ['date1','date2','date3'].forEach(function(idn){
-    var el = document.getElementById(idn); if (el) el.min = minDate;
+    var el = document.getElementById(idn); if (el) el.insertAdjacentHTML('beforeend', opts);
   });
   // yyyy-mm-dd → M/D（曜日つき）
   function fmtDateJP(v){
