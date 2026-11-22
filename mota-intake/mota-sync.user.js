@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         kaimax MOTA取込（12:15/18:15）
 // @namespace    https://kaimax-indio.vercel.app/
-// @version      1.1.0
+// @version      1.2.0
 // @description  MOTA加盟店マイページから、受付中（新規・明細）・受付終了（入札結果）・権利獲得（お客様情報）を kaimax へ送る。ログインはID/パスワードを入れて、ロボット確認が通ったらログインボタンを押す（確認のチェックが出たら人が押す）
 // @match        https://autoc-one.jp/ullo/shop/*
 // @grant        GM_xmlhttpRequest
@@ -24,7 +24,16 @@
   const BASE = 'https://autoc-one.jp/ullo/shop/mypage/assessment';
   const ACCEPTING = BASE + '/carList/accepting/?limit=100';
   const CLOSED = BASE + '/carList/closed/?limit=100';
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // 待ち時間は Web Worker のタイマーで測る（2026/11/22〜）。Chrome は裏に回ったタブの setTimeout を
+  // 1分に1回程度まで間引くため、18:15 の回が途中で止まったように見えた。Worker のタイマーは間引かれない
+  const sleep = (() => {
+    let w = null, seq = 0; const wait = new Map();
+    try {
+      w = new Worker(URL.createObjectURL(new Blob(['onmessage=function(e){setTimeout(function(){postMessage(e.data.id)},e.data.ms)}'], { type: 'text/javascript' })));
+      w.onmessage = (e) => { const r = wait.get(e.data); if (r) { wait.delete(e.data); r(); } };
+    } catch { w = null; }
+    return (ms) => new Promise((r) => { if (!w) return setTimeout(r, ms); const id = ++seq; wait.set(id, r); w.postMessage({ id, ms }); });
+  })();
   const clean = (s) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t === '－' || t === '-' || t === '—' ? '' : t; };
 
   // ---------- 設定（メニューから） ----------
@@ -71,7 +80,7 @@
       f.style.cssText = 'position:fixed;left:-9999px;top:0;width:1200px;height:900px;visibility:hidden';
       f.src = url;
       let done = false;
-      const finish = (doc) => { if (done) return; done = true; resolve(doc); setTimeout(() => f.remove(), 100); };
+      const finish = (doc) => { if (done) return; done = true; resolve(doc); sleep(100).then(() => f.remove()); };
       f.onload = async () => {
         const t0 = Date.now();
         while (Date.now() - t0 < (maxMs || 15000)) {
@@ -84,7 +93,7 @@
         finish(doc);
       };
       document.body.appendChild(f);
-      setTimeout(() => finish(null), (maxMs || 15000) + 30000);
+      sleep((maxMs || 15000) + 30000).then(() => finish(null));
     });
   }
 
@@ -237,5 +246,5 @@
   const pending = GM_getValue('pendingUntil', 0) > Date.now();
   if (!pending) return;
   if (/\/login/.test(location.pathname)) { onLogin(); return; }
-  if (/\/mypage/.test(location.pathname)) { setTimeout(runSync, 1500); }
+  if (/\/mypage/.test(location.pathname)) { sleep(1500).then(runSync); }
 })();
