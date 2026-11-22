@@ -861,7 +861,35 @@ async function customerReply(p: Record<string, unknown>) {
   if (error) return { status: "error", message: "保存に失敗しました" };
   if (c) await sb.from("kaimax_cases").update({ reply_status: `${status}（${+raw.slice(5, 7)}/${+raw.slice(8, 10)}）` }).eq("id", c.id);
   await audit("customer", "reply", Number.isFinite(no) ? no : null, { status });
+  await notifyReply(c, p, status, raw);
   return { status: "success", message: "ご回答ありがとうございました" };
+}
+// お客様の回答を Chatwork へ即時通知（2026/11/22〜）。AIアカウント（indio claude）のトークンは Supabase の Edge Function シークレット CHATWORK_BOT_TOKEN。
+// 送り先は CHATWORK_REPLY_ROOM（無ければ 444963287）。トークン未設定・送信失敗でも回答の保存には影響させない
+async function notifyReply(c: Record<string, any> | null, p: Record<string, unknown>, status: string, raw: string) {
+  const token = Deno.env.get("CHATWORK_BOT_TOKEN");
+  if (!token) return;
+  const room = Deno.env.get("CHATWORK_REPLY_ROOM") || "444963287";
+  // お客様が入力した文字は Chatwork のタグ（[To:] [toall] など）として効かないようにする
+  const s = (v: unknown, n = 200) => t(v).slice(0, n).replace(/\[/g, "［").replace(/\]/g, "］");
+  const lines = [
+    c ? `案件NO ${c.case_no}（${s(c.media)}・受信 ${c.received_on ? md(c.received_on) : "—"}・担当 ${s(c.assignee) || "未割当"}）` : "案件：特定できず（古いURLなど）",
+    `車：${s(c?.car_name ?? p.car)}${c?.customer_name ? "　お客様：" + s(c.customer_name) + " 様" : ""}`,
+    `回答：${s(status)}`,
+    t(p.method) ? `方法：${s(p.method)}` : "",
+    t(p.date) ? `希望日：${s(p.date, 300)}` : "",
+    t(p.time) ? `時間帯：${s(p.time)}` : "",
+    t(p.contact) ? `連絡方法：${s(p.contact)}` : "",
+    t(p.memo) ? `メモ：${s(p.memo, 500)}` : "",
+    "https://kaimax-indio.vercel.app/",
+  ].filter(Boolean).join("\n");
+  const body = new URLSearchParams({ body: `[info][title]お客様から回答がありました（${raw}）[/title]${lines}[/info]` });
+  try {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 5000);
+    const r = await fetch(`https://api.chatwork.com/v2/rooms/${room}/messages`, { method: "POST", headers: { "X-ChatWorkToken": token, "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString(), signal: ctl.signal });
+    clearTimeout(tm);
+    if (!r.ok) await audit("system", "reply_notify_error", c ? c.case_no : null, { http: r.status });
+  } catch (e) { await audit("system", "reply_notify_error", c ? c.case_no : null, { error: String((e as Error).message || e).slice(0, 120) }); }
 }
 
 async function staffActor(req: Request): Promise<string | null> {
