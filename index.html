@@ -4755,7 +4755,7 @@
   // 目的: スマホで「電話番号タップ→通話→復帰」した際、PWAのリロードや復帰直後の通信失敗で
   //   架電記録が失われるのを防ぐ。記録は端末(localStorage)に即控え、送信成功で消す。
   //   失敗時はアプリ復帰・オンライン復帰・再読込のたびに自動再送する（記録が消えない）。
-  const APP_BUILD = 'ver 1027a'; // ← この番号がスマホに出ていれば最新版が届いています
+  const APP_BUILD = 'ver 1122a'; // ← この番号がスマホに出ていれば最新版が届いています
   const OUTBOX_KEY = 'kaimax_outbox';
   let _outboxFlushing = false;
   function outboxGet() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
@@ -4897,10 +4897,11 @@
   // ===== 顧客回答ページURL（SMSで送る用） =====
   const REPLY_URL_BASE = 'https://kaimax-indio.vercel.app/reply.html';
   // 案件NO（連番）はURLに載せず、案件ごとの推測できない鍵で開く（2026/10/27〜）
-  function buildReplyUrl(c) {
+  // stage: 回答ページの版（'2'=2回目「ご希望をお聞かせください」/'3'=最後のご案内/'r'=他社決定の方へ。省略で初回）
+  function buildReplyUrl(c, stage) {
     const e = caseExtra.get(String(c.no));
     const key = e && e.replyToken ? 't=' + encodeURIComponent(e.replyToken) : 'id=' + encodeURIComponent(c.no);
-    return REPLY_URL_BASE + '?' + key + '&car=' + encodeURIComponent(c.car || '');
+    return REPLY_URL_BASE + '?' + key + (stage ? '&s=' + stage : '') + '&car=' + encodeURIComponent(c.car || '');
   }
   // 画面を開いた後に増えた案件は鍵を持っていないので、使う前に取りに行く
   async function ensureReplyToken(no) {
@@ -4945,10 +4946,12 @@
     return [
       { label: '① 初回フォロー（不在）',
         text: `【インディオ富山】${name}\nお車${carP}の査定の件でお電話しました。ご都合の良い時に、現在のご状況を下記からご回答ください。\n${url}` },
-      { label: '② 調子伺い（再フォロー）',
-        text: `【インディオ富山】${name}\n先日お電話した査定の件、その後いかがでしょうか。ご状況を下記からお聞かせください。出張・来店査定に対応しております。\n${url}` },
-      { label: '③ 最終確認（数回不通）',
-        text: `【インディオ富山】${name}\nお車の査定の件で何度かお電話しましたが繋がらず失礼しました。恐れ入りますが下記より現在のご状況をお知らせください。すでに売却済み等の場合もお知らせいただけると幸いです。\n${url}` },
+      { label: '② 2回目（ご希望をお聞かせください）',
+        text: `【インディオ富山】${name}\n先日お電話した査定の件、その後いかがでしょうか。ご希望の金額やご都合をお聞かせいただければ、それに近づけるよう精一杯査定いたします。だいたいで大丈夫です。\n${buildReplyUrl(c, '2')}` },
+      { label: '③ 最後のご案内',
+        text: `【インディオ富山】${name}\nお車${carP}の査定の件で何度かご連絡し、失礼いたしました。こちらが最後のご案内です。ご希望（金額・時期）を一言いただければ、その条件でご提案いたします。ご不要の場合は「今回は見送る」を選んでいただければ、以降のご連絡は控えます。\n${buildReplyUrl(c, '3')}` },
+      { label: '⑤ 他社でお話が進んでいる方へ',
+        text: `【インディオ富山】${name}\nお車${carP}の件、他社様でお話が進んでいると伺いました。ご契約前でしたら、他社様のお見積もり額を基準に、上乗せを目指して当社も査定いたします。比べてからのご判断で大丈夫です。\n${buildReplyUrl(c, 'r')}` },
       { label: '④ 査定日程のご案内',
         text: `【インディオ富山】${name}\nお車の査定日程についてのご案内です。ご希望の日時を下記からお選びいただけます（出張・来店とも無料）。\n${url}` },
       { label: 'URLのみ', text: url },
@@ -4991,17 +4994,20 @@
     // 顧客回答はデータベース(kaimax_replies)から。旧シートと同じ見出しの表に組み立てて以下の描画をそのまま使う
     let rows = null;
     try {
-      const reps = await selectAll('kaimax_replies', 'received_at,received_raw,case_no,customer_name,car_name,status,method,wish_date,time_slot,contact,email,memo,tel', q => q.order('received_at', { ascending: true }));
+      const reps = await selectAll('kaimax_replies', 'received_at,received_raw,case_no,customer_name,car_name,status,method,wish_date,time_slot,contact,email,memo,tel,variant,desired,sell_timing,rival_price,rival_name,rival_deadline', q => q.order('received_at', { ascending: true }));
       const fmt = (iso) => { if (!iso) return ''; const d = new Date(iso); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-      rows = [['受信日時', '案件ID', '顧客名', '車種', '状況', '査定方法', '希望日', '時間帯', '連絡方法', 'メール', 'ご要望', 'TEL']]
-        .concat(reps.map(x => [x.received_raw || fmt(x.received_at), x.case_no == null ? '' : String(x.case_no), x.customer_name || '', x.car_name || '', x.status || '', x.method || '', x.wish_date || '', x.time_slot || '', x.contact || '', x.email || '', x.memo || '', x.tel || '']));
+      const VNAME = { '2': '2回目', '3': '最後のご案内', 'r': '他社決定の方へ' };
+      const extra = (x) => [x.variant && VNAME[x.variant] ? '［' + VNAME[x.variant] + 'のページ］' : '', x.desired ? '希望額 ' + x.desired : '', x.sell_timing ? '時期 ' + x.sell_timing : '',
+        x.rival_price ? '他社見積 ' + x.rival_price + (x.rival_name ? '（' + x.rival_name + '）' : '') : (x.rival_name ? '他社 ' + x.rival_name : ''), x.rival_deadline ? '他社期限 ' + x.rival_deadline : ''].filter(Boolean).join('　');
+      rows = [['受信日時', '案件ID', '顧客名', '車種', '状況', '査定方法', '希望日', '時間帯', '連絡方法', 'メール', 'ご要望', 'TEL', '追加']]
+        .concat(reps.map(x => [x.received_raw || fmt(x.received_at), x.case_no == null ? '' : String(x.case_no), x.customer_name || '', x.car_name || '', x.status || '', x.method || '', x.wish_date || '', x.time_slot || '', x.contact || '', x.email || '', x.memo || '', x.tel || '', extra(x)]));
     } catch (e) { rows = null; }
     const listEl = o.querySelector('.rep-list');
     if (rows == null) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red);">読み込みに失敗しました。もう一度お試しください。</div>'; return; }
     if (rows.length < 2) { listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ink-3);">まだ回答はありません。</div>'; return; }
     const H = rows[0].map(x => String(x || '').trim());
     const col = (name) => H.indexOf(name);
-    const ci = { dt: col('受信日時'), id: col('案件ID'), name: col('顧客名'), car: col('車種'), status: col('状況'), method: col('査定方法'), date: col('希望日'), time: col('時間帯'), contact: col('連絡方法'), email: col('メール'), memo: col('ご要望'), tel: col('TEL') };
+    const ci = { dt: col('受信日時'), id: col('案件ID'), name: col('顧客名'), car: col('車種'), status: col('状況'), method: col('査定方法'), date: col('希望日'), time: col('時間帯'), contact: col('連絡方法'), email: col('メール'), memo: col('ご要望'), tel: col('TEL'), extra: col('追加') };
     const items = rows.slice(1).filter(r => r && (r[ci.status] || r[ci.name])).reverse(); // 新しい順
     const cnt = document.getElementById('replies-count'); if (cnt) { cnt.textContent = '(' + items.length + ')'; cnt.style.display = 'inline'; }
     const g = (r, k) => ci[k] >= 0 ? String(r[ci[k]] || '').trim() : '';
@@ -5015,6 +5021,7 @@
         <div class="rep-name">${g(r, 'name') || '(顧客名未取得)'} <span class="rep-car">${g(r, 'car')}</span></div>
         ${sched ? `<div class="rep-line"><svg class="ic"><use href="#ic-clock"/></svg> ${sched}</div>` : ''}
         ${contact ? `<div class="rep-line"><svg class="ic"><use href="#ic-phone"/></svg> 希望: ${contact}</div>` : ''}
+        ${g(r, 'extra') ? `<div class="rep-line"><b>${g(r, 'extra').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</b></div>` : ''}
         ${g(r, 'memo') ? `<div class="rep-line rep-memo">${g(r, 'memo').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>` : ''}
         <div class="rep-actions">${g(r, 'tel') ? `<a class="rep-btn" href="tel:${g(r, 'tel').replace(/[^0-9+]/g, '')}"><svg class="ic"><use href="#ic-phone"/></svg> ${g(r, 'tel')}</a>` : ''}${idv ? `<button class="rep-btn" onclick="openCaseById('${idv}')">案件を開く</button>` : ''}</div>
       </div>`;

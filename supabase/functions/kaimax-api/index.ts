@@ -833,7 +833,9 @@ ${mtd.est ? `日付の無いコール ${mtd.est}件は受信日で数えてい�
 }
 
 // ---------- お客様（reply.html）用：認証なし。受け付けるのは決まった状況だけ ----------
-const REPLY_STATUSES = new Set(["査定を行いたい", "まだ検討中", "すでに売却した", "売却をやめた", "検討中", "他社商談中", "売却済み", "売却中止"]);
+const REPLY_STATUSES = new Set(["査定を行いたい", "まだ検討中", "すでに売却した", "売却をやめた", "検討中", "他社商談中", "売却済み", "売却中止",
+  "その他", "希望を伝えたい", "他社額で査定してほしい", "比較したい"]); // 2026/11/22 2回目・最後のご案内・他社決定の方へ の版を追加
+const REPLY_VARIANTS: Record<string, string> = { "1": "初回", "2": "2回目", "3": "最後のご案内", "r": "他社決定の方へ" };
 async function customerReply(p: Record<string, unknown>) {
   const status = t(p.status);
   if (!REPLY_STATUSES.has(status)) return { status: "error", message: "状況が不正です" };
@@ -857,6 +859,8 @@ async function customerReply(p: Record<string, unknown>) {
     customer_name: c?.customer_name ?? null, car_name: c?.car_name ?? cut(p.car, 100), status,
     method: cut(p.method, 50), wish_date: cut(p.date, 300), time_slot: cut(p.time, 100), contact: cut(p.contact, 50),
     email: cut(p.email, 200), memo: cut(p.memo, 2000), tel: c?.tel ?? null, ua: cut(p.ua, 300), source: "reply_form",
+    variant: REPLY_VARIANTS[t(p.variant)] ? t(p.variant) : null, desired: cut(p.desired, 50), sell_timing: cut(p.sellTiming, 30),
+    rival_price: cut(p.rivalPrice, 50), rival_name: cut(p.rivalName, 60), rival_deadline: cut(p.rivalDeadline, 60),
   });
   if (error) return { status: "error", message: "保存に失敗しました" };
   if (c) await sb.from("kaimax_cases").update({ reply_status: `${status}（${+raw.slice(5, 7)}/${+raw.slice(8, 10)}）` }).eq("id", c.id);
@@ -875,7 +879,11 @@ async function notifyReply(c: Record<string, any> | null, p: Record<string, unkn
   const lines = [
     c ? `案件NO ${c.case_no}（${s(c.media)}・受信 ${c.received_on ? md(c.received_on) : "—"}・担当 ${s(c.assignee) || "未割当"}）` : "案件：特定できず（古いURLなど）",
     `車：${s(c?.car_name ?? p.car)}${c?.customer_name ? "　お客様：" + s(c.customer_name) + " 様" : ""}`,
-    `回答：${s(status)}`,
+    `回答：${s(status)}${REPLY_VARIANTS[t(p.variant)] && t(p.variant) !== "1" ? `（${REPLY_VARIANTS[t(p.variant)]}のページから）` : ""}`,
+    t(p.desired) ? `希望額：${s(p.desired, 50)}` : "",
+    t(p.sellTiming) ? `売却の希望時期：${s(p.sellTiming, 30)}` : "",
+    t(p.rivalPrice) ? `他社の見積額：${s(p.rivalPrice, 50)}${t(p.rivalName) ? "（" + s(p.rivalName, 60) + "）" : ""}` : (t(p.rivalName) ? `他社：${s(p.rivalName, 60)}` : ""),
+    t(p.rivalDeadline) ? `他社の契約期限：${s(p.rivalDeadline, 60)}` : "",
     t(p.method) ? `方法：${s(p.method)}` : "",
     t(p.date) ? `希望日：${s(p.date, 300)}` : "",
     t(p.time) ? `時間帯：${s(p.time)}` : "",

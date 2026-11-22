@@ -179,6 +179,17 @@
   }
   #done h2{font-size:24px;margin:0 0 12px}
   #done p{font-size:16.5px;color:var(--sub);margin:0 0 7px;line-height:1.7}
+  /* 版ごとの見出しバッジ（2回目・最後のご案内・他社決定の方へ） */
+  .pill{position:relative;z-index:1;display:table;margin:0 0 10px;padding:4px 12px;border-radius:999px;
+    background:#FFD166;color:#3A2A00;font-size:14px;font-weight:800;letter-spacing:.04em}
+  .pill.last{background:#fff;color:var(--brand1)}
+  .pill.rival{background:#FF8A65;color:#3B1206}
+  .lead-note{position:relative;z-index:1;margin:10px 0 0;font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.78)}
+  .yen{position:relative}
+  .yen input{padding-right:64px}
+  .yen::after{content:"万円";position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub)}
+  .opt-tag{margin-left:8px;font-size:11.5px;font-weight:700;color:var(--sub);border:1px solid var(--line);border-radius:4px;padding:1px 6px;vertical-align:1px}
+  .xblock[hidden]{display:none}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -191,8 +202,10 @@
              onerror="this.style.display='none';document.getElementById('logoFallback').style.display='inline-flex';">
         <span id="logoFallback" class="logo-fallback" style="display:none">INDIO<span>富山</span></span>
       </div>
-      <h1 class="company">インディオ富山</h1>
-      <p class="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b>無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
+      <span class="pill" id="pill" hidden></span>
+      <h1 class="company" id="headTitle">インディオ富山</h1>
+      <p class="lead" id="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b>無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
+      <p class="lead-note" id="leadNote" hidden></p>
       <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
     </header>
     <section class="reasons">
@@ -208,7 +221,7 @@
       <div class="block">
         <p class="q">現在のご状況<span class="req">必須</span></p>
         <p class="hint">当てはまるものをお選びください。</p>
-        <div class="cards">
+        <div class="cards" id="statusCards">
           <label class="card"><input type="radio" name="status" value="査定を行いたい">
             <span class="t">査定をお願いしたい（無料）</span><span class="d">出張・来店どちらもOK。今の買取価格をお出しします</span></label>
           <label class="card"><input type="radio" name="status" value="まだ検討中">
@@ -220,7 +233,33 @@
           <label class="card"><input type="radio" name="status" value="その他">
             <span class="t">その他</span><span class="d">下の「ご要望」にご記入ください</span></label>
         </div>
-        <p class="reassure">査定は無料です。金額を見てからご判断いただけますので、まずはお気軽にどうぞ。無理な勧誘は一切いたしません。</p>
+        <p class="reassure" id="reassure">査定は無料です。金額を見てからご判断いただけますので、まずはお気軽にどうぞ。無理な勧誘は一切いたしません。</p>
+      </div>
+      <!-- 2回目・最後のご案内：ご希望（金額・時期） -->
+      <div class="block xblock" id="wishBlock" hidden>
+        <p class="q">ご希望をお聞かせください<span class="opt-tag">任意</span></p>
+        <p class="hint">だいたいで大丈夫です。ご希望に近づけるよう、精一杯査定いたします。</p>
+        <label class="f" for="desired">ご希望の買取金額</label>
+        <div class="yen"><input type="text" id="desired" inputmode="decimal" placeholder="例）80" autocomplete="off"></div>
+        <p class="q" style="font-size:16px;margin-top:20px">売却のご希望時期</p>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="sellTiming" value="すぐにでも"><span>すぐにでも</span></label>
+          <label class="chip"><input type="radio" name="sellTiming" value="1ヶ月以内"><span>1ヶ月以内</span></label>
+          <label class="chip"><input type="radio" name="sellTiming" value="3ヶ月以内"><span>3ヶ月以内</span></label>
+          <label class="chip"><input type="radio" name="sellTiming" value="未定"><span>まだ未定</span></label>
+        </div>
+      </div>
+      <!-- 他社決定の方へ：他社の見積もり -->
+      <div class="block xblock" id="rivalBlock" hidden>
+        <p class="q">他社様のお見積もり</p>
+        <p class="hint">金額を基準に、上乗せを目指して当社も査定いたします。</p>
+        <label class="f" for="rivalPrice">他社様の見積額<span class="req" id="rivalReq">必須</span></label>
+        <div class="yen"><input type="text" id="rivalPrice" inputmode="decimal" placeholder="例）120" autocomplete="off"></div>
+        <label class="f" for="rivalName">見積もりを出した会社<span class="opt-tag">任意</span></label>
+        <input type="text" id="rivalName" placeholder="例）〇〇自動車" autocomplete="off">
+        <label class="f" for="rivalDeadline">ご契約の期限・ご予定日<span class="opt-tag">任意</span></label>
+        <input type="text" id="rivalDeadline" placeholder="例）今週末まで／11/30" autocomplete="off">
+        <p class="hint" style="margin:12px 0 0;font-size:13.5px">※お車の状態によっては、ご希望に沿えない場合がございます。あらかじめご了承ください。</p>
       </div>
       <div id="schedule">
         <div class="block">
@@ -316,6 +355,58 @@
     document.getElementById('carName').textContent = car;
     document.getElementById('carBox').hidden = false;
   }
+  // ════════ ページの版（SMS文面のURLの s= で切り替え。2026/11/22〜）════════
+  //  1=初回（既定）／2=2回目「ご希望をお聞かせください」／3=最後のご案内／r=他社で決まりかけている方へ
+  var VARIANT = ({ '2': '2', '3': '3', 'r': 'r' })[qs.get('s') || ''] || '1';
+  var NEED_SCHED = { '査定を行いたい': 1, 'まだ検討中': 1, '希望を伝えたい': 1, '他社額で査定してほしい': 1, '比較したい': 1 };
+  var VARIANTS = {
+    '2': {
+      pill: 'ご希望をお聞かせください', pillCls: '',
+      lead: '先日はお電話にて失礼いたしました。<br><b>ご希望の金額やご都合</b>をお聞かせいただければ、それに近づけるよう精一杯査定いたします。だいたいで大丈夫です。',
+      cards: [
+        ['希望を伝えたい', 'ご希望の金額・条件を伝えたい', 'だいたいの金額でOK。それに近づけるよう査定します'],
+        ['査定を行いたい', '査定をお願いしたい（無料）', '出張・来店どちらもOK。今の買取価格をお出しします'],
+        ['まだ検討中', 'まず金額を見てから決めたい', '査定額を確認してからのご判断で大丈夫です'],
+        ['すでに売却した', 'すでに売却した', '他社などで手放した'],
+        ['売却をやめた', '乗り続けることにした', '今回は売却を見送る'],
+        ['その他', 'その他', '下の「ご要望」にご記入ください']],
+      wish: true },
+    '3': {
+      pill: '最後のご案内', pillCls: 'last',
+      lead: '何度かご連絡を差し上げ、失礼いたしました。こちらが<b>最後のご案内</b>です。<br>ご希望（金額・時期・方法）を一言いただければ、その条件でご提案いたします。',
+      note: 'ご不要の場合は「今回は見送る」を選んで送信いただければ、以降のご連絡は控えます。',
+      cards: [
+        ['希望を伝えたい', 'ご希望を伝えて提案してほしい', '金額・時期など、だいたいで大丈夫です'],
+        ['査定を行いたい', '査定をお願いしたい（無料）', '出張・来店どちらもOK'],
+        ['すでに売却した', 'すでに売却した', '他社などで手放した'],
+        ['売却をやめた', '今回は見送る', '以降のご連絡は控えます']],
+      wish: true },
+    'r': {
+      pill: '他社様でお話が進んでいる方へ', pillCls: 'rival', title: 'ご契約の前に、<br>もう一度だけ。',
+      lead: '他社様のお見積もり額を教えてください。<b>その金額を基準に、上乗せを目指して</b>当社も査定いたします。比べてからお決めいただいて大丈夫です。',
+      cards: [
+        ['他社額で査定してほしい', '他社の金額を伝えて査定してほしい', '上乗せを目指して、当社の査定額をお出しします'],
+        ['比較したい', 'まだ契約前。比べてから決めたい', '査定額を見てからのご判断で大丈夫です'],
+        ['すでに売却した', 'もう他社と契約した', '今回はご縁がなかった'],
+        ['売却をやめた', '今回は見送る', '売却そのものをやめた']],
+      reassure: '査定・出張は無料です。他社様のお見積もりと比べて、納得できる方をお選びください。無理な勧誘は一切いたしません。',
+      rival: true }
+  };
+  var V = VARIANTS[VARIANT];
+  if (V) {
+    var pill = document.getElementById('pill'); pill.textContent = V.pill; pill.className = 'pill ' + (V.pillCls || ''); pill.hidden = false;
+    if (V.title) document.getElementById('headTitle').innerHTML = V.title;
+    document.getElementById('lead').innerHTML = V.lead;
+    if (V.note) { var ln = document.getElementById('leadNote'); ln.textContent = V.note; ln.hidden = false; }
+    if (V.reassure) document.getElementById('reassure').textContent = V.reassure;
+    var esc = function (t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
+    document.getElementById('statusCards').innerHTML = V.cards.map(function (c) {
+      return '<label class="card"><input type="radio" name="status" value="' + esc(c[0]) + '"><span class="t">' + esc(c[1]) + '</span><span class="d">' + esc(c[2]) + '</span></label>';
+    }).join('');
+    if (V.wish) document.getElementById('wishBlock').hidden = false;
+    if (V.rival) document.getElementById('rivalBlock').hidden = false;
+    document.title = V.pill + '｜インディオ富山';
+  }
   // 希望日は「本日〜60日先」の営業日だけを選択肢に出す（2026/11/22〜）
   //  定休日: 毎週火曜・第1/第3月曜（祝日なら営業）。年末年始 12/26〜1/3 は祝日でも休み
   //  祝日は下の表で判定する。★年が変わる前に翌年分を足すこと（2028年以降は未登録）
@@ -373,7 +464,7 @@
   var sched = document.getElementById('schedule');
   document.querySelectorAll('input[name=status]').forEach(function(el){
     el.addEventListener('change', function(){
-      var need = (el.value === '査定を行いたい' || el.value === 'まだ検討中');
+      var need = !!NEED_SCHED[el.value];
       sched.classList.toggle('on', need);
     });
   });
@@ -398,7 +489,11 @@
     document.getElementById('err').classList.remove('on');
     var status = val('status');
     if (!status) return fail('現在のご状況をお選びください。');
-    var needSched = (status === '査定を行いたい' || status === 'まだ検討中');
+    var needSched = !!NEED_SCHED[status];
+    var num = function (id) { return document.getElementById(id).value.trim().replace(/[０-９．]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 0xfee0); }); };
+    var desired = V && V.wish ? num('desired') : '';
+    var rivalPrice = V && V.rival ? num('rivalPrice') : '';
+    if (status === '他社額で査定してほしい' && !rivalPrice) return fail('他社様の見積額をご入力ください。');
     if (needSched && !val('method')) return fail('査定の方法をお選びください。');
     var schedule = needSched ? buildSchedule() : '';
     if (needSched && !document.getElementById('date1').value) return fail('第1希望のご希望日をお選びください。');
@@ -417,6 +512,12 @@
       contact: contact,
       email: (contact === 'メール') ? email : '',
       memo: document.getElementById('memo').value,
+      variant: VARIANT,
+      desired: desired ? desired + '万円' : '',
+      sellTiming: V && V.wish ? val('sellTiming') : '',
+      rivalPrice: rivalPrice ? rivalPrice + '万円' : '',
+      rivalName: V && V.rival ? document.getElementById('rivalName').value.trim() : '',
+      rivalDeadline: V && V.rival ? document.getElementById('rivalDeadline').value.trim() : '',
       ua: navigator.userAgent,
       at: new Date().toISOString()
     };
@@ -429,7 +530,10 @@
   function show(status){
     document.getElementById('form-area').style.display = 'none';
     var done = document.getElementById('done');
-    if (status === 'すでに売却した' || status === '売却をやめた') {
+    if (status === '他社額で査定してほしい' || status === '比較したい') {
+      document.getElementById('doneMsg').textContent =
+        '他社様のお見積もりを拝見し、上乗せを目指して当社の査定額をご案内いたします。担当者より改めてご連絡いたします。';
+    } else if (status === 'すでに売却した' || status === '売却をやめた') {
       document.getElementById('doneMsg').textContent =
         'この度はご連絡ありがとうございました。またの機会がございましたらよろしくお願いいたします。';
     } else {
