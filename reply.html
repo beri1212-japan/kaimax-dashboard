@@ -62,6 +62,12 @@
     box-shadow:0 5px 16px rgba(6,10,40,.28);
   }
   .logo-wrap img{height:50px;width:auto;display:block}
+  /* 「買取」の表示（ロゴの右）と、ページ最上部の車の写真（2026/11/23〜） */
+  .kaitori-mark{display:flex;flex-direction:column;justify-content:center;margin-left:14px;padding-left:14px;border-left:2px solid #DDE0E5;
+    color:var(--brand1);font-size:30px;font-weight:900;line-height:1;letter-spacing:.06em}
+  .kaitori-mark small{font-size:11.5px;font-weight:800;letter-spacing:.2em;color:#C0272D;margin-bottom:5px}
+  .lineup{background:#fff;padding:14px 12px 6px}
+  .lineup img{display:block;width:100%;height:auto}
   .logo-fallback{
     display:inline-flex;align-items:baseline;gap:3px;
     background:#fff;color:var(--brand1);border-radius:9px;
@@ -80,13 +86,6 @@
     border-radius:10px;font-size:16.5px;font-weight:700;color:#fff;
   }
   .car span{display:block;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.08em;margin-bottom:3px}
-  /* お車の画像（写真があれば写真、無ければ車種タイプのイラスト）2026/11/23〜 */
-  .car.has-vis{padding:0;overflow:hidden}
-  .car .vis{position:relative;aspect-ratio:16/8;background:linear-gradient(180deg,#F5F7FC 0%,#E2E6F2 100%);display:flex;align-items:center;justify-content:center}
-  .car .vis img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
-  .car .vis svg{width:78%;height:auto;display:block}
-  .car .vis-cap{padding:11px 16px 13px}
-  .car:not(.has-vis) .vis-cap{padding:0}
   /* 選ばれる理由バンド */
   .reasons{padding:20px 24px 8px;background:var(--accent-soft)}
   .reasons-h{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:.06em;margin:0 0 13px;text-align:center}
@@ -203,17 +202,19 @@
 <body>
 <div class="wrap">
   <div id="form-area">
+    <div class="lineup"><img src="car/lineup.webp" alt="ノア・カローラクロス・アクア・スペーシア" width="2035" height="320"></div>
     <header>
       <div class="logo-wrap">
         <img id="logo" src="logo.png" alt="インディオ富山"
              onerror="this.style.display='none';document.getElementById('logoFallback').style.display='inline-flex';">
         <span id="logoFallback" class="logo-fallback" style="display:none">INDIO<span>富山</span></span>
+        <span class="kaitori-mark"><small>クルマ</small>買取</span>
       </div>
       <span class="pill" id="pill" hidden></span>
       <h1 class="company" id="headTitle">インディオ富山</h1>
       <p class="lead" id="lead">お車の査定の件でお電話を差し上げました。<br>もしお売りのご予定がございましたら、まずは<b>無料査定</b>で今のお車の価値だけでもお確かめください。ご回答は30秒ほどで完了します。</p>
       <p class="lead-note" id="leadNote" hidden></p>
-      <div class="car" id="carBox" hidden><div class="vis" id="carVis" hidden></div><div class="vis-cap"><span>お問い合わせのお車</span><b id="carName"></b></div></div>
+      <div class="car" id="carBox" hidden><span>お問い合わせのお車</span><b id="carName"></b></div>
     </header>
     <section class="reasons">
       <p class="reasons-h">インディオ富山が選ばれる理由</p>
@@ -362,73 +363,6 @@
     document.getElementById('carName').textContent = car;
     document.getElementById('carBox').hidden = false;
   }
-  // ════════ お車の画像（2026/11/23〜）════════
-  //  ① 下の CAR_PHOTOS に載っている車種は、その写真（リポジトリの car/ に白背景・1200×600のWebPで置く）
-  //  ② それ以外は車種タイプ（軽・コンパクト・ミニバン・SUV・セダン・ワゴン・バン・スポーツ）のイラスト
-  var CAR_PHOTOS = [ // keys は車名に含まれていれば一致（全角半角・空白・ハイフンは無視）。長いキーを先に書く
-    { keys: ['カローラクロス'], file: 'corolla-cross' },
-    { keys: ['スペーシア'], file: 'spacia' },
-    { keys: ['ノア'], file: 'noah' },
-    { keys: ['アクア'], file: 'aqua' }
-  ];
-  function nrm(t){ return String(t).normalize('NFKC').replace(/[\s・\-ー‐－]/g, '').toUpperCase(); }
-  function carPhoto(name){
-    var s = nrm(name);
-    for (var i = 0; i < CAR_PHOTOS.length; i++) for (var j = 0; j < CAR_PHOTOS[i].keys.length; j++)
-      if (s.indexOf(nrm(CAR_PHOTOS[i].keys[j])) >= 0) return 'car/' + CAR_PHOTOS[i].file + '.webp';
-    return '';
-  }
-  function carType(name){
-    var s = String(name).normalize('NFKC').replace(/[\s・\-ー‐－]/g, '').toUpperCase();
-    var has = function (list) { return list.some(function (k) { return s.indexOf(k.replace(/[\s・\-ー‐－]/g, '').toUpperCase()) >= 0; }); };
-    // 先に判定するほど優先（例：ランドクルーザー → SUV、ハイエース → バン）
-    if (has(['ミラージュ'])) return 'compact';
-    if (has(['RX7','RX8'])) return 'sports';
-    if (has(['ハイエース','レジアス','キャラバン','NV350','NV200','プロボックス','サクシード','タウンエース','ライトエース','ボンゴ','ハイラックス','トラック','キャンター','エルフ','ダイナ','デュトロ','バネット','ADバン'])) return 'truck';
-    if (has(['NBOX','NWGN','NONE','NVAN','タント','ムーヴ','ムーブ','ワゴンR','スペーシア','ハスラー','ジムニー','デイズ','ルークス','EKワゴン','EKスペース','EKクロス','ミラ','アルト','ラパン','ハイゼット','エブリイ','エブリィ','キャスト','ウェイク','コペン','AZワゴン','フレア','モコ','キャロル','ピクシス','ステラ','プレオ','ルクラ','サクラ','タフト','ソニカ','オッティ','ゼスト','ライフ','バモス','アクティ','S660','ekワゴン','eKワゴン','MRワゴン','セルボ','ムーヴキャンバス','キャンバス'])) return s.indexOf('ジムニーシエラ') >= 0 ? 'suv' : 'kei';
-    if (has(['アルファード','ヴェルファイア','ノア','ヴォクシー','エスクァイア','セレナ','ステップワゴン','シエンタ','フリード','オデッセイ','エスティマ','デリカ','ランディ','ウィッシュ','ストリーム','アイシス','エルグランド','ルーミー','タンク','ソリオ','トール','ジャスティ','プレマシー','MPV','ビアンテ','イプサム','ガイア','ラフェスタ','ジェイド','エリシオン','グランエース','シャラン','トゥーラン'])) return 'minivan';
-    if (has(['ハリアー','RAV4','CHR','ヤリスクロス','カローラクロス','ライズ','ロッキー','ランドクルーザー','ランクル','プラド','FJクルーザー','ヴェゼル','CRV','ZRV','WRV','エクストレイル','キックス','ジューク','ムラーノ','デュアリス','CX3','CX5','CX8','CX30','CX60','フォレスター','XV','クロストレック','アウトランダー','エクリプスクロス','RVR','パジェロ','エスクード','クロスビー','ジムニーシエラ','NX','RX','UX','LX','ラッシュ','ビーゴ','テリオス','レクサスNX','レクサスRX','レクサスUX'])) return 'suv';
-    if (has(['86','BRZ','ロードスター','スープラ','GTR','フェアレディ','シルビア','RX7','RX8','セリカ','MR2','タイプR','インテグラ','コルベット'])) return 'sports';
-    if (has(['フィールダー','レヴォーグ','レガシィ','シャトル','プリウスα','アベンシス','ステーションワゴン','ツーリング','アウトバック','カルディナ','ウイングロード','アテンザワゴン','ワゴン'])) return 'wagon';
-    if (has(['アクア','ヤリス','ヴィッツ','フィット','ノート','マーチ','スイフト','デミオ','MAZDA2','パッソ','ブーン','カローラスポーツ','ポルテ','スペイド','ラクティス','キューブ','ティーダ','イグニス','プリウス','オーリス','インプレッサスポーツ','アクセラスポーツ','MAZDA3ファストバック','ジャスティ','グレイス','クロスビー','リーフ','ベリーサ','bB','ist','イスト'])) return 'compact';
-    return 'sedan';
-  }
-  function carSvg(type){
-    var B = { // 車体（左が前）・窓・前後輪の位置
-      kei:     ['M30,72 L30,56 Q30,50 38,48 L58,44 L70,18 Q72,12 80,12 L184,12 Q196,12 198,22 L202,56 L202,72 Q202,76 198,76 L34,76 Z', ['M74,40 L84,18 L124,18 L124,40 Z','M130,18 L186,18 Q192,18 192,24 L194,40 L130,40 Z'], 62, 172],
-      compact: ['M22,72 L24,58 Q26,52 38,50 L68,46 L92,28 Q96,24 104,24 L176,24 Q190,24 196,34 L206,52 Q208,58 208,64 L208,72 Q208,76 204,76 L24,76 Z', ['M96,44 L108,30 L140,30 L140,44 Z','M146,30 L176,30 Q184,30 188,36 L194,44 L146,44 Z'], 62, 176],
-      minivan: ['M14,72 L16,56 Q18,50 30,48 L52,44 L76,16 Q80,12 90,12 L208,12 Q222,12 224,24 L228,56 L228,72 Q228,76 224,76 L18,76 Z', ['M80,40 L94,18 L130,18 L130,40 Z','M136,18 L172,18 L172,40 L136,40 Z','M178,18 L210,18 Q216,18 217,24 L219,40 L178,40 Z'], 56, 192],
-      suv:     ['M16,70 L18,52 Q20,46 32,44 L62,40 L84,18 Q88,14 98,14 L198,14 Q212,14 216,26 L222,50 L222,70 Q222,74 218,74 L20,74 Z', ['M90,38 L100,22 L140,22 L140,38 Z','M146,22 L196,22 Q204,22 206,28 L210,38 L146,38 Z'], 58, 184],
-      sedan:   ['M18,72 L20,60 Q22,54 34,52 L70,48 L94,32 Q100,28 112,28 L150,28 Q160,28 168,34 L188,48 L214,52 Q222,54 222,62 L222,72 Q222,76 218,76 L22,76 Z', ['M100,48 L112,34 L136,34 L136,48 Z','M142,34 L158,34 Q163,34 167,38 L177,48 L142,48 Z'], 58, 186],
-      wagon:   ['M18,72 L20,58 Q22,52 34,50 L66,46 L90,28 Q96,24 106,24 L200,24 Q212,24 216,34 L222,52 L222,72 Q222,76 218,76 L22,76 Z', ['M96,44 L108,30 L140,30 L140,44 Z','M146,30 L180,30 L180,44 L146,44 Z','M186,30 L202,30 Q208,30 210,36 L212,44 L186,44 Z'], 58, 186],
-      truck:   ['M18,72 L18,40 Q18,30 26,22 L40,12 Q44,10 52,10 L216,10 Q224,10 224,18 L224,72 Q224,76 220,76 L22,76 Z', ['M30,38 L44,16 L78,16 L78,38 Z','M84,16 L120,16 L120,38 L84,38 Z'], 56, 190],
-      sports:  ['M14,72 L16,62 Q18,56 32,54 L80,48 L110,34 Q116,30 128,30 L162,30 Q174,30 186,40 L206,52 Q222,54 224,62 L224,72 Q224,76 220,76 L18,76 Z', ['M114,48 L126,36 L150,36 L150,48 Z','M156,36 L164,36 Q172,36 180,44 L184,48 L156,48 Z'], 58, 188]
-    }[type] || null;
-    if (!B) return '';
-    var r = type === 'suv' ? 15 : 13, cy = type === 'suv' ? 76 : 77;
-    var wheel = function (x) { return '<circle cx="' + x + '" cy="' + cy + '" r="' + (r + 3) + '" fill="#E7EAF4"/><circle cx="' + x + '" cy="' + cy + '" r="' + r + '" fill="#23264A"/><circle cx="' + x + '" cy="' + cy + '" r="' + (r * 0.48).toFixed(1) + '" fill="#BCC2D6"/>'; };
-    return '<svg viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="お車のイメージ">' +
-      '<ellipse cx="120" cy="' + (cy + r + 1) + '" rx="112" ry="5" fill="rgba(24,28,74,.13)"/>' +
-      '<path d="' + B[0] + '" fill="#3C4590"/>' +
-      B[1].map(function (w) { return '<path d="' + w + '" fill="#DCE3F5"/>'; }).join('') +
-      wheel(B[2]) + wheel(B[3]) + '</svg>';
-  }
-  function showCarVisual(name){
-    var box = document.getElementById('carBox'), vis = document.getElementById('carVis');
-    var type = carType(name);
-    var setSvg = function (t) { vis.innerHTML = carSvg(t); };
-    var rank = 0;
-    var setImg = function (src, lv) {
-      var img = new Image(); img.alt = 'お車のイメージ';
-      img.onload = function () { if (lv < rank) return; rank = lv; vis.innerHTML = ''; vis.appendChild(img); };
-      img.src = src;
-    };
-    setSvg(type); vis.hidden = false; box.classList.add('has-vis');
-    var local = carPhoto(name);
-    if (local) setImg(local, 1);   // car/ に置いた車種の写真
-  }
-  if (car) showCarVisual(car);
-
   // ════════ ページの版（SMS文面のURLの s= で切り替え。2026/11/22〜）════════
   //  1=初回（既定）／2=2回目「ご希望をお聞かせください」／3=最後のご案内／r=他社で決まりかけている方へ
   var VARIANT = ({ '2': '2', '3': '3', 'r': 'r' })[qs.get('s') || ''] || '1';
